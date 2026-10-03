@@ -1,0 +1,88 @@
+.places {
+  padding-top: 8px;
+}
+
+.swap {
+  display: flex;
+  justify-content: center;
+}
+
+.hint {
+  margin: 8px 0 0;
+}
+
+.options {
+  list-style: none;
+  margin: 0;
+  padding: 0 16px 16px;
+}
+
+.option {
+  margin-bottom: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid var(--ion-color-step-150, var(--ion-background-color-step-150, #d7d8da));
+  background: var(--ion-color-step-50, var(--ion-background-color-step-50, #f4f5f8));
+}
+
+.option-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.option-lines {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.option-time {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 0.95rem;
+
+  strong {
+    font-size: 1.2rem;
+  }
+}
+
+.legs {
+  list-style: none;
+  margin: 12px 0 8px;
+  padding: 0;
+}
+
+.leg {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 0 8px 12px;
+  border-inline-start: 3px solid var(--ion-color-primary);
+}
+
+.leg-line {
+  font-weight: 600;
+}
+
+.leg-meta,
+.next-bus {
+  font-size: 0.9rem;
+  color: var(--ion-color-step-600, var(--ion-text-color-step-400, #666));
+}
+
+.next-bus {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.transfer {
+  padding: 6px 0 6px 12px;
+  font-style: italic;
+  border-inline-start: 3px dashed var(--ion-color-medium);
+}

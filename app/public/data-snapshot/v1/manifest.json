@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "dataVersion": "4612a6fd7b37c56a",
-  "generatedAt": "2026-10-03T17:26:02.331Z",
+  "dataVersion": "aeb279af98f8b4bf",
+  "generatedAt": "2026-10-03T17:52:55.444Z",
   "counts": {
     "lines": 49,
     "stops": 1135,
@@ -12,8 +12,8 @@
   "files": {
     "network": {
       "path": "network.json",
-      "bytes": 152061,
-      "sha256": "d0003df134603266fb4c5356fa3283aa193e4dc5809cbedab53ff3d95a20ca58"
+      "bytes": 165089,
+      "sha256": "79010566822bb3560f73763f44dfaf4684198bf194262fd8327dc81fcb97daae"
     },
     "shapesOverview": {
       "path": "shapes-overview.json",

@@ -1,0 +1,148 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/" [text]="'common.back' | transloco" />
+    </ion-buttons>
+    <ion-title>{{ 'plan.title' | transloco }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <app-data-status-banner />
+
+  <section class="places ion-padding-horizontal" [attr.aria-label]="'plan.placesLabel' | transloco">
+    <app-place-picker
+      [label]="'plan.origin' | transloco"
+      [place]="origin()"
+      [zones]="zones()"
+      (placeChange)="origin.set($event)"
+    />
+    <div class="swap">
+      <ion-button
+        fill="clear"
+        size="small"
+        [disabled]="!origin() && !destination()"
+        (click)="swap()"
+      >
+        <ion-icon slot="start" name="swap-vertical-outline" aria-hidden="true" />
+        {{ 'plan.swap' | transloco }}
+      </ion-button>
+    </div>
+    <app-place-picker
+      [label]="'plan.destination' | transloco"
+      [place]="destination()"
+      [zones]="zones()"
+      (placeChange)="destination.set($event)"
+    />
+    <p class="hint">
+      <ion-note>{{ 'plan.locationSoon' | transloco }}</ion-note>
+    </p>
+  </section>
+
+  @if (origin() && destination()) {
+    <section class="results" aria-live="polite" [attr.aria-label]="'plan.resultsLabel' | transloco">
+      @if (samePlace()) {
+        <p class="ion-padding-horizontal">{{ 'plan.samePlace' | transloco }}</p>
+      } @else if (options().length === 0) {
+        <p class="ion-padding-horizontal">{{ 'plan.noOptions' | transloco }}</p>
+      } @else {
+        <h2 class="ion-padding-horizontal">
+          {{ 'plan.optionCount' | transloco: { count: options().length } }}
+        </h2>
+        <p class="ion-padding-horizontal">
+          <ion-note>{{ 'plan.timesNote' | transloco }}</ion-note>
+        </p>
+        <ol class="options">
+          @for (option of options(); track $index) {
+            <li class="option">
+              <div class="option-header">
+                <span class="option-lines">
+                  @for (leg of option.legs; track $index; let last = $last) {
+                    <app-line-badge [code]="leg.lineId" />
+                    @if (!last) {
+                      <span aria-hidden="true">→</span>
+                    }
+                  }
+                </span>
+                <span class="option-time">
+                  <strong>{{
+                    'plan.minutes' | transloco: { minutes: option.totalMinutes }
+                  }}</strong>
+                  <span>{{ 'plan.arrival' | transloco: { time: arrivalTime(option) } }}</span>
+                </span>
+              </div>
+              <p class="visually-hidden">
+                {{
+                  (option.legs.length === 1 ? 'plan.directSummary' : 'plan.transferSummary')
+                    | transloco: { minutes: option.totalMinutes }
+                }}
+              </p>
+
+              <ol class="legs">
+                @for (leg of option.legs; track $index; let first = $first) {
+                  @if (!first) {
+                    <li class="transfer">
+                      @if (option.walkMinutes > 0) {
+                        {{ transferWalkText(option) }}
+                      } @else {
+                        {{ 'plan.transferAt' | transloco: { stop: stopName(leg.fromStopId) } }}
+                      }
+                    </li>
+                  }
+                  <li class="leg">
+                    <span class="leg-line">
+                      {{ 'lines.line' | transloco: { id: leg.lineId } }} ·
+                      {{ 'lineDetail.towards' | transloco: { headsign: leg.headsign } }}
+                    </span>
+                    <span>
+                      {{
+                        'plan.boardAt'
+                          | transloco: { stop: stopName(leg.fromStopId), code: leg.fromStopId }
+                      }}
+                    </span>
+                    @if (first) {
+                      <span class="next-bus">
+                        <ion-icon name="time-outline" aria-hidden="true" />
+                        {{ 'stopDetail.nextBusSoon' | transloco }}
+                      </span>
+                    }
+                    <span>
+                      {{
+                        'plan.alightAt'
+                          | transloco: { stop: stopName(leg.toStopId), code: leg.toStopId }
+                      }}
+                    </span>
+                    <span class="leg-meta">
+                      {{
+                        'plan.legMeta' | transloco: { stops: leg.stopCount, minutes: leg.minutes }
+                      }}
+                    </span>
+                  </li>
+                }
+              </ol>
+
+              @if (hasNightLine(option)) {
+                <p>
+                  <ion-note>{{ 'plan.nightNote' | transloco }}</ion-note>
+                </p>
+              }
+              @if (isEstimated(option)) {
+                <p>
+                  <ion-note>{{ 'plan.estimatedNote' | transloco }}</ion-note>
+                </p>
+              }
+              <ion-button
+                fill="outline"
+                size="small"
+                [routerLink]="['/map']"
+                [queryParams]="{ line: option.legs[0]!.lineId }"
+              >
+                {{ 'plan.viewOnMap' | transloco }}
+              </ion-button>
+            </li>
+          }
+        </ol>
+      }
+    </section>
+  }
+</ion-content>

@@ -17,6 +17,7 @@ import { MapProvider } from '../core/map/map-provider';
 import { buildIndex } from '../data/static-repositories';
 import { networkFixture } from '../data/testing/data-fixtures';
 import { HomePage } from './home/home.page';
+import { PlanPage } from './plan/plan.page';
 
 /** Pantallas con datos de prueba: búsqueda, listas y detalles (RF-03 a RF-06). */
 describe('Pantallas con datos', () => {
@@ -151,5 +152,24 @@ describe('Pantallas con datos', () => {
     expect(text).toContain('Aplicación no oficial');
     expect(text).toContain('CC BY-SA 4.0');
     expect(text).toContain('OpenStreetMap');
+  });
+
+  it('"Cómo llegar" propone la línea directa con su tiempo aproximado', async () => {
+    const harness = await RouterTestingHarness.create();
+    const page = await harness.navigateByUrl('/plan', PlanPage);
+    const signals = page as unknown as {
+      origin: { set(p: unknown): void };
+      destination: { set(p: unknown): void };
+    };
+    signals.origin.set({ kind: 'stop', id: '1', name: 'Zapateros', stopIds: ['1'] });
+    signals.destination.set({ kind: 'stop', id: '2', name: 'Alameda', stopIds: ['2'] });
+    harness.detectChanges();
+    const text =
+      (harness.routeNativeElement as HTMLElement).textContent?.replace(/\s+/g, ' ') ?? '';
+
+    expect(text).toContain('1 opciones');
+    expect(text).toContain('Sube en Zapateros (1)');
+    expect(text).toContain('Baja en Alameda (2)');
+    expect(text).toContain('Llegada aprox.');
   });
 });

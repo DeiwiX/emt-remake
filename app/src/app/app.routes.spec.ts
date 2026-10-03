@@ -22,6 +22,7 @@ import { StopsPage } from './features/stops/stops.page';
 import { StopDetailPage } from './features/stop-detail/stop-detail.page';
 import { MapPage } from './features/map/map.page';
 import { SettingsPage } from './features/settings/settings.page';
+import { PlanPage } from './features/plan/plan.page';
 import { AboutPage } from './features/about/about.page';
 
 describe('Rutas de la app', () => {
@@ -63,6 +64,7 @@ describe('Rutas de la app', () => {
     ['/stops', StopsPage],
     ['/stops/152', StopDetailPage],
     ['/map', MapPage],
+    ['/plan', PlanPage],
     ['/settings', SettingsPage],
     ['/about', AboutPage],
   ];

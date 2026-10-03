@@ -70,19 +70,27 @@
         </span>
       </a>
 
+      <a class="card" routerLink="/plan">
+        <ion-icon class="card-icon" name="trail-sign-outline" aria-hidden="true" />
+        <span class="card-text">
+          <span class="card-title">{{ 'plan.title' | transloco }}</span>
+          <span class="card-description">{{ 'home.planDescription' | transloco }}</span>
+        </span>
+      </a>
+
       <!-- Espacio reservado para la Fase 2: visibles pero no pulsables. -->
       <div class="card card-soon" aria-disabled="true">
-        <ion-icon class="card-icon" name="star-outline" aria-hidden="true" />
+        <ion-icon class="card-icon" name="navigate-outline" aria-hidden="true" />
         <span class="card-text">
-          <span class="card-title">{{ 'home.favorites' | transloco }}</span>
+          <span class="card-title">{{ 'home.nearMe' | transloco }}</span>
           <span class="card-description">{{ 'home.comingInPhase2' | transloco }}</span>
         </span>
       </div>
 
       <div class="card card-soon" aria-disabled="true">
-        <ion-icon class="card-icon" name="navigate-outline" aria-hidden="true" />
+        <ion-icon class="card-icon" name="star-outline" aria-hidden="true" />
         <span class="card-text">
-          <span class="card-title">{{ 'home.nearMe' | transloco }}</span>
+          <span class="card-title">{{ 'home.favorites' | transloco }}</span>
           <span class="card-description">{{ 'home.comingInPhase2' | transloco }}</span>
         </span>
       </div>

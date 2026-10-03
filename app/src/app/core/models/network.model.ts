@@ -17,6 +17,10 @@ export interface Direction {
   readonly stopIds: readonly string[];
   readonly shapeId: string;
   readonly shapeQuality: ShapeQuality;
+  /** Minutos desde la primera parada, alineados con stopIds (si los datos los traen). */
+  readonly minutes?: readonly number[];
+  /** "schedule" = horario programado; "estimate" = estimado por distancia. */
+  readonly timesSource?: 'schedule' | 'estimate';
 }
 
 export interface Line {

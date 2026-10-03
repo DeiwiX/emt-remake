@@ -20,7 +20,8 @@
     "menuLabel": "Sections",
     "mapDescription": "All lines and their routes",
     "lineCount": "{{count}} lines",
-    "stopCount": "{{count}} stops"
+    "stopCount": "{{count}} stops",
+    "planDescription": "Options and approximate time"
   },
   "lines": {
     "title": "All lines",
@@ -122,5 +123,35 @@
     "unavailable": "No data available. Check your connection and try again.",
     "outdated": "The data could not be updated. Showing data from {{date}}, which may be out of date.",
     "updatedOn": "Data from {{date}}"
+  },
+  "plan": {
+    "title": "Get there",
+    "origin": "From",
+    "destination": "To",
+    "searchPlaceholder": "stop, neighbourhood or district",
+    "change": "Change",
+    "swap": "Swap",
+    "kind": {
+      "stop": "Stop"
+    },
+    "placesLabel": "From and to",
+    "locationSoon": "Using your location as the starting point will come with “Near me”.",
+    "resultsLabel": "Ways to get there",
+    "samePlace": "The start and the destination are the same place.",
+    "noOptions": "No lines go from the start to the destination, either direct or with one change.",
+    "optionCount": "{{count}} options",
+    "timesNote": "Approximate times from the published timetable, not counting the wait at the stop.",
+    "minutes": "~{{minutes}} min",
+    "arrival": "Arrive approx. {{time}}",
+    "directSummary": "Direct, about {{minutes}} minutes.",
+    "transferSummary": "With one change, about {{minutes}} minutes in total.",
+    "transferAt": "Change at {{stop}}",
+    "boardAt": "Board at {{stop}} ({{code}})",
+    "alightAt": "Get off at {{stop}} ({{code}})",
+    "legMeta": "{{stops}} stops · ~{{minutes}} min",
+    "estimatedNote": "A line in this option has no published timetable: its time is estimated from distance.",
+    "viewOnMap": "View on the map",
+    "nightNote": "Includes a night line: it only runs at night.",
+    "transferWalk": "Change: get off at {{from}} and walk ~{{minutes}} min to {{to}}"
   }
 }

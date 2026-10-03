@@ -37,6 +37,9 @@ export interface PublishedDirection {
   stopIds: string[];
   shapeId: string;
   shapeQuality: 'official' | 'approximate';
+  /** Opcionales: las publicaciones anteriores a "Cómo llegar" no los traen. */
+  minutes?: number[];
+  timesSource?: 'schedule' | 'estimate';
 }
 
 export interface PublishedLine {
@@ -170,6 +173,29 @@ export function parseShapes(value: unknown): ShapesFile {
   };
 }
 
+/**
+ * Tiempos de un sentido (opcionales). Si vienen mal formados se descartan en vez
+ * de rechazar toda la red: el planificador puede funcionar con una estimación.
+ */
+function parseTimes(
+  direction: Record<string, unknown>,
+  where: string,
+  stopCount: number,
+): Pick<PublishedDirection, 'minutes' | 'timesSource'> {
+  const minutes = direction['minutes'];
+  const source = direction['timesSource'];
+  const valid =
+    Array.isArray(minutes) &&
+    minutes.length === stopCount &&
+    minutes.every((m) => typeof m === 'number' && Number.isFinite(m)) &&
+    (source === 'schedule' || source === 'estimate');
+  if (!valid) {
+    if (minutes !== undefined) console.warn(`${where}: tiempos no válidos, se ignoran`);
+    return {};
+  }
+  return { minutes: minutes as number[], timesSource: source };
+}
+
 function parseLine(value: unknown, index: number): PublishedLine {
   const where = `network.lines[${index}]`;
   const l = record(value, where);
@@ -181,14 +207,16 @@ function parseLine(value: unknown, index: number): PublishedLine {
       if (quality !== 'official' && quality !== 'approximate') {
         throw new DataFormatError(`${dw}.shapeQuality: valor no válido`);
       }
+      const stopIds = array(direction['stopIds'], `${dw}.stopIds`).map((id, j) =>
+        string(id, `${dw}.stopIds[${j}]`),
+      );
       return {
         id: number(direction['id'], `${dw}.id`),
         headsign: string(direction['headsign'], `${dw}.headsign`),
-        stopIds: array(direction['stopIds'], `${dw}.stopIds`).map((id, j) =>
-          string(id, `${dw}.stopIds[${j}]`),
-        ),
+        stopIds,
         shapeId: string(direction['shapeId'], `${dw}.shapeId`),
         shapeQuality: quality,
+        ...parseTimes(direction, dw, stopIds.length),
       };
     },
   );

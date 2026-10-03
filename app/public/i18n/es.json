@@ -20,7 +20,8 @@
     "menuLabel": "Secciones",
     "mapDescription": "Todas las líneas y sus recorridos",
     "lineCount": "{{count}} líneas",
-    "stopCount": "{{count}} paradas"
+    "stopCount": "{{count}} paradas",
+    "planDescription": "Opciones y tiempo aproximado"
   },
   "lines": {
     "title": "Todas las líneas",
@@ -122,5 +123,35 @@
     "unavailable": "No hay datos disponibles. Comprueba tu conexión e inténtalo de nuevo.",
     "outdated": "No se han podido actualizar los datos. Se muestran los del {{date}}, que pueden estar desactualizados.",
     "updatedOn": "Datos del {{date}}"
+  },
+  "plan": {
+    "title": "Cómo llegar",
+    "origin": "Origen",
+    "destination": "Destino",
+    "searchPlaceholder": "parada, barrio o distrito",
+    "change": "Cambiar",
+    "swap": "Intercambiar",
+    "kind": {
+      "stop": "Parada"
+    },
+    "placesLabel": "Origen y destino",
+    "locationSoon": "Usar tu ubicación como origen llegará con «Cerca de mí».",
+    "resultsLabel": "Opciones para llegar",
+    "samePlace": "El origen y el destino son el mismo lugar.",
+    "noOptions": "No hay líneas que lleven del origen al destino, ni directas ni con un transbordo.",
+    "optionCount": "{{count}} opciones",
+    "timesNote": "Tiempos aproximados según el horario programado, sin contar la espera en la parada.",
+    "minutes": "~{{minutes}} min",
+    "arrival": "Llegada aprox. {{time}}",
+    "directSummary": "Directo, unos {{minutes}} minutos.",
+    "transferSummary": "Con un transbordo, unos {{minutes}} minutos en total.",
+    "transferAt": "Transbordo en {{stop}}",
+    "boardAt": "Sube en {{stop}} ({{code}})",
+    "alightAt": "Baja en {{stop}} ({{code}})",
+    "legMeta": "{{stops}} paradas · ~{{minutes}} min",
+    "estimatedNote": "Alguna línea de esta opción no publica horario: su tiempo es una estimación por distancia.",
+    "viewOnMap": "Ver en el mapa",
+    "nightNote": "Incluye una línea nocturna: solo circula de noche.",
+    "transferWalk": "Transbordo: baja en {{from}} y camina ~{{minutes}} min hasta {{to}}"
   }
 }

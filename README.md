@@ -95,6 +95,14 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
 - El buscador del mapa también encuentra barrios y distritos: al elegir uno se marca su contorno, se muestran sus paradas y se resaltan las líneas que pasan por ellas. Los límites proceden del "Sistema de información cartográfica" del Ayuntamiento (mismo portal y licencia).
 - Capas del mapa: "Claro" y "Oscuro" (OpenFreeMap) y "Satélite" (PNOA del IGN, CC BY 4.0).
 
+### Cómo llegar
+
+- Origen y destino: una parada, un barrio o un distrito.
+- Propone líneas directas y, después, combinaciones con un transbordo. El transbordo puede hacerse en la misma parada o andando hasta otra a menos de 250 m. No repite la misma línea en varias combinaciones, y las líneas nocturnas (N1…N4) van al final con aviso.
+- El tiempo de cada tramo sale del horario programado del GTFS. El script publica, para cada sentido, los minutos desde la primera parada (`minutes`), calculados como la mediana de los viajes. Si una línea no tiene horario (91–93), se estima por distancia y se indica.
+- Los tiempos no incluyen la espera en la parada. La hora de llegada es aproximada (hora actual + tiempo de viaje).
+- Más adelante: usar la ubicación como origen (Fase 2), tiempos de espera reales (Fase 3) y buscar comercios o direcciones.
+
 ### Ajustes
 
 - Idioma (español o inglés), tema (según el sistema, claro u oscuro) y alto contraste. Se aplican al momento y se guardan solo en el dispositivo (`localStorage`). La primera vez el idioma se elige según el del navegador.

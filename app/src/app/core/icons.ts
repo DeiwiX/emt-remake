@@ -7,7 +7,9 @@ import {
   navigateOutline,
   settingsOutline,
   starOutline,
+  swapVerticalOutline,
   timeOutline,
+  trailSignOutline,
 } from 'ionicons/icons';
 
 /**
@@ -23,6 +25,8 @@ export function registerAppIcons(): void {
     navigateOutline,
     settingsOutline,
     starOutline,
+    swapVerticalOutline,
     timeOutline,
+    trailSignOutline,
   });
 }
