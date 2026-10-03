@@ -88,7 +88,10 @@ export function titleCase(text: string): string {
     .map((word, i) =>
       i > 0 && LOWERCASE_WORDS.has(word)
         ? word
-        : word.replace(/(^|[-(/])(\p{L})/gu, (_, sep: string, letter: string) => sep + letter.toLocaleUpperCase('es')),
+        : word.replace(
+            /(^|[-(/])(\p{L})/gu,
+            (_, sep: string, letter: string) => sep + letter.toLocaleUpperCase('es'),
+          ),
     )
     .join(' ');
 }

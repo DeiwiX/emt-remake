@@ -23,7 +23,10 @@ export interface DirectionTimes {
  * del trazado emparejado y rellena las paradas que el GTFS no tiene interpolando
  * por distancia; si el horario no encaja, estima por distancia.
  */
-export function directionTimes(stops: EmtStop[], pattern: TravelPattern | undefined): DirectionTimes {
+export function directionTimes(
+  stops: EmtStop[],
+  pattern: TravelPattern | undefined,
+): DirectionTimes {
   const cumulative = cumulativeDistances(stops);
   const known = pattern ? alignToPattern(stops, pattern) : [];
   const matched = known.filter((m) => m !== undefined).length;

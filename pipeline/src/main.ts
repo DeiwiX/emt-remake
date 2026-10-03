@@ -20,6 +20,7 @@ import { download } from './sources/fetch.ts';
 import { parseGtfsZip } from './sources/gtfs.ts';
 import { parseZonesCsv } from './sources/zones.ts';
 import { buildZones } from './build/build-zones.ts';
+import { buildTimetables, countDepartures } from './build/build-timetables.ts';
 import { ValidationError } from './validation.ts';
 
 async function main(): Promise<void> {
@@ -46,6 +47,7 @@ async function main(): Promise<void> {
     ],
     dataset.network.stops,
   );
+  const timetables = buildTimetables(dataset.network, gtfs.trips, gtfs.serviceDates);
 
   const counts: Manifest['counts'] = {
     lines: dataset.network.lines.length,
@@ -53,6 +55,7 @@ async function main(): Promise<void> {
     shapes: Object.keys(dataset.shapesDetail.shapes).length,
     approximateShapes: dataset.report.approximateDirections.length,
     zones: zones.zones.length,
+    departures: countDepartures(timetables),
   };
   checkPlausibility(counts, await readPreviousCounts(values.previous));
 
@@ -61,6 +64,7 @@ async function main(): Promise<void> {
     shapesOverview: JSON.stringify(dataset.shapesOverview),
     shapesDetail: JSON.stringify(dataset.shapesDetail),
     zones: JSON.stringify(zones),
+    timetables: JSON.stringify(timetables),
   };
   const entry = (path: string, content: string): FileEntry => ({
     path,
@@ -72,6 +76,7 @@ async function main(): Promise<void> {
     shapesOverview: entry('shapes-overview.json', contents.shapesOverview),
     shapesDetail: entry('shapes-detail.json', contents.shapesDetail),
     zones: entry('zones.json', contents.zones),
+    timetables: entry('timetables.json', contents.timetables),
   };
 
   const manifest: Manifest = {
@@ -99,6 +104,7 @@ async function main(): Promise<void> {
     writeFile(join(values.out, files.shapesOverview.path), contents.shapesOverview),
     writeFile(join(values.out, files.shapesDetail.path), contents.shapesDetail),
     writeFile(join(values.out, files.zones.path), contents.zones),
+    writeFile(join(values.out, files.timetables.path), contents.timetables),
     writeFile(join(values.out, 'report.json'), JSON.stringify(dataset.report, null, 2)),
   ]);
   // El manifest se escribe el último: solo existe si todo lo anterior ha ido bien.
@@ -106,7 +112,7 @@ async function main(): Promise<void> {
 
   console.log(
     `Datos ${manifest.dataVersion}: ${counts.lines} líneas, ${counts.stops} paradas, ` +
-      `${counts.shapes} trazados (${counts.approximateShapes} aproximados), ${counts.zones} zonas, ` +
+      `${counts.shapes} trazados (${counts.approximateShapes} aproximados), ${counts.zones} zonas, ${counts.departures} salidas, ` +
       `${dataset.report.stopConflicts.length} conflictos de paradas.`,
   );
 }

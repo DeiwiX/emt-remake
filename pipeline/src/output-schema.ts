@@ -72,6 +72,18 @@ export interface ZonesFile {
   zones: PublishedZone[];
 }
 
+/**
+ * Salidas programadas (GTFS) por sentido de línea y día de servicio. La hora de
+ * paso por cada parada = salida + minutos del sentido en esa parada (aproximado).
+ */
+export interface TimetablesFile {
+  schemaVersion: number;
+  /** Fechas AAAAMMDD de cada día de servicio. */
+  services: Record<string, string[]>;
+  /** Clave "línea|sentido" -> día de servicio -> minutos desde medianoche (pueden pasar de 1440). */
+  departures: Record<string, Record<string, number[]>>;
+}
+
 export interface FileEntry {
   path: string;
   bytes: number;
@@ -89,12 +101,14 @@ export interface Manifest {
     shapes: number;
     approximateShapes: number;
     zones: number;
+    departures: number;
   };
   files: {
     network: FileEntry;
     shapesOverview: FileEntry;
     shapesDetail: FileEntry;
     zones: FileEntry;
+    timetables: FileEntry;
   };
   sources: { name: string; dataset: string; url: string; lastModified: string | null }[];
   license: { id: string; url: string; attribution: string };

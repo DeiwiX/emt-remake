@@ -22,7 +22,9 @@ export function buildZones(zones: RawZone[], stops: PublishedStop[]): ZonesFile 
       stopIds: stopsInZone(zone.polygons, stops),
     }))
     // Primero los distritos (zonas grandes) y después los barrios, por nombre.
-    .sort((a, b) => (a.kind === b.kind ? a.name.localeCompare(b.name, 'es') : a.kind === 'district' ? -1 : 1));
+    .sort((a, b) =>
+      a.kind === b.kind ? a.name.localeCompare(b.name, 'es') : a.kind === 'district' ? -1 : 1,
+    );
   return { schemaVersion: SCHEMA_VERSION, zones: published };
 }
 
@@ -30,7 +32,11 @@ export function stopsInZone(polygons: Polygon[], stops: PublishedStop[]): string
   const rings = polygons.flat();
   const bounds = boundingBox(rings.flat(), ZONE_STOP_MARGIN_M * DEGREES_PER_METRE * 1.3);
   const candidates = stops.filter(
-    (s) => s.lat >= bounds.minLat && s.lat <= bounds.maxLat && s.lon >= bounds.minLon && s.lon <= bounds.maxLon,
+    (s) =>
+      s.lat >= bounds.minLat &&
+      s.lat <= bounds.maxLat &&
+      s.lon >= bounds.minLon &&
+      s.lon <= bounds.maxLon,
   );
   if (candidates.length === 0) return [];
 
@@ -43,7 +49,9 @@ export function stopsInZone(polygons: Polygon[], stops: PublishedStop[]): string
     });
   }
   return candidates
-    .filter((_, i) => nearBorder[i] || polygons.some((polygon) => insidePolygon(points[i]!, polygon)))
+    .filter(
+      (_, i) => nearBorder[i] || polygons.some((polygon) => insidePolygon(points[i]!, polygon)),
+    )
     .map((s) => s.id);
 }
 

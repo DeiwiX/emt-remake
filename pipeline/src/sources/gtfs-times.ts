@@ -19,19 +19,28 @@ interface TripStop {
   seconds: number;
 }
 
+export interface StopTimesSummary {
+  /** Patrón de tiempos por trazado (shape_id). */
+  patterns: Map<string, TravelPattern>;
+  /** Hora de salida de cada viaje desde su primera parada, en segundos desde medianoche. */
+  tripStarts: Map<string, number>;
+}
+
 /**
  * stop_times ocupa unos 35 MB: se lee línea a línea con un troceado simple (el
  * fichero no usa comillas) y solo se guardan los viajes con trazado conocido.
  */
-export function parseTravelPatterns(
+export function parseStopTimes(
   stopTimesCsv: string,
   trips: Record<string, string>[],
   stops: Record<string, string>[],
-): Map<string, TravelPattern> {
+): StopTimesSummary {
   const shapeByTrip = new Map(
     trips.filter((t) => t['trip_id'] && t['shape_id']).map((t) => [t['trip_id']!, t['shape_id']!]),
   );
-  const codeByStopId = new Map(stops.map((s) => [s['stop_id'] ?? '', (s['stop_code'] ?? '').trim()]));
+  const codeByStopId = new Map(
+    stops.map((s) => [s['stop_id'] ?? '', (s['stop_code'] ?? '').trim()]),
+  );
 
   const lines = stopTimesCsv.replace(/^﻿/, '').split(/\r?\n/);
   const header = (lines[0] ?? '').split(',').map((h) => h.trim());
@@ -44,7 +53,7 @@ export function parseTravelPatterns(
     col('stop_sequence'),
   ];
   if ([tripCol, stopCol, sequenceCol].includes(-1) || (arrivalCol === -1 && departureCol === -1)) {
-    return new Map();
+    return { patterns: new Map(), tripStarts: new Map() };
   }
 
   const stopsByTrip = new Map<string, TripStop[]>();
@@ -62,9 +71,11 @@ export function parseTravelPatterns(
 
   // Por trazado: viajes agrupados por secuencia de paradas.
   const byShape = new Map<string, Map<string, number[][]>>();
+  const tripStarts = new Map<string, number>();
   for (const [tripId, tripStops] of stopsByTrip) {
     tripStops.sort((a, b) => a.sequence - b.sequence);
     const start = tripStops[0]!.seconds;
+    tripStarts.set(tripId, start);
     const codes = tripStops.map((s) => codeByStopId.get(s.stopId) ?? '');
     if (codes.some((c) => !c)) continue;
     const key = codes.join(',');
@@ -82,7 +93,7 @@ export function parseTravelPatterns(
     const minutes = samples[0]!.map((_, i) => round1(median(samples.map((s) => s[i]!))));
     result.set(shapeId, { stopCodes: key.split(','), minutes, trips: samples.length });
   }
-  return result;
+  return { patterns: result, tripStarts };
 }
 
 /** "25:10:00" -> segundos (GTFS admite horas ≥ 24 para viajes que pasan de medianoche). */

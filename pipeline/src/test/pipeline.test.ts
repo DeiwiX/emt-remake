@@ -15,7 +15,9 @@ import { checkPlausibility } from '../build/sanity.ts';
 import { buildZones, insidePolygon, stopsInZone } from '../build/build-zones.ts';
 import { parseWktPolygons, parseZonesCsv, titleCase } from '../sources/zones.ts';
 import { parseCsv } from '../sources/csv.ts';
-import { parseTravelPatterns } from '../sources/gtfs-times.ts';
+import { parseStopTimes } from '../sources/gtfs-times.ts';
+import { parseServiceDates } from '../sources/gtfs.ts';
+import { buildTimetables } from '../build/build-timetables.ts';
 import { directionTimes } from '../build/travel-times.ts';
 import { parseEmtLines } from '../sources/emt-lines.ts';
 import { parseGtfsZip } from '../sources/gtfs.ts';
@@ -139,7 +141,11 @@ describe('buildDataset', () => {
   const gtfs = {
     shapes: new Map<string, LatLon[]>([['S1', STREET]]),
     shapesByLineCode: new Map([['1', [{ shapeId: 'S1', trips: 3 }]]]),
-    travelPatterns: new Map([['S1', { stopCodes: ['11', '12', '13'], minutes: [0, 2.5, 6], trips: 4 }]]),
+    travelPatterns: new Map([
+      ['S1', { stopCodes: ['11', '12', '13'], minutes: [0, 2.5, 6], trips: 4 }],
+    ]),
+    trips: [],
+    serviceDates: new Map(),
   };
   const dataset = buildDataset(lines, gtfs);
   const [line1, line92] = dataset.network.lines;
@@ -166,7 +172,14 @@ describe('buildDataset', () => {
 });
 
 describe('checkPlausibility', () => {
-  const ok = { lines: 49, stops: 1135, shapes: 89, approximateShapes: 4, zones: 430 };
+  const ok = {
+    lines: 49,
+    stops: 1135,
+    shapes: 89,
+    approximateShapes: 4,
+    zones: 430,
+    departures: 20000,
+  };
 
   it('acepta datos normales', () => {
     assert.doesNotThrow(() => checkPlausibility(ok, ok));
@@ -194,8 +207,7 @@ describe('zonas', () => {
     [36.722, -4.42],
     [36.72, -4.42],
   ];
-  const wkt =
-    'POLYGON ((-4.42 36.72, -4.4175 36.72, -4.4175 36.722, -4.42 36.722, -4.42 36.72))';
+  const wkt = 'POLYGON ((-4.42 36.72, -4.4175 36.72, -4.4175 36.722, -4.42 36.722, -4.42 36.72))';
 
   it('lee POLYGON y MULTIPOLYGON en WKT como [lat, lon]', () => {
     assert.deepEqual(parseWktPolygons(wkt), [[square]]);
@@ -218,7 +230,13 @@ x,7,1,TEATINOS   ,T,"${wkt}"
   });
 
   it('incluye las paradas de dentro y las de junto al borde, no las lejanas', () => {
-    const stop = (id: string, lat: number, lon: number) => ({ id, name: id, address: '', lat, lon });
+    const stop = (id: string, lat: number, lon: number) => ({
+      id,
+      name: id,
+      address: '',
+      lat,
+      lon,
+    });
     const stops = [
       stop('dentro', 36.721, -4.419),
       stop('borde', 36.7225, -4.419), // ~55 m fuera del lado norte
@@ -280,15 +298,26 @@ describe('tiempos de viaje', () => {
   ].join('\n');
 
   it('toma la secuencia más frecuente y la mediana de minutos por parada', () => {
-    const pattern = parseTravelPatterns(csv, trips, stops).get('S1');
+    const pattern = parseStopTimes(csv, trips, stops).patterns.get('S1');
     assert.deepEqual(pattern, { stopCodes: ['101', '102', '103'], minutes: [0, 2, 5], trips: 3 });
   });
 
-  const emtStop = (code: string, lon: number) => ({ code, name: code, address: '', lat: 36.72, lon });
+  const emtStop = (code: string, lon: number) => ({
+    code,
+    name: code,
+    address: '',
+    lat: 36.72,
+    lon,
+  });
 
   it('alinea el horario con las paradas e interpola las que faltan en el GTFS', () => {
     const times = directionTimes(
-      [emtStop('101', -4.43), emtStop('150', -4.429), emtStop('102', -4.428), emtStop('103', -4.427)],
+      [
+        emtStop('101', -4.43),
+        emtStop('150', -4.429),
+        emtStop('102', -4.428),
+        emtStop('103', -4.427),
+      ],
       { stopCodes: ['101', '102', '103'], minutes: [0, 2, 5], trips: 3 },
     );
     assert.equal(times.source, 'schedule');
@@ -296,9 +325,114 @@ describe('tiempos de viaje', () => {
   });
 
   it('sin horario estima por distancia, siempre creciente', () => {
-    const times = directionTimes([emtStop('1', -4.43), emtStop('2', -4.42), emtStop('3', -4.41)], undefined);
+    const times = directionTimes(
+      [emtStop('1', -4.43), emtStop('2', -4.42), emtStop('3', -4.41)],
+      undefined,
+    );
     assert.equal(times.source, 'estimate');
     // ~893 m entre paradas × 1,3 / 250 m/min ≈ 4,6 min.
     assert.deepEqual(times.minutes, [0, 4.6, 9.3]);
+  });
+});
+
+describe('horarios', () => {
+  it('guarda la hora de salida de cada viaje', () => {
+    const csv = [
+      'trip_id,arrival_time,departure_time,stop_id,stop_sequence',
+      'a,08:00:30,08:00:30,1,1',
+      'a,08:05:00,08:05:00,2,2',
+    ].join('\n');
+    const summary = parseStopTimes(
+      csv,
+      [{ trip_id: 'a', shape_id: 'S' }],
+      [
+        { stop_id: '1', stop_code: '101' },
+        { stop_id: '2', stop_code: '102' },
+      ],
+    );
+    assert.equal(summary.tripStarts.get('a'), 8 * 3600 + 30);
+  });
+
+  it('calcula los días de servicio con calendar y calendar_dates', () => {
+    const dates = parseServiceDates(
+      [
+        {
+          service_id: 'L',
+          monday: '1',
+          tuesday: '1',
+          wednesday: '0',
+          thursday: '0',
+          friday: '0',
+          saturday: '0',
+          sunday: '0',
+          start_date: '20261005',
+          end_date: '20261011',
+        },
+      ],
+      [
+        { service_id: 'L', date: '20261006', exception_type: '2' },
+        { service_id: 'F', date: '20261012', exception_type: '1' },
+      ],
+    );
+    // Lunes 5 sí; martes 6 quitado por excepción; F solo el 12.
+    assert.deepEqual(dates.get('L'), ['20261005']);
+    assert.deepEqual(dates.get('F'), ['20261012']);
+  });
+
+  it('agrupa las salidas por sentido y día usando el sentido del trazado emparejado', () => {
+    const network = {
+      schemaVersion: 1,
+      stops: [],
+      lines: [
+        {
+          id: '1',
+          name: '1',
+          notes: '',
+          directions: [
+            {
+              id: 1,
+              headsign: '',
+              stopIds: [],
+              shapeId: 'g14',
+              shapeQuality: 'official' as const,
+              minutes: [],
+              timesSource: 'schedule' as const,
+            },
+            {
+              id: 2,
+              headsign: '',
+              stopIds: [],
+              shapeId: 'a1-2',
+              shapeQuality: 'approximate' as const,
+              minutes: [],
+              timesSource: 'estimate' as const,
+            },
+          ],
+        },
+      ],
+    };
+    const trip = (directionId: string, shapeId: string, serviceId: string, hhmm: number) => ({
+      lineCode: '1',
+      serviceId,
+      directionId,
+      shapeId,
+      startSeconds: hhmm * 60,
+    });
+    const timetables = buildTimetables(
+      network,
+      [
+        trip('0', '14', 'L', 420),
+        trip('0', '15', 'L', 360), // variante del mismo sentido
+        trip('1', '12', 'L', 400), // sentido contrario
+        trip('0', '14', 'F', 600),
+      ],
+      new Map([
+        ['L', ['20261005']],
+        ['F', ['20261012']],
+        ['X', ['20261013']],
+      ]),
+    );
+    assert.deepEqual(timetables.departures, { '1|1': { L: [360, 420], F: [600] } });
+    assert.deepEqual(Object.keys(timetables.services).sort(), ['F', 'L']);
   });
 });

@@ -53,7 +53,7 @@ export const SIMPLIFY_TOLERANCE_M = {
 export const MIN_RATIO_VS_PREVIOUS = 0.8;
 
 /** Mínimos absolutos de sentido común para la red de la EMT. */
-export const MIN_COUNTS = { lines: 20, stops: 500, zones: 100 } as const;
+export const MIN_COUNTS = { lines: 20, stops: 500, zones: 100, departures: 1000 } as const;
 
 /** Tolerancia de simplificación de los contornos de barrios y distritos, en metros. */
 export const ZONE_SIMPLIFY_TOLERANCE_M = 8;
