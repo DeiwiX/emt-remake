@@ -5,7 +5,6 @@
   },
   "common": {
     "back": "Back",
-    "comingSoon": "This screen will be completed in increment {{increment}}.",
     "retry": "Try again"
   },
   "home": {
@@ -70,10 +69,32 @@
     "clearStop": "Clear stop"
   },
   "settings": {
-    "title": "Settings"
+    "title": "Settings",
+    "language": "Language",
+    "theme": "Theme",
+    "themes": {
+      "system": "Same as system",
+      "light": "Light",
+      "dark": "Dark"
+    },
+    "highContrast": "High contrast",
+    "highContrastHint": "Increases the contrast of text and controls. Works with both the light and the dark theme."
   },
   "about": {
-    "title": "About"
+    "title": "About",
+    "version": "Version {{version}}",
+    "unofficialDetail": "This is an independent project. For official information, check EMT Málaga's own channels.",
+    "dataTitle": "Data",
+    "dataSource": "Lines, stops and routes come from the Málaga City Council open data portal (EMT Málaga).",
+    "dataLicense": "Data licence:",
+    "dataDate": "Data from {{date}}.",
+    "dataDisclaimer": "The data may contain errors or be out of date. Routes marked as approximate join the stops with straight lines.",
+    "mapTitle": "Map",
+    "mapData": "Map data:",
+    "mapTiles": "Tiles:",
+    "privacyTitle": "Privacy",
+    "privacy": "There are no accounts or analytics, and the app asks for no permissions. It only stores your settings and the latest copy of the data on this device. To download the data and the map it connects to GitHub Pages and OpenFreeMap, which can see your IP address like any website.",
+    "codeTitle": "Source code"
   },
   "data": {
     "loading": "Loading data…",

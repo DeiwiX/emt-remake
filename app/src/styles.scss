@@ -5,8 +5,13 @@
 @use '@ionic/angular/css/typography.css';
 @use '@ionic/angular/css/padding.css';
 
-/* Tema oscuro según la preferencia del sistema; el selector de tema llega en el incremento 7. */
-@use '@ionic/angular/css/palettes/dark.system.css';
+/*
+ * Paletas de Ionic activadas por clase en <html> (ver core/settings/provide-settings.ts):
+ * oscuro, alto contraste y alto contraste oscuro.
+ */
+@use '@ionic/angular/css/palettes/dark.class.css';
+@use '@ionic/angular/css/palettes/high-contrast.class.css';
+@use '@ionic/angular/css/palettes/high-contrast-dark.class.css';
 
 /* Texto solo para lectores de pantalla. */
 .visually-hidden {

@@ -4,7 +4,7 @@ Aplicación **no oficial** para consultar los autobuses urbanos de Málaga (EMT)
 
 ## Estado
 
-Fase 1 en construcción. Hechos: incremento 1 (esqueleto, navegación, idiomas ES/EN, lint y pruebas) incremento 2 (script de datos publicado cada noche) incremento 3 (capa de datos con caché en el dispositivo) e incremento 4 (listas de líneas y paradas, búsqueda y detalle de línea y parada), incremento 5 (mapa con los recorridos de todas las líneas) e incremento 6 (mapa dentro del detalle de línea y de parada). Los tiempos de llegada quedan para la Fase 3.
+Fase 1 en construcción. Hechos: incremento 1 (esqueleto, navegación, idiomas ES/EN, lint y pruebas) incremento 2 (script de datos publicado cada noche) incremento 3 (capa de datos con caché en el dispositivo) e incremento 4 (listas de líneas y paradas, búsqueda y detalle de línea y parada), incremento 5 (mapa con los recorridos de todas las líneas) incremento 6 (mapa dentro del detalle de línea y de parada) e incremento 7 (ajustes de idioma, tema claro/oscuro/según el sistema y alto contraste, y pantalla «Acerca de»). Los tiempos de llegada quedan para la Fase 3.
 
 ## Requisitos
 
@@ -86,6 +86,11 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
 - Si el dispositivo no tiene WebGL, el mapa muestra un aviso y enlaza a las listas.
 - El mapa tiene su propio buscador de líneas y paradas: al elegir una línea se resalta, y al elegir una parada se marca y el mapa se centra en ella, sin salir del mapa.
 - La paleta de líneas está en `core/map/line-palette.ts`: 7 colores con variante clara y oscura. Las pruebas comprueban que el número de la insignia tiene un contraste de al menos 4,5:1, que el trazo tiene al menos 3:1 frente al fondo del mapa y que los colores se distinguen con protanopía, deuteranopía y tritanopía. Los colores se repiten entre líneas y se reparten para que las líneas que comparten paradas no coincidan. El número de línea aparece siempre en las insignias y sobre los recorridos.
+
+### Ajustes
+
+- Idioma (español o inglés), tema (según el sistema, claro u oscuro) y alto contraste. Se aplican al momento y se guardan solo en el dispositivo (`localStorage`). La primera vez el idioma se elige según el del navegador.
+- Si el sistema pide reducir el movimiento, se desactivan las animaciones de transición y las del mapa.
 
 ### Origen y licencia
 

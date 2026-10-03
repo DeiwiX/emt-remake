@@ -5,7 +5,6 @@
   },
   "common": {
     "back": "Atrás",
-    "comingSoon": "Esta pantalla se completará en el incremento {{increment}}.",
     "retry": "Reintentar"
   },
   "home": {
@@ -70,10 +69,32 @@
     "clearStop": "Quitar parada"
   },
   "settings": {
-    "title": "Ajustes"
+    "title": "Ajustes",
+    "language": "Idioma",
+    "theme": "Tema",
+    "themes": {
+      "system": "Según el sistema",
+      "light": "Claro",
+      "dark": "Oscuro"
+    },
+    "highContrast": "Alto contraste",
+    "highContrastHint": "Aumenta el contraste de textos y controles. Funciona con el tema claro y con el oscuro."
   },
   "about": {
-    "title": "Acerca de"
+    "title": "Acerca de",
+    "version": "Versión {{version}}",
+    "unofficialDetail": "Es un proyecto independiente. Para información oficial, consulta los canales de la EMT Málaga.",
+    "dataTitle": "Datos",
+    "dataSource": "Las líneas, paradas y recorridos proceden del portal de datos abiertos del Ayuntamiento de Málaga (EMT Málaga).",
+    "dataLicense": "Licencia de los datos:",
+    "dataDate": "Datos del {{date}}.",
+    "dataDisclaimer": "Los datos pueden contener errores o estar desactualizados. Los recorridos marcados como aproximados unen las paradas en línea recta.",
+    "mapTitle": "Mapa",
+    "mapData": "Datos del mapa:",
+    "mapTiles": "Teselas:",
+    "privacyTitle": "Privacidad",
+    "privacy": "No hay cuentas ni analítica, y la app no pide permisos. Solo guarda en este dispositivo tus ajustes y la última copia de los datos. Para descargar los datos y el mapa se conecta a GitHub Pages y a OpenFreeMap, que pueden ver tu dirección IP como cualquier web.",
+    "codeTitle": "Código fuente"
   },
   "data": {
     "loading": "Cargando datos…",

@@ -18,7 +18,7 @@ import { IonButton } from '@ionic/angular';
 
 import { MapProvider, MapRoute, MapStop, MapView } from '../../core/map/map-provider';
 import { LatLon } from '../../core/models/network.model';
-import { ColorSchemeService } from '../../core/theme/color-scheme.service';
+import { ColorSchemeService, prefersReducedMotion } from '../../core/theme/color-scheme.service';
 
 /** Centro de Málaga. */
 const MALAGA_CENTER: LatLon = [36.7213, -4.4214];
@@ -138,9 +138,7 @@ export class MapViewComponent {
           center: MALAGA_CENTER,
           zoom: INITIAL_ZOOM,
           scheme: this.scheme(),
-          reduceMotion:
-            typeof matchMedia === 'function' &&
-            matchMedia('(prefers-reduced-motion: reduce)').matches,
+          reduceMotion: prefersReducedMotion(),
           label: await firstValueFrom(this.transloco.selectTranslate('map.mapLabel')),
         },
         {

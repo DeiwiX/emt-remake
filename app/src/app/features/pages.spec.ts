@@ -126,4 +126,24 @@ describe('Pantallas con datos', () => {
     expect(text).toContain('Hacia Universidad');
     expect(text).toContain('Hacia Centro');
   });
+
+  it('los ajustes muestran idiomas y temas y guardan la elección', async () => {
+    const element = await open('/settings');
+    const radios = [...element.querySelectorAll('ion-radio')];
+    expect(radios.map((r) => r.getAttribute('aria-label') ?? r.textContent?.trim())).toEqual([
+      'Español',
+      'English',
+      'Según el sistema',
+      'Claro',
+      'Oscuro',
+    ]);
+  });
+
+  it('"Acerca de" avisa de que la app no es oficial e indica licencias', async () => {
+    const element = await open('/about');
+    const text = element.textContent ?? '';
+    expect(text).toContain('Aplicación no oficial');
+    expect(text).toContain('CC BY-SA 4.0');
+    expect(text).toContain('OpenStreetMap');
+  });
 });
