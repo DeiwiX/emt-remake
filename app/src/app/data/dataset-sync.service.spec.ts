@@ -60,6 +60,17 @@ describe('DatasetSyncService', () => {
     expect(sync.status()).toMatchObject({ state: 'ready', origin: 'network', updateFailed: false });
   });
 
+  it('pide el manifest remoto revalidando la caché del navegador', async () => {
+    const fixture = await publishedFixture('v1');
+    const sync = startApp();
+    const done = sync.refresh();
+    await serve(BUNDLED, fixture);
+    const request = await vi.waitFor(() => http.expectOne(`${REMOTE}manifest.json`));
+    expect(request.request.cache).toBe('no-cache');
+    request.flush(fixture.manifest);
+    await done;
+  });
+
   it('descarga una versión nueva, la guarda y la usa sin conexión en el siguiente arranque', async () => {
     const bundled = await publishedFixture('v1');
     const remote = await publishedFixture('v2', networkFixture('Nombre nuevo'));

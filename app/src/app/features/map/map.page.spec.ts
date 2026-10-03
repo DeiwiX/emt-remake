@@ -80,7 +80,10 @@ describe('MapPage', () => {
   let events: MapViewEvents;
   let supported: boolean;
 
+  let zonesResult: () => Promise<Zone[]>;
+
   beforeEach(() => {
+    zonesResult = () => Promise.resolve(zones);
     view = new FakeMapView();
     supported = true;
     const index = buildIndex(networkFixture());
@@ -131,7 +134,7 @@ describe('MapPage', () => {
           },
         },
         { provide: ShapeRepository, useValue: { getShapes: () => Promise.resolve(shapes) } },
-        { provide: ZoneRepository, useValue: { getZones: () => Promise.resolve(zones) } },
+        { provide: ZoneRepository, useValue: { getZones: () => zonesResult() } },
         {
           provide: MapProvider,
           useValue: {
@@ -246,6 +249,19 @@ describe('MapPage', () => {
     const text = (harness.routeNativeElement as HTMLElement).textContent ?? '';
     expect(text).toContain('1 paradas y 1 líneas');
     expect(text).toContain('Zapateros');
+  });
+
+  it('si las zonas no se pudieron cargar al abrir, las reintenta al buscar', async () => {
+    zonesResult = () => Promise.reject(new Error('sin zonas'));
+    const { harness, page } = await open('/map');
+    zonesResult = () => Promise.resolve(zones);
+    const query = (page as unknown as { query: { set(v: string): void } }).query;
+
+    query.set('teatinos');
+    await vi.waitFor(() => {
+      harness.detectChanges();
+      expect((harness.routeNativeElement as HTMLElement).textContent).toContain('Zonas');
+    });
   });
 
   it('al tocar una parada en el mapa la marca sin salir del mapa', async () => {

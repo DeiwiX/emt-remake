@@ -146,7 +146,7 @@ export class DatasetSyncService extends DataStatusService {
 
   private async updateFromRemote(): Promise<void> {
     const base = this.config.remoteBaseUrl;
-    const manifest = parseManifest(JSON.parse(await this.getText(`${base}manifest.json`)));
+    const manifest = parseManifest(JSON.parse(await this.getText(`${base}manifest.json`, true)));
 
     if (this.current?.manifest.dataVersion === manifest.dataVersion) {
       // Mismos datos: nada que descargar. Si venían de la copia incluida, a partir de
@@ -225,8 +225,16 @@ export class DatasetSyncService extends DataStatusService {
     return parse(JSON.parse(text));
   }
 
-  private getText(url: string): Promise<string> {
-    return firstValueFrom(this.http.get(url, { responseType: 'text' }));
+  /**
+   * @param revalidate pide al servidor confirmar que la copia en caché del navegador
+   *   sigue siendo la última (sin cabeceras extra, así no hay petición previa de CORS).
+   *   Se usa para el manifest: GitHub Pages permite cachearlo 10 minutos y, sin esto,
+   *   la app podría tardar en enterarse de una publicación nueva.
+   */
+  private getText(url: string, revalidate = false): Promise<string> {
+    return firstValueFrom(
+      this.http.get(url, { responseType: 'text', ...(revalidate ? { cache: 'no-cache' } : {}) }),
+    );
   }
 }
 

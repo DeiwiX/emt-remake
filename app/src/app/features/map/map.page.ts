@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   input,
   linkedSignal,
@@ -24,7 +25,12 @@ import {
   IonToolbar,
 } from '@ionic/angular';
 
-import { NetworkRepository, ShapeRepository, ZoneRepository } from '../../core/data/repositories';
+import {
+  DataStatusService,
+  NetworkRepository,
+  ShapeRepository,
+  ZoneRepository,
+} from '../../core/data/repositories';
 import { LineColorsService } from '../../core/map/line-colors.service';
 import { toMapRoutes, toMapStops } from '../../core/map/map-features';
 import { MapBaseLayer } from '../../core/map/map-provider';
@@ -113,6 +119,9 @@ export class MapPage {
 
   /** Barrios y distritos: se descargan al abrir el mapa y solo se usan al buscar. */
   private readonly zones = signal<readonly Zone[]>([]);
+  private readonly zoneRepository = inject(ZoneRepository);
+  private readonly dataStatus = inject(DataStatusService);
+  private loadingZones = false;
   protected readonly zoneResults = computed(() => searchZones(this.zones(), this.query()));
   protected readonly selectedZoneId = signal<string | null>(null);
   protected readonly selectedZone = computed(() =>
@@ -213,11 +222,26 @@ export class MapPage {
 
   constructor() {
     void this.loadShapes('overview');
-    inject(ZoneRepository)
-      .getZones()
-      .then((zones) => this.zones.set(zones))
+    void this.loadZones();
+    // Si las zonas no se pudieron cargar al abrir (sin conexión, o datos guardados
+    // anteriores a las zonas), se reintenta al buscar y cuando llegan datos nuevos.
+    effect(() => {
+      this.dataStatus.status();
+      if (this.searching()) void this.loadZones();
+    });
+  }
+
+  private async loadZones(): Promise<void> {
+    if (this.zones().length > 0 || this.loadingZones) return;
+    this.loadingZones = true;
+    try {
+      this.zones.set(await this.zoneRepository.getZones());
+    } catch (error) {
       // Sin zonas la búsqueda sigue funcionando con líneas y paradas.
-      .catch((error: unknown) => console.warn('No se pudieron cargar las zonas', error));
+      console.warn('No se pudieron cargar las zonas', error);
+    } finally {
+      this.loadingZones = false;
+    }
   }
 
   protected isVisible(lineId: string): boolean {
