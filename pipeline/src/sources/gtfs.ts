@@ -1,6 +1,7 @@
 import { strFromU8, unzipSync } from 'fflate';
 
 import { parseCsv } from './csv.ts';
+import { type TravelPattern, parseTravelPatterns } from './gtfs-times.ts';
 import type { LatLon } from '../build/geometry.ts';
 import { ValidationError, requireMalagaCoordinate, requireNumber } from '../validation.ts';
 
@@ -15,18 +16,26 @@ export interface GtfsData {
   shapes: Map<string, LatLon[]>;
   /** Trazados usados por cada línea (route_short_name), de más a menos viajes. */
   shapesByLineCode: Map<string, GtfsShapeUsage[]>;
+  /** Tiempos de viaje por trazado según el horario (vacío si faltan stops o stop_times). */
+  travelPatterns: Map<string, TravelPattern>;
 }
 
-/** Solo estos ficheros: stop_times (unos 35 MB) no hace falta en la Fase 1. */
 const NEEDED_FILES = ['routes', 'trips', 'shapes'] as const;
 type NeededFile = (typeof NEEDED_FILES)[number];
+/** Para los tiempos de viaje; si faltan, se estiman por distancia. */
+const OPTIONAL_FILES = ['stops', 'stop_times'] as const;
 
 export function parseGtfsZip(zip: Uint8Array): GtfsData {
   const files = unzipSync(zip, {
-    filter: (file) => (NEEDED_FILES as readonly string[]).includes(baseName(file.name)),
+    filter: (file) =>
+      ([...NEEDED_FILES, ...OPTIONAL_FILES] as readonly string[]).includes(baseName(file.name)),
   });
+  const texts = new Map(Object.entries(files).map(([name, bytes]) => [baseName(name), strFromU8(bytes)]));
+  // stop_times es enorme: no pasa por el parser general (ver gtfs-times.ts).
   const tables = new Map<string, Record<string, string>[]>(
-    Object.entries(files).map(([name, bytes]) => [baseName(name), parseCsv(strFromU8(bytes))]),
+    [...texts]
+      .filter(([name]) => name !== 'stop_times')
+      .map(([name, text]) => [name, parseCsv(text)]),
   );
   const table = (name: NeededFile): Record<string, string>[] => {
     const rows = tables.get(name);
@@ -57,7 +66,12 @@ export function parseGtfsZip(zip: Uint8Array): GtfsData {
     ]),
   );
 
-  return { shapes: parseShapes(table('shapes')), shapesByLineCode };
+  const stopTimes = texts.get('stop_times');
+  const stops = tables.get('stops');
+  const travelPatterns =
+    stopTimes && stops ? parseTravelPatterns(stopTimes, table('trips'), stops) : new Map();
+
+  return { shapes: parseShapes(table('shapes')), shapesByLineCode, travelPatterns };
 }
 
 function parseShapes(rows: Record<string, string>[]): Map<string, LatLon[]> {

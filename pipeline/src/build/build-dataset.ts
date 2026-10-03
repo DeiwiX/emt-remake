@@ -10,6 +10,7 @@ import type { EmtLine } from '../sources/emt-lines.ts';
 import type { GtfsData } from '../sources/gtfs.ts';
 import { type LatLon, encodePolyline, simplify } from './geometry.ts';
 import { matchShape } from './match-shapes.ts';
+import { directionTimes } from './travel-times.ts';
 
 export interface BuildReport {
   /** Sentidos sin trazado oficial, dibujados uniendo paradas. */
@@ -18,6 +19,8 @@ export interface BuildReport {
   stopConflicts: { stopId: string; detail: string }[];
   /** Calidad del emparejamiento de cada sentido con su trazado oficial. */
   matchedDirections: { line: string; direction: number; shapeId: string; meanDistanceM: number }[];
+  /** Sentidos cuyos tiempos se han estimado por distancia (sin horario utilizable). */
+  estimatedTimes: { line: string; direction: number }[];
 }
 
 export interface Dataset {
@@ -33,6 +36,7 @@ export function buildDataset(emtLines: EmtLine[], gtfs: GtfsData): Dataset {
     approximateDirections: [],
     stopConflicts: [],
     matchedDirections: [],
+    estimatedTimes: [],
   };
   const stops = collectStops(emtLines, report);
   const geometries = new Map<string, LatLon[]>();
@@ -69,12 +73,21 @@ export function buildDataset(emtLines: EmtLine[], gtfs: GtfsData): Dataset {
         });
       }
 
+      const times = directionTimes(
+        direction.stops,
+        match ? gtfs.travelPatterns.get(match.shapeId) : undefined,
+      );
+      if (times.source === 'estimate') {
+        report.estimatedTimes.push({ line: line.code, direction: direction.sentido });
+      }
       return {
         id: direction.sentido,
         headsign: headsignFor(line, direction.sentido, direction.stops.at(-1)?.name ?? ''),
         stopIds: direction.stops.map((s) => s.code),
         shapeId,
         shapeQuality: match ? 'official' : 'approximate',
+        minutes: times.minutes,
+        timesSource: times.source,
       };
     }),
   }));

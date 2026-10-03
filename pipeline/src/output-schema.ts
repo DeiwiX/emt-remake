@@ -24,6 +24,13 @@ export interface PublishedDirection {
   shapeId: string;
   /** "approximate" = paradas unidas con tramos rectos, sin trazado oficial. */
   shapeQuality: ShapeQuality;
+  /**
+   * Minutos desde la primera parada, alineados con stopIds (añadido para "Cómo
+   * llegar"; la app lo trata como opcional).
+   */
+  minutes: number[];
+  /** "schedule" = horario programado del GTFS; "estimate" = estimado por distancia. */
+  timesSource: 'schedule' | 'estimate';
 }
 
 export interface PublishedLine {

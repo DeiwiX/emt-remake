@@ -15,6 +15,8 @@ import { checkPlausibility } from '../build/sanity.ts';
 import { buildZones, insidePolygon, stopsInZone } from '../build/build-zones.ts';
 import { parseWktPolygons, parseZonesCsv, titleCase } from '../sources/zones.ts';
 import { parseCsv } from '../sources/csv.ts';
+import { parseTravelPatterns } from '../sources/gtfs-times.ts';
+import { directionTimes } from '../build/travel-times.ts';
 import { parseEmtLines } from '../sources/emt-lines.ts';
 import { parseGtfsZip } from '../sources/gtfs.ts';
 import { ValidationError } from '../validation.ts';
@@ -137,6 +139,7 @@ describe('buildDataset', () => {
   const gtfs = {
     shapes: new Map<string, LatLon[]>([['S1', STREET]]),
     shapesByLineCode: new Map([['1', [{ shapeId: 'S1', trips: 3 }]]]),
+    travelPatterns: new Map([['S1', { stopCodes: ['11', '12', '13'], minutes: [0, 2.5, 6], trips: 4 }]]),
   };
   const dataset = buildDataset(lines, gtfs);
   const [line1, line92] = dataset.network.lines;
@@ -242,5 +245,60 @@ x,7,1,TEATINOS   ,T,"${wkt}"
       ],
     );
     assert.equal(typeof zones.zones[0]?.polygons[0]?.[0], 'string');
+  });
+});
+
+describe('tiempos de viaje', () => {
+  const trips = [
+    { trip_id: 'a', shape_id: 'S1' },
+    { trip_id: 'b', shape_id: 'S1' },
+    { trip_id: 'c', shape_id: 'S1' },
+    { trip_id: 'x', shape_id: 'S1' },
+  ];
+  const stops = [
+    { stop_id: '1', stop_code: '101' },
+    { stop_id: '2', stop_code: '102' },
+    { stop_id: '3', stop_code: '103' },
+  ];
+  const row = (trip: string, time: string, stop: string, seq: number) =>
+    `${trip},${time},${time},${stop},${seq}`;
+  const csv = [
+    'trip_id,arrival_time,departure_time,stop_id,stop_sequence',
+    // Tres viajes con la misma secuencia y distinta duración (mediana: 2 y 5 min).
+    row('a', '08:00:00', '1', 1),
+    row('a', '08:02:00', '2', 2),
+    row('a', '08:05:00', '3', 3),
+    row('b', '09:00:00', '1', 1),
+    row('b', '09:03:00', '2', 2),
+    row('b', '09:07:00', '3', 3),
+    row('c', '23:59:00', '1', 1),
+    row('c', '24:00:00', '2', 2),
+    row('c', '24:03:00', '3', 3),
+    // Una variante que solo hace dos paradas: es menos frecuente y no se usa.
+    row('x', '10:00:00', '1', 1),
+    row('x', '10:10:00', '3', 2),
+  ].join('\n');
+
+  it('toma la secuencia más frecuente y la mediana de minutos por parada', () => {
+    const pattern = parseTravelPatterns(csv, trips, stops).get('S1');
+    assert.deepEqual(pattern, { stopCodes: ['101', '102', '103'], minutes: [0, 2, 5], trips: 3 });
+  });
+
+  const emtStop = (code: string, lon: number) => ({ code, name: code, address: '', lat: 36.72, lon });
+
+  it('alinea el horario con las paradas e interpola las que faltan en el GTFS', () => {
+    const times = directionTimes(
+      [emtStop('101', -4.43), emtStop('150', -4.429), emtStop('102', -4.428), emtStop('103', -4.427)],
+      { stopCodes: ['101', '102', '103'], minutes: [0, 2, 5], trips: 3 },
+    );
+    assert.equal(times.source, 'schedule');
+    assert.deepEqual(times.minutes, [0, 1, 2, 5]);
+  });
+
+  it('sin horario estima por distancia, siempre creciente', () => {
+    const times = directionTimes([emtStop('1', -4.43), emtStop('2', -4.42), emtStop('3', -4.41)], undefined);
+    assert.equal(times.source, 'estimate');
+    // ~893 m entre paradas × 1,3 / 250 m/min ≈ 4,6 min.
+    assert.deepEqual(times.minutes, [0, 4.6, 9.3]);
   });
 });
