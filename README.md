@@ -95,13 +95,18 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
 - El buscador del mapa también encuentra barrios y distritos: al elegir uno se marca su contorno, se muestran sus paradas y se resaltan las líneas que pasan por ellas. Los límites proceden del "Sistema de información cartográfica" del Ayuntamiento (mismo portal y licencia).
 - Capas del mapa: "Claro" y "Oscuro" (OpenFreeMap) y "Satélite" (PNOA del IGN, CC BY 4.0).
 
-### Cómo llegar
+### Horario programado y "Cómo llegar"
 
-- Origen y destino: una parada, un barrio o un distrito.
-- Propone líneas directas y, después, combinaciones con un transbordo. El transbordo puede hacerse en la misma parada o andando hasta otra a menos de 250 m. No repite la misma línea en varias combinaciones, y las líneas nocturnas (N1…N4) van al final con aviso.
-- El tiempo de cada tramo sale del horario programado del GTFS. El script publica, para cada sentido, los minutos desde la primera parada (`minutes`), calculados como la mediana de los viajes. Si una línea no tiene horario (91–93), se estima por distancia y se indica.
-- Los tiempos no incluyen la espera en la parada. La hora de llegada es aproximada (hora actual + tiempo de viaje).
-- Más adelante: usar la ubicación como origen (Fase 2), tiempos de espera reales (Fase 3) y buscar comercios o direcciones.
+- **Horario oficial:** el GTFS del portal municipal es el horario programado de la EMT. El script publica `timetables.json`: las salidas de cada línea y sentido por día de servicio, con los días de cada servicio (unos 17 KB comprimidos). La hora de paso por una parada se calcula como la salida más los minutos del sentido hasta esa parada, así que es aproximada. No es tiempo real (Fase 3).
+- **Próximo bus:** en el detalle de parada y en la ficha de parada del mapa aparece "Próximo bus según horario", con la hora de Málaga. Si hoy no hay más, muestra el próximo día con servicio.
+- **Cómo llegar:**
+  - Origen y destino: parada, barrio o distrito.
+  - Modos "Salir ahora", "Salir a las…" o "Llegar a las…" (hoy).
+  - Propone líneas directas y combinaciones con un transbordo, en la misma parada o andando hasta otra a menos de 250 m.
+  - Cada opción se encaja en el horario: qué bus coger, cuánto falta para que salga y a qué hora se llega.
+  - La recomendada (la primera) es la que llega antes o, en "Llegar a las", la que sale más tarde. Se muestra en el mapa con solo los tramos del viaje, y cualquier otra opción puede verse en el mapa.
+  - Las líneas sin horario (91–93) se estiman por distancia y se indica.
+- Más adelante: usar la ubicación como origen (Fase 2), tiempo real (Fase 3) y buscar comercios o direcciones.
 
 ### Ajustes
 

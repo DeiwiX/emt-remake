@@ -9,7 +9,6 @@ import {
   IonItem,
   IonLabel,
   IonList,
-  IonIcon,
   IonNote,
   IonTitle,
   IonToolbar,
@@ -26,6 +25,7 @@ import { LatLon, Line } from '../../core/models/network.model';
 import { MapViewComponent } from '../../shared/map-view/map-view.component';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
 import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component';
+import { NextBusComponent } from '../../shared/next-bus/next-bus.component';
 
 /** Detalle de parada en texto (RF-04): datos, ubicación y líneas con su sentido. */
 @Component({
@@ -36,6 +36,7 @@ import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component
     DataStatusBannerComponent,
     LineBadgeComponent,
     MapViewComponent,
+    NextBusComponent,
     IonBackButton,
     IonButtons,
     IonContent,
@@ -43,19 +44,12 @@ import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component
     IonItem,
     IonLabel,
     IonList,
-    IonIcon,
     IonNote,
     IonTitle,
     IonToolbar,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  styles: `
-    .next-bus {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-  `,
+  styles: ``,
   template: `
     <ion-header>
       <ion-toolbar>
@@ -106,12 +100,11 @@ import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component
                   >{{ 'lines.line' | transloco: { id: service.lineId } }}.</span
                 >
                 {{ 'lineDetail.towards' | transloco: { headsign: service.headsign } }}
-                <!-- Hueco reservado para los tiempos de llegada (Fase 3): nunca se muestran
-                     tiempos inventados, solo el aviso de que llegarán. -->
-                <p class="next-bus">
-                  <ion-icon name="time-outline" aria-hidden="true" />
-                  {{ 'stopDetail.nextBusSoon' | transloco }}
-                </p>
+                <app-next-bus
+                  [lineId]="service.lineId"
+                  [directionId]="service.directionId"
+                  [stopId]="stop.id"
+                />
               </ion-label>
             </ion-item>
           }

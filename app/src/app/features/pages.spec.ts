@@ -12,6 +12,7 @@ import {
   NetworkRepository,
   ShapeRepository,
   ZoneRepository,
+  ScheduleRepository,
 } from '../core/data/repositories';
 import { MapProvider } from '../core/map/map-provider';
 import { buildIndex } from '../data/static-repositories';
@@ -47,6 +48,12 @@ describe('Pantallas con datos', () => {
           },
         },
         { provide: ShapeRepository, useValue: { getShapes: () => Promise.resolve(new Map()) } },
+        {
+          provide: ScheduleRepository,
+          useValue: {
+            getTimetables: () => Promise.resolve({ services: new Map(), departures: new Map() }),
+          },
+        },
         { provide: ZoneRepository, useValue: { getZones: () => Promise.resolve([]) } },
         { provide: MapProvider, useValue: { isSupported: () => false } },
         {
@@ -167,9 +174,10 @@ describe('Pantallas con datos', () => {
     const text =
       (harness.routeNativeElement as HTMLElement).textContent?.replace(/\s+/g, ' ') ?? '';
 
-    expect(text).toContain('1 opciones');
+    expect(text).toContain('Recomendada');
     expect(text).toContain('Sube en Zapateros (1)');
     expect(text).toContain('Baja en Alameda (2)');
-    expect(text).toContain('Llegada aprox.');
+    // Las líneas de prueba no traen horario: se muestra el tiempo estimado sin horas.
+    expect(text).toContain('sin horario publicado');
   });
 });

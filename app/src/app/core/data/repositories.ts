@@ -1,6 +1,7 @@
 import { Signal } from '@angular/core';
 
 import { LatLon, Line, ShapeDetail, Stop, Zone } from '../models/network.model';
+import { Timetables } from '../schedule/schedule';
 import { DataStatus } from './data-status';
 
 /**
@@ -26,6 +27,11 @@ export abstract class ShapeRepository {
 export abstract class ZoneRepository {
   /** Barrios y distritos. Se descargan solo cuando se piden (búsqueda en el mapa). */
   abstract getZones(): Promise<readonly Zone[]>;
+}
+
+export abstract class ScheduleRepository {
+  /** Horario programado de todas las líneas. Se descarga solo cuando se pide. */
+  abstract getTimetables(): Promise<Timetables>;
 }
 
 export abstract class DataStatusService {

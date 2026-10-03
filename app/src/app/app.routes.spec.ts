@@ -12,6 +12,7 @@ import {
   NetworkRepository,
   ShapeRepository,
   ZoneRepository,
+  ScheduleRepository,
 } from './core/data/repositories';
 import { MapProvider } from './core/map/map-provider';
 import es from '../../public/i18n/es.json';
@@ -42,6 +43,12 @@ describe('Rutas de la app', () => {
           useValue: { status: signal({ state: 'loading' }), refresh: () => Promise.resolve() },
         },
         { provide: ShapeRepository, useValue: { getShapes: () => Promise.resolve(new Map()) } },
+        {
+          provide: ScheduleRepository,
+          useValue: {
+            getTimetables: () => Promise.resolve({ services: new Map(), departures: new Map() }),
+          },
+        },
         { provide: ZoneRepository, useValue: { getZones: () => Promise.resolve([]) } },
         { provide: MapProvider, useValue: { isSupported: () => false } },
         {

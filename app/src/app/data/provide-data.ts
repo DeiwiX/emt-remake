@@ -3,6 +3,7 @@ import { Provider, EnvironmentProviders, inject, provideAppInitializer } from '@
 import {
   DataStatusService,
   NetworkRepository,
+  ScheduleRepository,
   ShapeRepository,
   ZoneRepository,
 } from '../core/data/repositories';
@@ -10,6 +11,7 @@ import { DatasetSyncService } from './dataset-sync.service';
 import { KeyValueStore, createKeyValueStore } from './key-value-store';
 import {
   StaticNetworkRepository,
+  StaticScheduleRepository,
   StaticShapeRepository,
   StaticZoneRepository,
 } from './static-repositories';
@@ -25,6 +27,7 @@ export function provideData(): (Provider | EnvironmentProviders)[] {
     { provide: NetworkRepository, useClass: StaticNetworkRepository },
     { provide: ShapeRepository, useClass: StaticShapeRepository },
     { provide: ZoneRepository, useClass: StaticZoneRepository },
+    { provide: ScheduleRepository, useClass: StaticScheduleRepository },
     // No se espera al resultado: la app se pinta mientras se cargan los datos.
     provideAppInitializer(() => {
       void inject(DataStatusService).refresh();

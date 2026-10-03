@@ -1,13 +1,14 @@
 {
   "schemaVersion": 1,
-  "dataVersion": "aeb279af98f8b4bf",
-  "generatedAt": "2026-10-03T17:52:55.444Z",
+  "dataVersion": "2414c51591f65e60",
+  "generatedAt": "2026-10-03T18:11:28.816Z",
   "counts": {
     "lines": 49,
     "stops": 1135,
     "shapes": 89,
     "approximateShapes": 4,
-    "zones": 430
+    "zones": 430,
+    "departures": 21604
   },
   "files": {
     "network": {
@@ -29,6 +30,11 @@
       "path": "zones.json",
       "bytes": 125256,
       "sha256": "cd054a63ffe084dedb9aea3c7d630ae3e9c35f02b75f82d263a5b0882688239f"
+    },
+    "timetables": {
+      "path": "timetables.json",
+      "bytes": 104893,
+      "sha256": "1a355fa1413ce297034e0840471ce05815f1da7abe5cdb5982afe6581a5efd25"
     }
   },
   "sources": [

@@ -1,13 +1,13 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  DestroyRef,
+  ElementRef,
   computed,
   inject,
+  linkedSignal,
   signal,
+  viewChild,
 } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import {
   IonBackButton,
@@ -21,36 +21,63 @@ import {
   IonToolbar,
 } from '@ionic/angular';
 
-import { NetworkRepository, ZoneRepository } from '../../core/data/repositories';
-import { Zone } from '../../core/models/network.model';
-import { JourneyOption, Place, buildNearbyStops, planJourneys } from '../../core/planner/planner';
+import { NetworkRepository, ShapeRepository, ZoneRepository } from '../../core/data/repositories';
+import { LineColorsService } from '../../core/map/line-colors.service';
+import { sliceBetween, toMapStops } from '../../core/map/map-features';
+import { MapRoute } from '../../core/map/map-provider';
+import { LatLon, Zone } from '../../core/models/network.model';
+import {
+  JourneyOption,
+  Leg,
+  Place,
+  buildNearbyStops,
+  planJourneys,
+} from '../../core/planner/planner';
+import {
+  TimeMode,
+  TimedJourney,
+  compareTimed,
+  scheduleJourney,
+} from '../../core/planner/scheduled-journey';
+import { ServiceClock, dayOffsetOf, formatClock } from '../../core/schedule/schedule';
+import { ScheduleClockService } from '../../core/schedule/schedule-clock.service';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
 import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component';
+import { MapViewComponent } from '../../shared/map-view/map-view.component';
 import { PlacePickerComponent } from '../../shared/place-picker/place-picker.component';
 
-const MINUTE_MS = 60_000;
+/** "Salir ahora", "Salir a las…" o "Llegar a las…". */
+type TimeChoice = 'now' | TimeMode;
 
 /**
  * Las líneas nocturnas de la EMT se nombran N1, N2... Solo circulan de noche:
- * se muestran al final y con aviso. (Cuando tengamos horarios por franja se
- * podrá saber qué líneas circulan a cada hora.)
+ * sin horario se muestran al final y con aviso; con horario, su hora de paso ya
+ * las coloca donde corresponde.
  */
 function isNightLine(lineId: string): boolean {
   return /^N\d+$/.test(lineId);
 }
 
+/** Una opción con su encaje en el horario (null si alguna línea no publica horario). */
+interface Row {
+  readonly option: JourneyOption;
+  readonly timed: TimedJourney | null;
+}
+
 /**
  * "Cómo llegar": opciones directas y con un transbordo entre dos paradas o
- * zonas, con tiempo aproximado según el horario programado. La ubicación del
- * usuario y los tiempos de espera reales llegarán en fases posteriores.
+ * zonas, encajadas en el horario programado de la EMT para salir ahora, salir a
+ * una hora o llegar antes de una hora. El mapa muestra la opción elegida (al
+ * principio, la recomendada). La ubicación del usuario y el tiempo real
+ * llegarán en fases posteriores.
  */
 @Component({
   selector: 'app-plan',
   imports: [
-    RouterLink,
     TranslocoPipe,
     DataStatusBannerComponent,
     LineBadgeComponent,
+    MapViewComponent,
     PlacePickerComponent,
     IonBackButton,
     IonButton,
@@ -69,27 +96,70 @@ function isNightLine(lineId: string): boolean {
 export class PlanPage {
   private readonly network = inject(NetworkRepository);
   private readonly transloco = inject(TranslocoService);
-  private readonly lang = toSignal(this.transloco.langChanges$, { requireSync: true });
+  private readonly schedule = inject(ScheduleClockService);
+  private readonly colors = inject(LineColorsService);
 
   protected readonly origin = signal<Place | null>(null);
   protected readonly destination = signal<Place | null>(null);
   protected readonly zones = signal<readonly Zone[]>([]);
-  /** Hora actual, refrescada cada minuto para la hora de llegada aproximada. */
-  private readonly now = signal(Date.now());
+  private readonly geometries = signal<ReadonlyMap<string, readonly LatLon[]>>(new Map());
+
+  protected readonly timeChoice = signal<TimeChoice>('now');
+  /** Hora elegida para "salir a las" / "llegar a las", "HH:MM" (por defecto, la actual). */
+  protected readonly chosenTime = linkedSignal(() => formatClock(this.schedule.clock().minutes));
+
+  /** Instante de referencia del cálculo, en hora de Málaga. */
+  private readonly reference = computed<ServiceClock>(() => {
+    const clock = this.schedule.clock();
+    if (this.timeChoice() === 'now') return clock;
+    const [hours, minutes] = this.chosenTime().split(':').map(Number);
+    return { dateKey: clock.dateKey, minutes: (hours ?? 0) * 60 + (minutes ?? 0) };
+  });
+  private readonly mode = computed<TimeMode>(() =>
+    this.timeChoice() === 'arrive' ? 'arrive' : 'depart',
+  );
 
   /** Paradas cercanas entre sí, para transbordos a pie; se recalcula solo si cambia la red. */
   private readonly nearbyStops = computed(() => buildNearbyStops(this.network.stops()));
 
-  protected readonly options = computed<readonly JourneyOption[]>(() => {
+  private readonly options = computed<readonly JourneyOption[]>(() => {
     const origin = this.origin();
     const destination = this.destination();
     return origin && destination
       ? planJourneys(this.network.lines(), origin, destination, {
           isSecondary: isNightLine,
           nearbyStops: this.nearbyStops(),
+          maxResults: 8,
         })
       : [];
   });
+
+  /**
+   * Opciones encajadas en el horario y ordenadas: primero las que tienen horario
+   * (la que llega antes o, en "llegar a las", la que sale más tarde) y después
+   * las que no se pueden encajar. La primera es la recomendada.
+   */
+  protected readonly rows = computed<readonly Row[]>(() => {
+    const timetables = this.schedule.timetables();
+    const reference = this.reference();
+    const mode = this.mode();
+    const lines = this.network.lines();
+    const rows = this.options().map((option) => ({
+      option,
+      timed: timetables ? scheduleJourney(option, lines, timetables, reference, mode) : null,
+    }));
+    const timed = rows
+      .filter((r) => r.timed)
+      .sort((a, b) => compareTimed(mode)(a.timed!, b.timed!));
+    return [...timed, ...rows.filter((r) => !r.timed)].slice(0, 6);
+  });
+
+  protected readonly selectedIndex = linkedSignal(() => {
+    this.rows();
+    return 0;
+  });
+  protected readonly selected = computed(() => this.rows()[this.selectedIndex()]);
+
   protected readonly samePlace = computed(() => {
     const origin = this.origin();
     const destination = this.destination();
@@ -98,14 +168,53 @@ export class PlanPage {
     );
   });
 
+  /** Tramos de la opción elegida, recortados entre la parada de subida y la de bajada. */
+  protected readonly mapRoutes = computed<MapRoute[]>(() => {
+    const row = this.selected();
+    if (!row) return [];
+    return row.option.legs.flatMap((leg, i) => {
+      const line = this.network.getLine(leg.lineId);
+      const direction = line?.directions.find((d) => d.id === leg.directionId);
+      const points = direction ? this.geometries().get(direction.shapeId) : undefined;
+      const from = this.network.getStop(leg.fromStopId);
+      const to = this.network.getStop(leg.toStopId);
+      if (!direction || !points || !from || !to) return [];
+      const color = this.colors.colorFor(leg.lineId);
+      return [
+        {
+          id: `${i}-${leg.lineId}`,
+          lineId: leg.lineId,
+          color: color.line,
+          textColor: color.text,
+          approximate: direction.shapeQuality === 'approximate',
+          points: sliceBetween(points, from, to),
+        },
+      ];
+    });
+  });
+  protected readonly mapStops = computed(() =>
+    toMapStops(
+      (this.selected()?.option.legs ?? []).flatMap((leg) => [
+        this.network.getStop(leg.fromStopId),
+        this.network.getStop(leg.toStopId),
+      ]),
+    ),
+  );
+  protected readonly fitPoints = computed(() => this.mapRoutes().flatMap((r) => r.points));
+
+  private readonly mapSection = viewChild<ElementRef<HTMLElement>>('mapSection');
+
   constructor() {
+    void this.schedule.load();
     inject(ZoneRepository)
       .getZones()
       .then((zones) => this.zones.set(zones))
       // Sin zonas se puede planificar igualmente entre paradas.
       .catch((error: unknown) => console.warn('No se pudieron cargar las zonas', error));
-    const timer = setInterval(() => this.now.set(Date.now()), MINUTE_MS);
-    inject(DestroyRef).onDestroy(() => clearInterval(timer));
+    inject(ShapeRepository)
+      .getShapes('detail')
+      .then((shapes) => this.geometries.set(shapes))
+      .catch((error: unknown) => console.warn('No se pudieron cargar los trazados', error));
   }
 
   protected swap(): void {
@@ -114,28 +223,73 @@ export class PlanPage {
     this.destination.set(origin);
   }
 
+  protected chooseTime(choice: TimeChoice): void {
+    this.timeChoice.set(choice);
+  }
+
+  protected timeChoiceKey(choice: string): string {
+    return `plan.timeChoice.${choice}`;
+  }
+
+  protected setTime(value: string): void {
+    if (/^\d{2}:\d{2}$/.test(value)) this.chosenTime.set(value);
+  }
+
+  /** Muestra la opción en el mapa y lo lleva a la vista. */
+  protected select(index: number): void {
+    this.selectedIndex.set(index);
+    this.mapSection()?.nativeElement.scrollIntoView?.({ block: 'nearest' });
+  }
+
   protected stopName(stopId: string): string {
     return this.network.getStop(stopId)?.name ?? stopId;
   }
 
-  /** "HH:MM" de llegada si se sale ahora (sin contar la espera en la parada). */
-  protected arrivalTime(option: JourneyOption): string {
-    return new Intl.DateTimeFormat(this.lang(), { hour: '2-digit', minute: '2-digit' }).format(
-      this.now() + option.totalMinutes * MINUTE_MS,
-    );
+  protected time(minutes: number): string {
+    const label = formatClock(minutes);
+    return dayOffsetOf(minutes) > 0
+      ? this.transloco.translate('plan.tomorrowAt', { time: label })
+      : label;
   }
 
-  /** "Transbordo: baja en X y camina ~N min hasta Y". */
+  /** Minutos que faltan para el primer bus (solo en "salir ahora"). */
+  protected waitMinutes(row: Row): number | null {
+    if (!row.timed || this.timeChoice() !== 'now') return null;
+    return Math.max(0, Math.round(row.timed.departure - this.schedule.clock().minutes));
+  }
+
+  protected duration(row: Row): number {
+    return row.timed
+      ? Math.round(row.timed.arrival - row.timed.departure)
+      : row.option.totalMinutes;
+  }
+
+  protected timedLeg(row: Row, index: number) {
+    return row.timed?.legs[index];
+  }
+
+  /** "Transbordo: baja en X (código) y camina ~N min hasta Y (código)". */
   protected transferWalkText(option: JourneyOption): string {
+    const from = option.legs[0]!.toStopId;
+    const to = option.legs[1]!.fromStopId;
     return this.transloco.translate('plan.transferWalk', {
-      from: this.stopName(option.legs[0]!.toStopId),
-      to: this.stopName(option.legs[1]!.fromStopId),
+      from: `${this.stopName(from)} (${from})`,
+      to: `${this.stopName(to)} (${to})`,
       minutes: option.walkMinutes,
     });
   }
 
+  /** Sin horas: o alguna línea no publica horario, o no hay buses ese día ni el siguiente. */
+  protected untimedKey(option: JourneyOption): string {
+    return this.isEstimated(option)
+      ? 'plan.noSchedule'
+      : this.mode() === 'arrive'
+        ? 'plan.noServiceArrive'
+        : 'plan.noService';
+  }
+
   protected hasNightLine(option: JourneyOption): boolean {
-    return option.legs.some((leg) => isNightLine(leg.lineId));
+    return option.legs.some((leg: Leg) => isNightLine(leg.lineId));
   }
 
   protected isEstimated(option: JourneyOption): boolean {

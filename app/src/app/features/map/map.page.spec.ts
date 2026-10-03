@@ -12,6 +12,7 @@ import {
   NetworkRepository,
   ShapeRepository,
   ZoneRepository,
+  ScheduleRepository,
 } from '../../core/data/repositories';
 import {
   MapProvider,
@@ -134,6 +135,12 @@ describe('MapPage', () => {
           },
         },
         { provide: ShapeRepository, useValue: { getShapes: () => Promise.resolve(shapes) } },
+        {
+          provide: ScheduleRepository,
+          useValue: {
+            getTimetables: () => Promise.resolve({ services: new Map(), departures: new Map() }),
+          },
+        },
         { provide: ZoneRepository, useValue: { getZones: () => zonesResult() } },
         {
           provide: MapProvider,
@@ -285,9 +292,8 @@ describe('MapPage', () => {
     expect(view.highlighted).toBe('2,10');
     const cards = [...(harness.routeNativeElement as HTMLElement).querySelectorAll('.selected h2')];
     expect(cards.map((h) => h.textContent?.trim())).toEqual(['Alameda', 'Teatinos']);
-    expect((harness.routeNativeElement as HTMLElement).textContent).toContain(
-      'Próximo bus: tiempo real próximamente',
-    );
+    // Cada línea de la ficha muestra su próximo bus según horario (aquí, sin horario).
+    expect((harness.routeNativeElement as HTMLElement).textContent).toMatch(/horario/);
   });
 
   it('al tocar una parada en el mapa la marca sin salir del mapa', async () => {

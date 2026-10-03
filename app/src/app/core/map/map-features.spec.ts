@@ -1,7 +1,7 @@
 import { buildIndex } from '../../data/static-repositories';
 import { networkFixture } from '../../data/testing/data-fixtures';
 import { LatLon } from '../models/network.model';
-import { toMapRoutes, toMapStops } from './map-features';
+import { sliceBetween, toMapRoutes, toMapStops } from './map-features';
 
 describe('toMapRoutes', () => {
   const { lines } = buildIndex(networkFixture());
@@ -42,5 +42,13 @@ describe('toMapStops', () => {
   it('descarta paradas inexistentes', () => {
     const { stops } = buildIndex(networkFixture());
     expect(toMapStops([stops[0], undefined]).map((s) => s.id)).toEqual([stops[0]!.id]);
+  });
+});
+
+describe('sliceBetween', () => {
+  it('recorta el trazado entre las paradas de subida y bajada', () => {
+    const points: LatLon[] = [0, 1, 2, 3, 4].map((i): LatLon => [36.7, -4.4 + i * 0.01]);
+    const slice = sliceBetween(points, { lat: 36.7, lon: -4.389 }, { lat: 36.7, lon: -4.371 });
+    expect(slice).toEqual(points.slice(1, 4));
   });
 });

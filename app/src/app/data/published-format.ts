@@ -27,6 +27,8 @@ export interface ManifestFile {
     shapesDetail: FileEntry;
     /** Barrios y distritos. Opcional: las publicaciones anteriores no lo tienen. */
     zones?: FileEntry;
+    /** Salidas programadas. Opcional, como zones. */
+    timetables?: FileEntry;
   };
   license: { id: string; url: string; attribution: string };
 }
@@ -110,6 +112,42 @@ export function parseZones(value: unknown): ZonesFile {
   return { schemaVersion: SUPPORTED_SCHEMA_VERSION, zones };
 }
 
+export interface TimetablesFile {
+  schemaVersion: number;
+  services: Record<string, string[]>;
+  departures: Record<string, Record<string, number[]>>;
+}
+
+export function parseTimetables(value: unknown): TimetablesFile {
+  const t = record(value, 'timetables');
+  schema(t['schemaVersion'], 'timetables');
+  const services = Object.fromEntries(
+    Object.entries(record(t['services'], 'timetables.services')).map(([service, dates]) => [
+      service,
+      array(dates, `services.${service}`).map((d, i) => {
+        const date = string(d, `services.${service}[${i}]`);
+        if (!/^\d{8}$/.test(date))
+          throw new DataFormatError(`services.${service}[${i}]: fecha no válida`);
+        return date;
+      }),
+    ]),
+  );
+  const departures = Object.fromEntries(
+    Object.entries(record(t['departures'], 'timetables.departures')).map(([key, byService]) => [
+      key,
+      Object.fromEntries(
+        Object.entries(record(byService, `departures.${key}`)).map(([service, times]) => [
+          service,
+          array(times, `departures.${key}.${service}`).map((m, i) =>
+            number(m, `departures.${key}.${service}[${i}]`),
+          ),
+        ]),
+      ),
+    ]),
+  );
+  return { schemaVersion: SUPPORTED_SCHEMA_VERSION, services, departures };
+}
+
 export function parseManifest(value: unknown): ManifestFile {
   const m = record(value, 'manifest');
   schema(m['schemaVersion'], 'manifest');
@@ -128,6 +166,9 @@ export function parseManifest(value: unknown): ManifestFile {
       shapesOverview: fileEntry(files['shapesOverview'], 'shapesOverview'),
       shapesDetail: fileEntry(files['shapesDetail'], 'shapesDetail'),
       ...(files['zones'] === undefined ? {} : { zones: fileEntry(files['zones'], 'zones') }),
+      ...(files['timetables'] === undefined
+        ? {}
+        : { timetables: fileEntry(files['timetables'], 'timetables') }),
     },
     license: {
       id: string(license['id'], 'license.id'),

@@ -54,7 +54,7 @@
     "notFound": "Stop {{id}} does not exist.",
     "mapLabel": "Map of stop {{name}}",
     "nextBusSoon": "Next bus: real time coming soon",
-    "nextBusNote": "Real-time arrival times will come in a future version."
+    "nextBusNote": "Times from EMT's published timetable. Real time will come in a future version."
   },
   "map": {
     "title": "Map",
@@ -140,18 +140,43 @@
     "samePlace": "The start and the destination are the same place.",
     "noOptions": "No lines go from the start to the destination, either direct or with one change.",
     "optionCount": "{{count}} options",
-    "timesNote": "Approximate times from the published timetable, not counting the wait at the stop.",
+    "timesNote": "Times from EMT's published timetable, not real time. The recommended option arrives first (or, with “Arrive by”, leaves latest).",
     "minutes": "~{{minutes}} min",
-    "arrival": "Arrive approx. {{time}}",
-    "directSummary": "Direct, about {{minutes}} minutes.",
-    "transferSummary": "With one change, about {{minutes}} minutes in total.",
     "transferAt": "Change at {{stop}}",
     "boardAt": "Board at {{stop}} ({{code}})",
     "alightAt": "Get off at {{stop}} ({{code}})",
     "legMeta": "{{stops}} stops · ~{{minutes}} min",
     "estimatedNote": "A line in this option has no published timetable: its time is estimated from distance.",
-    "viewOnMap": "View on the map",
     "nightNote": "Includes a night line: it only runs at night.",
-    "transferWalk": "Change: get off at {{from}} and walk ~{{minutes}} min to {{to}}"
+    "transferWalk": "Change: get off at {{from}} and walk ~{{minutes}} min to {{to}}",
+    "when": "When",
+    "timeChoice": {
+      "now": "Leave now",
+      "depart": "Leave at",
+      "arrive": "Arrive by"
+    },
+    "departAt": "Departure time (today)",
+    "arriveBy": "Arrive before (today)",
+    "mapLabel": "Map of the chosen option",
+    "recommended": "Recommended",
+    "noSchedule": "no published timetable",
+    "leavesIn": "The bus leaves in {{minutes}} min",
+    "leavesNow": "The bus leaves now",
+    "boardAtTime": "{{time}} · board at {{stop}} ({{code}})",
+    "alightAtTime": "{{time}} · get off at {{stop}} ({{code}})",
+    "showOnMap": "Show on map",
+    "shownOnMap": "On the map",
+    "tomorrowAt": "tomorrow {{time}}",
+    "noService": "no buses today or tomorrow per the timetable",
+    "noServiceArrive": "cannot arrive in time per the timetable"
+  },
+  "nextBus": {
+    "loading": "Loading timetable…",
+    "unavailable": "No timetable published for this line",
+    "next": "Next bus (timetable): {{time}} (in {{minutes}} min)",
+    "then": "then {{time}}",
+    "tomorrow": "tomorrow",
+    "nextAt": "Next bus (timetable): {{time}}",
+    "otherDay": "No more buses today · next (timetable): {{day}} at {{time}}"
   }
 }

@@ -86,3 +86,75 @@
   font-style: italic;
   border-inline-start: 3px dashed var(--ion-color-medium);
 }
+
+/* Selector de hora: tres botones con aria-pressed y un campo de hora nativo. */
+.time-choice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+
+  button {
+    flex: 1 1 7rem;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 1px solid var(--ion-color-primary);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--ion-color-primary);
+    font: inherit;
+    cursor: pointer;
+
+    &[aria-pressed='true'] {
+      background: var(--ion-color-primary);
+      color: var(--ion-color-primary-contrast);
+      font-weight: 600;
+    }
+
+    &:focus-visible {
+      outline: 3px solid var(--ion-color-primary);
+      outline-offset: 2px;
+    }
+  }
+}
+
+.time-input {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+
+  input {
+    min-height: 44px;
+    padding: 0 10px;
+    border: 1px solid var(--ion-color-step-300, #b5b5b5);
+    border-radius: 8px;
+    background: var(--ion-background-color);
+    color: var(--ion-text-color);
+    font: inherit;
+  }
+}
+
+.plan-map {
+  height: 280px;
+}
+
+.option.is-selected {
+  border: 2px solid var(--ion-color-primary);
+}
+
+.recommended {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--ion-color-success);
+  color: var(--ion-color-success-contrast);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.wait {
+  margin: 6px 0 0;
+  font-weight: 600;
+}

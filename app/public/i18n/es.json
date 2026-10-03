@@ -54,7 +54,7 @@
     "notFound": "No existe la parada {{id}}.",
     "mapLabel": "Mapa de la parada {{name}}",
     "nextBusSoon": "Próximo bus: tiempo real próximamente",
-    "nextBusNote": "Los tiempos de llegada en tiempo real llegarán en una próxima versión."
+    "nextBusNote": "Horas según el horario programado de la EMT. El tiempo real llegará en una próxima versión."
   },
   "map": {
     "title": "Mapa",
@@ -140,18 +140,43 @@
     "samePlace": "El origen y el destino son el mismo lugar.",
     "noOptions": "No hay líneas que lleven del origen al destino, ni directas ni con un transbordo.",
     "optionCount": "{{count}} opciones",
-    "timesNote": "Tiempos aproximados según el horario programado, sin contar la espera en la parada.",
+    "timesNote": "Horas según el horario programado de la EMT, no en tiempo real. La recomendada es la que llega antes (o, en «Llegar a las», la que sale más tarde).",
     "minutes": "~{{minutes}} min",
-    "arrival": "Llegada aprox. {{time}}",
-    "directSummary": "Directo, unos {{minutes}} minutos.",
-    "transferSummary": "Con un transbordo, unos {{minutes}} minutos en total.",
     "transferAt": "Transbordo en {{stop}}",
     "boardAt": "Sube en {{stop}} ({{code}})",
     "alightAt": "Baja en {{stop}} ({{code}})",
     "legMeta": "{{stops}} paradas · ~{{minutes}} min",
     "estimatedNote": "Alguna línea de esta opción no publica horario: su tiempo es una estimación por distancia.",
-    "viewOnMap": "Ver en el mapa",
     "nightNote": "Incluye una línea nocturna: solo circula de noche.",
-    "transferWalk": "Transbordo: baja en {{from}} y camina ~{{minutes}} min hasta {{to}}"
+    "transferWalk": "Transbordo: baja en {{from}} y camina ~{{minutes}} min hasta {{to}}",
+    "when": "Cuándo",
+    "timeChoice": {
+      "now": "Salir ahora",
+      "depart": "Salir a las",
+      "arrive": "Llegar a las"
+    },
+    "departAt": "Hora de salida (hoy)",
+    "arriveBy": "Llegar antes de (hoy)",
+    "mapLabel": "Mapa de la opción elegida",
+    "recommended": "Recomendada",
+    "noSchedule": "sin horario publicado",
+    "leavesIn": "El bus sale en {{minutes}} min",
+    "leavesNow": "El bus sale ahora",
+    "boardAtTime": "{{time}} · sube en {{stop}} ({{code}})",
+    "alightAtTime": "{{time}} · baja en {{stop}} ({{code}})",
+    "showOnMap": "Ver en el mapa",
+    "shownOnMap": "En el mapa",
+    "tomorrowAt": "mañana {{time}}",
+    "noService": "sin buses hoy ni mañana según el horario",
+    "noServiceArrive": "no llega a tiempo según el horario"
+  },
+  "nextBus": {
+    "loading": "Cargando horario…",
+    "unavailable": "Sin horario publicado para esta línea",
+    "next": "Próximo bus según horario: {{time}} (en {{minutes}} min)",
+    "then": "después {{time}}",
+    "tomorrow": "mañana",
+    "nextAt": "Próximo bus según horario: {{time}}",
+    "otherDay": "No hay más buses hoy · próximo según horario: {{day}} a las {{time}}"
   }
 }

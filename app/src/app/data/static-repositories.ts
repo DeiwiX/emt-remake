@@ -1,6 +1,12 @@
 import { Injectable, computed, inject } from '@angular/core';
 
-import { NetworkRepository, ShapeRepository, ZoneRepository } from '../core/data/repositories';
+import {
+  NetworkRepository,
+  ScheduleRepository,
+  ShapeRepository,
+  ZoneRepository,
+} from '../core/data/repositories';
+import { Timetables } from '../core/schedule/schedule';
 import { LatLon, Line, ShapeDetail, Stop, StopService, Zone } from '../core/models/network.model';
 import { DatasetSyncService } from './dataset-sync.service';
 import { NetworkFile } from './published-format';
@@ -65,6 +71,25 @@ export class StaticZoneRepository extends ZoneRepository {
       ...zone,
       polygons: zone.polygons.map((polygon) => polygon.map(decodePolyline)),
     }));
+  }
+}
+
+/** Repositorio del horario programado: descarga bajo demanda y lo indexa. */
+@Injectable()
+export class StaticScheduleRepository extends ScheduleRepository {
+  private readonly sync = inject(DatasetSyncService);
+
+  async getTimetables(): Promise<Timetables> {
+    const file = await this.sync.getTimetablesFile();
+    return {
+      services: new Map(Object.entries(file.services).map(([s, dates]) => [s, new Set(dates)])),
+      departures: new Map(
+        Object.entries(file.departures).map(([key, byService]) => [
+          key,
+          new Map(Object.entries(byService)),
+        ]),
+      ),
+    };
   }
 }
 

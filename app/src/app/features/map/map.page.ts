@@ -20,7 +20,6 @@ import {
   IonContent,
   IonHeader,
   IonItem,
-  IonIcon,
   IonLabel,
   IonList,
   IonSearchbar,
@@ -43,6 +42,7 @@ import { searchLines, searchStops, searchZones } from '../../core/search/search'
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
 import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component';
 import { MapViewComponent } from '../../shared/map-view/map-view.component';
+import { NextBusComponent } from '../../shared/next-bus/next-bus.component';
 
 /** Paradas que se pintan como resultado de búsqueda; la lista completa está en Paradas. */
 const MAX_STOP_RESULTS = 30;
@@ -69,6 +69,7 @@ const DETAIL_ZOOM = 14;
     DataStatusBannerComponent,
     LineBadgeComponent,
     MapViewComponent,
+    NextBusComponent,
     IonBackButton,
     IonButton,
     IonButtons,
@@ -76,7 +77,6 @@ const DETAIL_ZOOM = 14;
     IonContent,
     IonHeader,
     IonItem,
-    IonIcon,
     IonLabel,
     IonList,
     IonSearchbar,
