@@ -56,6 +56,26 @@
           <ion-note>{{ 'lineDetail.approximateRoute' | transloco }}</ion-note>
         </p>
       }
+      <!-- El mapa se descarga solo cuando la sección entra en pantalla. La lista de
+           paradas de debajo es su alternativa en texto (RNF-01). -->
+      @defer (on viewport) {
+        <app-map-view
+          class="detail-map"
+          role="region"
+          [attr.aria-label]="'lineDetail.mapLabel' | transloco: { id: line.id }"
+          [routes]="mapRoutes()"
+          [stops]="mapStops()"
+          [fitPoints]="fitPoints()"
+          (stopSelected)="openStop($event)"
+        />
+      } @placeholder {
+        <div class="detail-map"></div>
+      }
+      <p class="ion-padding-horizontal">
+        <a [routerLink]="['/map']" [queryParams]="{ line: line.id }">{{
+          'lineDetail.openInMap' | transloco
+        }}</a>
+      </p>
       <ion-list [attr.aria-label]="'lineDetail.stopsInOrder' | transloco">
         @for (stop of stops(); track $index) {
           <ion-item [routerLink]="['/stops', stop.id]" detail>

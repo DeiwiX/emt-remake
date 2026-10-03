@@ -9,26 +9,19 @@
 
 <ion-content [scrollY]="false">
   <div class="layout">
-    <section class="map-area" [attr.aria-label]="'map.mapLabel' | transloco">
-      <div #map class="map" [class.hidden]="state() !== 'ready' && state() !== 'loading'"></div>
-      @switch (state()) {
-        @case ('loading') {
-          <p class="map-message" role="status">{{ 'map.loading' | transloco }}</p>
-        }
-        @case ('unsupported') {
-          <div class="map-message" role="status">
-            <p>{{ 'map.unsupported' | transloco }}</p>
-            <ion-button routerLink="/lines">{{ 'lines.title' | transloco }}</ion-button>
-          </div>
-        }
-        @case ('error') {
-          <div class="map-message" role="alert">
-            <p>{{ 'map.error' | transloco }}</p>
-            <ion-button (click)="retry()">{{ 'common.retry' | transloco }}</ion-button>
-          </div>
-        }
-      }
-    </section>
+    <app-map-view
+      class="map-area"
+      role="region"
+      [attr.aria-label]="'map.mapLabel' | transloco"
+      [routes]="routes()"
+      [stops]="mapStops()"
+      [visibleLines]="visibleLines()"
+      [highlightedLine]="highlightedId()"
+      [fitPoints]="fitPoints()"
+      (lineSelected)="highlight($event)"
+      (stopSelected)="openStop($event)"
+      (zoomChanged)="onZoom($event)"
+    />
 
     <!-- Alternativa en texto de todo lo que muestra el mapa (RNF-01). -->
     <section class="panel" [attr.aria-label]="'map.panelLabel' | transloco">

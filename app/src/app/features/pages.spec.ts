@@ -7,7 +7,8 @@ import { TranslocoTestingModule } from '@jsverse/transloco';
 
 import es from '../../../public/i18n/es.json';
 import { routes } from '../app.routes';
-import { DataStatusService, NetworkRepository } from '../core/data/repositories';
+import { DataStatusService, NetworkRepository, ShapeRepository } from '../core/data/repositories';
+import { MapProvider } from '../core/map/map-provider';
 import { buildIndex } from '../data/static-repositories';
 import { networkFixture } from '../data/testing/data-fixtures';
 import { HomePage } from './home/home.page';
@@ -39,6 +40,8 @@ describe('Pantallas con datos', () => {
             refresh: () => Promise.resolve(),
           },
         },
+        { provide: ShapeRepository, useValue: { getShapes: () => Promise.resolve(new Map()) } },
+        { provide: MapProvider, useValue: { isSupported: () => false } },
         {
           provide: NetworkRepository,
           useValue: {

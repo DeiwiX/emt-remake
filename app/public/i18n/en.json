@@ -30,7 +30,9 @@
     "stopCount": "{{count}} stops",
     "approximateRoute": "Approximate route: the official source does not publish this line's path; its stops are shown in order.",
     "stopsInOrder": "Stops in order",
-    "notFound": "Line {{id}} does not exist."
+    "notFound": "Line {{id}} does not exist.",
+    "mapLabel": "Map of line {{id}}",
+    "openInMap": "View the line on the full map"
   },
   "stops": {
     "title": "Stops",
@@ -45,7 +47,8 @@
     "address": "Address: {{address}}",
     "coordinates": "Location: {{lat}}, {{lon}}",
     "lines": "Lines that stop here",
-    "notFound": "Stop {{id}} does not exist."
+    "notFound": "Stop {{id}} does not exist.",
+    "mapLabel": "Map of stop {{name}}"
   },
   "map": {
     "title": "Map",

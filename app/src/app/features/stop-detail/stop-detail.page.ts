@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import {
   IonBackButton,
@@ -13,7 +13,15 @@ import {
   IonToolbar,
 } from '@ionic/angular';
 
-import { DataStatusService, NetworkRepository } from '../../core/data/repositories';
+import {
+  DataStatusService,
+  NetworkRepository,
+  ShapeRepository,
+} from '../../core/data/repositories';
+import { LineColorsService } from '../../core/map/line-colors.service';
+import { toMapRoutes, toMapStops } from '../../core/map/map-features';
+import { LatLon, Line } from '../../core/models/network.model';
+import { MapViewComponent } from '../../shared/map-view/map-view.component';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
 import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component';
 
@@ -25,6 +33,7 @@ import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component
     TranslocoPipe,
     DataStatusBannerComponent,
     LineBadgeComponent,
+    MapViewComponent,
     IonBackButton,
     IonButtons,
     IonContent,
@@ -56,6 +65,19 @@ import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component
           }
           <p>{{ 'stopDetail.coordinates' | transloco: { lat: stop.lat, lon: stop.lon } }}</p>
         </div>
+        @defer (on viewport) {
+          <app-map-view
+            class="detail-map"
+            role="region"
+            [attr.aria-label]="'stopDetail.mapLabel' | transloco: { name: stop.name }"
+            [routes]="mapRoutes()"
+            [stops]="mapStops()"
+            [fitPoints]="fitPoints()"
+            (stopSelected)="openStop($event)"
+          />
+        } @placeholder {
+          <div class="detail-map"></div>
+        }
         <h2 class="ion-padding-horizontal">{{ 'stopDetail.lines' | transloco }}</h2>
         <ion-list [attr.aria-label]="'stopDetail.lines' | transloco">
           @for (service of services(); track service.lineId + '-' + service.directionId) {
@@ -85,6 +107,9 @@ import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component
 export class StopDetailPage {
   private readonly network = inject(NetworkRepository);
   private readonly dataStatus = inject(DataStatusService);
+  private readonly colors = inject(LineColorsService);
+  private readonly router = inject(Router);
+  private readonly geometries = signal<ReadonlyMap<string, readonly LatLon[]>>(new Map());
 
   /** Recibido desde la ruta gracias a withComponentInputBinding. */
   readonly stopId = input.required<string>();
@@ -96,6 +121,37 @@ export class StopDetailPage {
   protected readonly notFound = computed(
     () => this.dataStatus.status().state === 'ready' && !this.stop(),
   );
+
+  /** En el mapa: la parada y los recorridos de las líneas que pasan por ella, en su sentido. */
+  protected readonly mapRoutes = computed(() => {
+    const services = this.stop()?.services ?? [];
+    const lines = [...new Set(services.map((s) => s.lineId))]
+      .map((id) => this.network.getLine(id))
+      .filter((line): line is Line => !!line);
+    return toMapRoutes(
+      lines,
+      this.geometries(),
+      (id) => this.colors.colorFor(id),
+      (line, directionId) =>
+        services.some((s) => s.lineId === line.id && s.directionId === directionId),
+    );
+  });
+  protected readonly mapStops = computed(() => toMapStops([this.stop()]));
+  protected readonly fitPoints = computed<LatLon[]>(() => {
+    const stop = this.stop();
+    return stop ? [[stop.lat, stop.lon]] : [];
+  });
+
+  constructor() {
+    inject(ShapeRepository)
+      .getShapes('detail')
+      .then((shapes) => this.geometries.set(shapes))
+      .catch((error: unknown) => console.warn('No se pudieron cargar los trazados', error));
+  }
+
+  protected openStop(stopId: string): void {
+    if (stopId !== this.stopId()) void this.router.navigate(['/stops', stopId]);
+  }
 
   protected readonly services = computed(() =>
     (this.stop()?.services ?? []).map((service) => ({

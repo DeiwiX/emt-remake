@@ -5,8 +5,9 @@ import {
   inject,
   input,
   linkedSignal,
+  signal,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import {
   IonBackButton,
@@ -22,7 +23,15 @@ import {
   IonToolbar,
 } from '@ionic/angular';
 
-import { DataStatusService, NetworkRepository } from '../../core/data/repositories';
+import {
+  DataStatusService,
+  NetworkRepository,
+  ShapeRepository,
+} from '../../core/data/repositories';
+import { LineColorsService } from '../../core/map/line-colors.service';
+import { toMapRoutes, toMapStops } from '../../core/map/map-features';
+import { LatLon } from '../../core/models/network.model';
+import { MapViewComponent } from '../../shared/map-view/map-view.component';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
 import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component';
 
@@ -34,6 +43,7 @@ import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component
     TranslocoPipe,
     DataStatusBannerComponent,
     LineBadgeComponent,
+    MapViewComponent,
     IonBackButton,
     IonButton,
     IonButtons,
@@ -74,6 +84,9 @@ import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component
 export class LineDetailPage {
   private readonly network = inject(NetworkRepository);
   private readonly dataStatus = inject(DataStatusService);
+  private readonly colors = inject(LineColorsService);
+  private readonly router = inject(Router);
+  private readonly geometries = signal<ReadonlyMap<string, readonly LatLon[]>>(new Map());
 
   /** Parámetros de la ruta (/lines/:lineId?direction=2), enlazados por withComponentInputBinding. */
   readonly lineId = input.required<string>();
@@ -97,6 +110,35 @@ export class LineDetailPage {
   protected readonly selectedDirection = computed(() =>
     this.line()?.directions.find((d) => d.id === this.selectedDirectionId()),
   );
+
+  /** Recorrido del sentido elegido y sus paradas, para el mapa del detalle. */
+  protected readonly mapRoutes = computed(() => {
+    const line = this.line();
+    const directionId = this.selectedDirectionId();
+    return line
+      ? toMapRoutes(
+          [line],
+          this.geometries(),
+          (id) => this.colors.colorFor(id),
+          (_, d) => d === directionId,
+        )
+      : [];
+  });
+  protected readonly mapStops = computed(() =>
+    toMapStops((this.selectedDirection()?.stopIds ?? []).map((id) => this.network.getStop(id))),
+  );
+  protected readonly fitPoints = computed(() => this.mapRoutes()[0]?.points ?? []);
+
+  constructor() {
+    inject(ShapeRepository)
+      .getShapes('detail')
+      .then((shapes) => this.geometries.set(shapes))
+      .catch((error: unknown) => console.warn('No se pudieron cargar los trazados', error));
+  }
+
+  protected openStop(stopId: string): void {
+    void this.router.navigate(['/stops', stopId]);
+  }
 
   protected readonly stops = computed(() =>
     (this.selectedDirection()?.stopIds ?? []).map((id) => ({

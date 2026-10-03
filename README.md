@@ -4,7 +4,7 @@ Aplicación **no oficial** para consultar los autobuses urbanos de Málaga (EMT)
 
 ## Estado
 
-Fase 1 en construcción. Hechos: incremento 1 (esqueleto, navegación, idiomas ES/EN, lint y pruebas) incremento 2 (script de datos publicado cada noche) incremento 3 (capa de datos con caché en el dispositivo) e incremento 4 (listas de líneas y paradas, búsqueda y detalle en texto de línea y parada; el detalle con mapa llega en el incremento 6) e incremento 5 (mapa con los recorridos de todas las líneas).
+Fase 1 en construcción. Hechos: incremento 1 (esqueleto, navegación, idiomas ES/EN, lint y pruebas) incremento 2 (script de datos publicado cada noche) incremento 3 (capa de datos con caché en el dispositivo) e incremento 4 (listas de líneas y paradas, búsqueda y detalle de línea y parada), incremento 5 (mapa con los recorridos de todas las líneas) e incremento 6 (mapa dentro del detalle de línea y de parada). Los tiempos de llegada quedan para la Fase 3.
 
 ## Requisitos
 

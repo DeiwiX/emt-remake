@@ -30,7 +30,9 @@
     "stopCount": "{{count}} paradas",
     "approximateRoute": "Recorrido aproximado: la fuente oficial no publica el trazado de esta línea; se muestran sus paradas en orden.",
     "stopsInOrder": "Paradas en orden",
-    "notFound": "No existe la línea {{id}}."
+    "notFound": "No existe la línea {{id}}.",
+    "mapLabel": "Mapa de la línea {{id}}",
+    "openInMap": "Ver la línea en el mapa general"
   },
   "stops": {
     "title": "Paradas",
@@ -45,7 +47,8 @@
     "address": "Dirección: {{address}}",
     "coordinates": "Ubicación: {{lat}}, {{lon}}",
     "lines": "Líneas que pasan por aquí",
-    "notFound": "No existe la parada {{id}}."
+    "notFound": "No existe la parada {{id}}.",
+    "mapLabel": "Mapa de la parada {{name}}"
   },
   "map": {
     "title": "Mapa",

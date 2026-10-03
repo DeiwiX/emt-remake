@@ -37,6 +37,13 @@ const LAYER = {
 } as const;
 const SOURCE = { routes: 'routes', stops: 'stops' } as const;
 
+/**
+ * Con muchas paradas (toda la red) solo se dibujan al acercarse, para no saturar
+ * el mapa; con pocas (una línea o una parada) se ven a cualquier zoom.
+ */
+const MANY_STOPS = 200;
+const MANY_STOPS_MIN_ZOOM = 13;
+
 /** Margen en píxeles alrededor del toque para acertar con líneas finas. */
 const TAP_TOLERANCE_PX = 10;
 
@@ -126,6 +133,7 @@ class MapLibreView implements MapView {
   setStops(stops: readonly MapStop[]): void {
     this.stops = stops;
     this.source(SOURCE.stops)?.setData(this.stopsGeoJson());
+    this.applyStopsZoomRange();
   }
 
   setVisibleLines(lineIds: ReadonlySet<string> | null): void {
@@ -147,7 +155,12 @@ class MapLibreView implements MapView {
         [Math.min(...lons), Math.min(...lats)],
         [Math.max(...lons), Math.max(...lats)],
       ],
-      { padding: 40, animate: !this.options.reduceMotion, maxZoom: 16 },
+      {
+        // Margen extra abajo y a la derecha: ahí están la atribución y los botones de zoom.
+        padding: { top: 32, left: 32, bottom: 72, right: 64 },
+        animate: !this.options.reduceMotion,
+        maxZoom: 16,
+      },
     );
   }
 
@@ -217,7 +230,6 @@ class MapLibreView implements MapView {
       id: LAYER.stops,
       type: 'circle',
       source: SOURCE.stops,
-      minzoom: 13,
       paint: {
         'circle-radius': ['interpolate', ['linear'], ['zoom'], 13, 3, 17, 7],
         'circle-color': stopFill,
@@ -226,6 +238,13 @@ class MapLibreView implements MapView {
       },
     });
     this.applyFiltersAndHighlight();
+    this.applyStopsZoomRange();
+  }
+
+  private applyStopsZoomRange(): void {
+    if (!this.map.getLayer(LAYER.stops)) return;
+    const minZoom = this.stops.length > MANY_STOPS ? MANY_STOPS_MIN_ZOOM : 0;
+    this.map.setLayerZoomRange(LAYER.stops, minZoom, 24);
   }
 
   private applyFiltersAndHighlight(): void {
