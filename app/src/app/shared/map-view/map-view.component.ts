@@ -4,6 +4,7 @@ import {
   DestroyRef,
   ElementRef,
   afterNextRender,
+  computed,
   effect,
   inject,
   input,
@@ -16,9 +17,9 @@ import { firstValueFrom } from 'rxjs';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { IonButton } from '@ionic/angular';
 
-import { MapBaseLayer, MapProvider, MapRoute, MapStop, MapView } from '../../core/map/map-provider';
-import { ColorScheme } from '../../core/theme/color-scheme.service';
+import { MapProvider, MapRoute, MapStop, MapView } from '../../core/map/map-provider';
 import { LatLon, Polygon } from '../../core/models/network.model';
+import { MapStylePreference, SettingsService } from '../../core/settings/settings.service';
 import { ColorSchemeService, prefersReducedMotion } from '../../core/theme/color-scheme.service';
 
 /** Centro de Málaga. */
@@ -26,6 +27,9 @@ const MALAGA_CENTER: LatLon = [36.7213, -4.4214];
 const INITIAL_ZOOM = 12;
 
 type MapState = 'loading' | 'ready' | 'unsupported' | 'error';
+
+/** Capas que se pueden elegir. La foto aérea es la del PNOA (IGN), ADR 0004. */
+const LAYER_CHOICES: readonly Exclude<MapStylePreference, 'auto'>[] = ['light', 'dark', 'satellite'];
 
 /**
  * Mapa reutilizable sobre MapProvider: crea y destruye el mapa, le pasa los
@@ -48,6 +52,40 @@ type MapState = 'loading' | 'ready' | 'unsupported' | 'error';
     .map.hidden {
       display: none;
     }
+    /* Selector de capa, arriba a la izquierda (los botones de zoom van a la derecha). */
+    .layer-switch {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      z-index: 1;
+      display: flex;
+      gap: 2px;
+      padding: 3px;
+      border-radius: 12px;
+      background: var(--ion-background-color, #fff);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    }
+    .layer-switch button {
+      min-height: 44px;
+      min-width: 44px;
+      padding: 0 10px;
+      border: 0;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--ion-text-color);
+      font: inherit;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    .layer-switch button[aria-pressed='true'] {
+      background: var(--ion-color-primary);
+      color: var(--ion-color-primary-contrast);
+      font-weight: 600;
+    }
+    .layer-switch button:focus-visible {
+      outline: 3px solid var(--ion-color-primary);
+      outline-offset: 2px;
+    }
     .message {
       position: absolute;
       inset: 0;
@@ -62,6 +100,19 @@ type MapState = 'loading' | 'ready' | 'unsupported' | 'error';
   `,
   template: `
     <div #map class="map" [class.hidden]="state() === 'unsupported' || state() === 'error'"></div>
+    @if (state() === 'ready' && layerSwitch()) {
+      <div class="layer-switch" role="group" [attr.aria-label]="'map.layer' | transloco">
+        @for (choice of layerChoices; track choice) {
+          <button
+            type="button"
+            [attr.aria-pressed]="activeLayer() === choice"
+            (click)="setLayer(choice)"
+          >
+            {{ layerKey(choice) | transloco }}
+          </button>
+        }
+      </div>
+    }
     @switch (state()) {
       @case ('loading') {
         <p class="message" role="status">{{ 'map.loading' | transloco }}</p>
@@ -85,6 +136,7 @@ export class MapViewComponent {
   private readonly provider = inject(MapProvider);
   private readonly scheme = inject(ColorSchemeService).scheme;
   private readonly transloco = inject(TranslocoService);
+  private readonly settings = inject(SettingsService);
 
   readonly routes = input<readonly MapRoute[]>([]);
   readonly stops = input<readonly MapStop[]>([]);
@@ -95,9 +147,8 @@ export class MapViewComponent {
   readonly highlightedStop = input<MapStop | null>(null);
   /** Zona marcada (contorno de barrio o distrito); null = ninguna. */
   readonly highlightedArea = input<readonly Polygon[] | null>(null);
-  readonly baseLayer = input<MapBaseLayer>('streets');
-  /** Esquema del mapa; null = el de la app. */
-  readonly mapScheme = input<ColorScheme | null>(null);
+  /** Muestra el selector Claro / Oscuro / Satélite (la elección se recuerda en Ajustes). */
+  readonly layerSwitch = input(true);
   /** Puntos que el mapa debe encuadrar cuando cambian. */
   readonly fitPoints = input<readonly LatLon[]>([]);
   readonly lineSelected = output<string | null>();
@@ -105,6 +156,17 @@ export class MapViewComponent {
   readonly zoomChanged = output<number>();
 
   protected readonly state = signal<MapState>('loading');
+  protected readonly layerChoices = LAYER_CHOICES;
+  /** Capa efectiva: con 'auto' el callejero sigue el tema de la app. */
+  protected readonly activeLayer = computed(() => {
+    const style = this.settings.settings().mapStyle;
+    return style === 'auto' ? this.scheme() : style;
+  });
+  /** Esquema del callejero; sobre la foto aérea se mantiene el de la app. */
+  private readonly mapScheme = computed(() => {
+    const layer = this.activeLayer();
+    return layer === 'satellite' ? this.scheme() : layer;
+  });
   private readonly container = viewChild.required<ElementRef<HTMLElement>>('map');
   private readonly view = signal<MapView | null>(null);
 
@@ -118,14 +180,24 @@ export class MapViewComponent {
     effect(() => this.view()?.setHighlightedLines(this.highlightedLines()));
     effect(() => this.view()?.setHighlightedStop(this.highlightedStop()));
     effect(() => this.view()?.setHighlightedArea(this.highlightedArea()));
-    effect(() => this.view()?.setScheme(this.mapScheme() ?? this.scheme()));
-    effect(() => this.view()?.setBaseLayer(this.baseLayer()));
+    effect(() => this.view()?.setScheme(this.mapScheme()));
+    effect(() =>
+      this.view()?.setBaseLayer(this.activeLayer() === 'satellite' ? 'satellite' : 'streets'),
+    );
     effect(() => {
       // Se lee view() antes de salir: así el efecto se repite cuando el mapa termina de crearse.
       const view = this.view();
       const points = this.fitPoints();
       if (view && points.length > 0) view.fitTo(points);
     });
+  }
+
+  protected setLayer(choice: Exclude<MapStylePreference, 'auto'>): void {
+    this.settings.update({ mapStyle: choice });
+  }
+
+  protected layerKey(choice: string): string {
+    return `map.layers.${choice}`;
   }
 
   protected async retry(): Promise<void> {
@@ -146,7 +218,7 @@ export class MapViewComponent {
         {
           center: MALAGA_CENTER,
           zoom: INITIAL_ZOOM,
-          scheme: this.mapScheme() ?? this.scheme(),
+          scheme: this.mapScheme(),
           reduceMotion: prefersReducedMotion(),
           label: await firstValueFrom(this.transloco.selectTranslate('map.mapLabel')),
         },

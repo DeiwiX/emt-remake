@@ -16,17 +16,25 @@ describe('Ajustes', () => {
         theme: 'system',
         highContrast: false,
         simpleMode: false,
+        mapStyle: 'auto',
       });
     });
 
     it('recupera lo guardado y descarta valores desconocidos', () => {
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ language: 'fr', theme: 'dark', highContrast: 'sí', simpleMode: true }),
+        JSON.stringify({
+          language: 'fr',
+          theme: 'dark',
+          highContrast: 'sí',
+          simpleMode: true,
+          mapStyle: 'satellite',
+        }),
       );
       const settings = loadSettings();
       expect(settings.theme).toBe('dark');
       expect(settings.simpleMode).toBe(true);
+      expect(settings.mapStyle).toBe('satellite');
       expect(settings.highContrast).toBe(false);
       expect(['es', 'en']).toContain(settings.language);
     });

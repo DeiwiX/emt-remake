@@ -1,49 +1,50 @@
 /*
- * Inicio. Colores de marca propios con contraste AA para texto blanco
- * (≥ 4,5:1 en todo el degradado). Medidas en rem para que el texto ampliado
- * al 200 % reorganice las tarjetas en vez de cortarlas (RNF-01, RNF-04).
+ * Inicio (diseño A, elegido por el desarrollador el 04/10/2026): cabecera
+ * sobria, acción principal destacada y cuatro accesos iguales. Medidas en rem
+ * para que el texto ampliado al 200 % reorganice las tarjetas en vez de
+ * cortarlas (RNF-01, RNF-04). Los colores de texto cumplen AA en claro y oscuro.
  */
 :host {
-  --hero-start: #0b4fc4;
-  --hero-end: #5b2fd1;
-  --tile-radius: 20px;
-  --tile-bg: var(--ion-color-step-50, var(--ion-background-color-step-50, #f4f5f8));
-  --tile-border: var(--ion-color-step-150, var(--ion-background-color-step-150, #dfe1e6));
+  --brand: #0b4fc4;
+  --surface: var(--ion-color-step-50, var(--ion-background-color-step-50, #f4f5f8));
+  --card: var(--ion-item-background, var(--ion-background-color, #fff));
+  --soft: var(--ion-color-step-100, var(--ion-background-color-step-100, #eceef2));
   --muted: var(--ion-color-step-600, var(--ion-text-color-step-400, #5f6368));
+  --radius: 18px;
+
+  /* Tintes de los iconos: fondo suave y trazo con contraste ≥ 3:1. */
+  --blue-bg: #e6efff;
+  --blue-fg: #0b4fc4;
+  --green-bg: #e3f5ec;
+  --green-fg: #0b6b46;
+  --orange-bg: #fff0e0;
+  --orange-fg: #a64b00;
+}
+
+:host-context(.ion-palette-dark) {
+  --card: var(--ion-background-color-step-100, var(--ion-color-step-100, #1e1e1e));
+  --soft: var(--ion-background-color-step-200, var(--ion-color-step-200, #333));
+  --blue-bg: rgba(110, 160, 255, 0.16);
+  --blue-fg: #8db4ff;
+  --green-bg: rgba(60, 200, 140, 0.16);
+  --green-fg: #6ddba8;
+  --orange-bg: rgba(255, 160, 80, 0.16);
+  --orange-fg: #ffb57a;
+}
+
+ion-content {
+  --background: var(--surface);
 }
 
 /* ---------- Cabecera ---------- */
-.hero {
-  position: relative;
-  overflow: hidden;
-  padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px 20px;
-  border-radius: 0 0 28px 28px;
-  background: linear-gradient(135deg, var(--hero-start), var(--hero-end));
-  color: #fff;
+.top {
+  padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 16px;
+  border-radius: 0 0 24px 24px;
+  background: var(--card);
+  box-shadow: 0 1px 0 var(--soft);
 }
 
-.hero-art {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0.18;
-  pointer-events: none;
-
-  path {
-    fill: none;
-    stroke: #fff;
-    stroke-width: 6;
-    stroke-linecap: round;
-  }
-
-  circle {
-    fill: #fff;
-  }
-}
-
-.hero-top {
-  position: relative;
+.top-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -53,8 +54,17 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-weight: 700;
-  font-size: 1.1rem;
+  min-height: 44px;
+  border-radius: 12px;
+  color: var(--ion-text-color);
+  font-size: 1.05rem;
+  font-weight: 800;
+  text-decoration: none;
+
+  &:focus-visible {
+    outline: 3px solid var(--ion-color-primary);
+    outline-offset: 2px;
+  }
 }
 
 .brand-icon {
@@ -62,9 +72,10 @@
   place-items: center;
   width: 36px;
   height: 36px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.2);
-  font-size: 1.25rem;
+  border-radius: 11px;
+  background: var(--brand);
+  color: #fff;
+  font-size: 1.2rem;
 }
 
 .round-button {
@@ -73,43 +84,32 @@
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
-  font-size: 1.4rem;
+  background: var(--soft);
+  color: var(--ion-text-color);
+  font-size: 1.3rem;
 
   &:focus-visible {
-    outline: 3px solid #fff;
+    outline: 3px solid var(--ion-color-primary);
     outline-offset: 2px;
   }
 }
 
-.greeting {
-  position: relative;
-  margin: 20px 0 4px;
+.question {
+  margin: 18px 0 10px;
   font-size: 1.75rem;
   font-weight: 800;
+  letter-spacing: -0.01em;
   line-height: 1.15;
 }
 
-.subtitle {
-  position: relative;
-  margin: 0 0 14px;
-  font-size: 1rem;
-  opacity: 0.95;
-}
-
-.hero-search {
-  position: relative;
+.home-search {
   padding: 0;
-  --background: #fff;
-  --color: #1f1f1f;
-  --placeholder-color: #5f6368;
-  --icon-color: #5f6368;
-  --border-radius: 16px;
-  --box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  --background: var(--soft);
+  --border-radius: 14px;
+  --box-shadow: none;
 }
 
-/* ---------- Tarjetas ---------- */
+/* ---------- Menú ---------- */
 .sections {
   display: flex;
   flex-direction: column;
@@ -117,19 +117,13 @@
   padding: 16px;
 }
 
+.plan-card,
 .tile {
   display: flex;
-  gap: 12px;
-  padding: 16px;
-  border-radius: var(--tile-radius);
-  border: 1px solid var(--tile-border);
-  background: var(--tile-bg);
+  border-radius: var(--radius);
   color: var(--ion-text-color);
   text-decoration: none;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease;
+  transition: transform 0.15s ease;
 
   &:active {
     transform: scale(0.98);
@@ -141,57 +135,30 @@
   }
 }
 
-.tile-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.tile-title {
-  font-size: 1.1rem;
-  font-weight: 700;
-}
-
-.tile-description {
-  font-size: 0.9rem;
-  color: var(--muted);
-}
-
-.tile-icon {
-  display: grid;
-  flex: 0 0 auto;
-  place-items: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  background: rgba(var(--ion-color-primary-rgb), 0.14);
-  color: var(--ion-color-primary);
-  font-size: 1.5rem;
-
-  &.small {
-    width: 40px;
-    height: 40px;
-    font-size: 1.25rem;
-  }
-}
-
-/* Acción principal: "Cómo llegar". */
-.tile-plan {
+/* Acción principal: "Cómo llegar" (texto blanco sobre #0b4fc4: 6,3:1). */
+.plan-card {
   align-items: center;
-  border: none;
-  background: linear-gradient(135deg, #0f7a52, #0b5d8f);
+  gap: 14px;
+  padding: 16px;
+  background: var(--brand);
   color: #fff;
-  box-shadow: 0 8px 20px rgba(11, 93, 143, 0.3);
+  box-shadow: 0 8px 20px rgba(11, 79, 196, 0.28);
 
   .tile-icon {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.18);
     color: #fff;
   }
 
   .tile-description {
     color: #fff;
-    opacity: 0.95;
+    opacity: 0.92;
   }
+}
+
+.tile-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .tile-arrow {
@@ -205,132 +172,97 @@
   gap: 12px;
 }
 
-.tile-map {
+.tile {
   flex-direction: column;
-  justify-content: flex-end;
-  min-height: 11rem;
-}
+  gap: 4px;
+  padding: 14px;
+  background: var(--card);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 
-.mini-map {
-  width: 100%;
-  height: 5.5rem;
-  margin-bottom: 4px;
-  border-radius: 12px;
-  background: var(--ion-background-color, #fff);
-
-  path {
-    fill: none;
-    stroke-width: 4;
-    stroke-linecap: round;
-  }
-
-  circle {
-    fill: var(--ion-background-color, #fff);
-    stroke: var(--ion-text-color, #000);
-    stroke-width: 2;
+  .tile-icon {
+    margin-bottom: 6px;
   }
 }
 
-.tile-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.tile-icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  font-size: 1.35rem;
 }
 
-.tile-small {
-  flex: 1;
-  align-items: center;
-  padding: 12px;
+.tile-title {
+  font-size: 1.05rem;
+  font-weight: 700;
 }
 
-/* ---------- Líneas ---------- */
-.strip-section {
-  padding: 4px 0 8px;
-}
-
-.section-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  padding: 0 16px;
-
-  h2 {
-    margin: 0 0 8px;
-    font-size: 1.15rem;
-    font-weight: 700;
-  }
-
-  a {
-    display: inline-flex;
-    align-items: center;
-    min-height: 44px;
-    color: var(--ion-color-primary);
-    font-weight: 600;
-    text-decoration: none;
-  }
-}
-
-.line-strip {
-  display: flex;
-  gap: 8px;
-  margin: 0;
-  padding: 0 16px 8px;
-  overflow-x: auto;
-  list-style: none;
-  scroll-snap-type: x proximity;
-  scroll-padding-inline: 16px;
-  scrollbar-width: none;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
-
-  li {
-    scroll-snap-align: start;
-  }
-
-  a {
-    display: block;
-    border-radius: 10px;
-
-    &:focus-visible {
-      outline: 3px solid var(--ion-color-primary);
-      outline-offset: 2px;
-    }
-  }
-
-  app-line-badge {
-    min-width: 3.25rem;
-    min-height: 2.75rem;
-    font-size: 1.05rem;
-  }
-}
-
-/* ---------- Próximamente y aviso ---------- */
-.soon {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 8px 16px 0;
-}
-
-.soon-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border-radius: 999px;
-  border: 1px dashed var(--tile-border);
+.tile-description {
+  font-size: 0.875rem;
   color: var(--muted);
-  font-size: 0.9rem;
+}
+
+.tone-blue .tile-icon {
+  background: var(--blue-bg);
+  color: var(--blue-fg);
+}
+
+.tone-green .tile-icon {
+  background: var(--green-bg);
+  color: var(--green-fg);
+}
+
+.tone-orange .tile-icon {
+  background: var(--orange-bg);
+  color: var(--orange-fg);
+}
+
+.tile-soon {
+  border: 1px dashed var(--ion-color-step-300, #b5b5b5);
+  background: transparent;
+  box-shadow: none;
+
+  .tile-icon {
+    background: var(--soft);
+    color: var(--muted);
+  }
+
+  &:active {
+    transform: none;
+  }
 }
 
 .notice {
-  padding: 16px;
   margin: 0;
+  padding: 0 16px 16px;
+}
+
+/* ---------- Zona elegida en la búsqueda ---------- */
+.zone-view {
+  padding: 8px 16px 0;
+
+  h2 {
+    margin: 4px 0 2px;
+    font-size: 1.3rem;
+    font-weight: 700;
+  }
+
+  p {
+    margin: 0 0 8px;
+    color: var(--muted);
+  }
+}
+
+/* En pantallas anchas el contenido no se estira de borde a borde. */
+.page {
+  max-width: 760px;
+  margin-inline: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .plan-card,
   .tile {
     transition: none;
   }

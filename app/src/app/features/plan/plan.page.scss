@@ -135,8 +135,62 @@
   }
 }
 
+/*
+ * Mapa de la opción elegida. En el móvil va entre el formulario y las
+ * opciones; en pantallas anchas ocupa la columna derecha a toda altura y se
+ * queda fijo mientras se recorren las opciones.
+ */
+.plan-layout {
+  display: flex;
+  flex-direction: column;
+}
+
+.map-column {
+  padding: 0 16px 8px;
+}
+
 .plan-map {
-  height: 280px;
+  display: block;
+  height: min(55vh, 420px);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+@media (min-width: 900px) {
+  .plan-layout.with-map {
+    display: grid;
+    grid-template-columns: minmax(340px, 480px) 1fr;
+    grid-template-areas:
+      'places map'
+      'results map';
+    grid-template-rows: auto 1fr;
+    align-items: start;
+  }
+
+  .places {
+    grid-area: places;
+  }
+
+  .results {
+    grid-area: results;
+  }
+
+  .map-column {
+    grid-area: map;
+    position: sticky;
+    top: 0;
+    padding: 8px 16px 16px 0;
+  }
+
+  .plan-map {
+    height: calc(100vh - 120px);
+  }
+}
+
+.transfer a {
+  color: var(--ion-color-primary);
+  font-weight: 600;
+  font-style: normal;
 }
 
 .option.is-selected {

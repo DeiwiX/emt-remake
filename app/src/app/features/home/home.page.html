@@ -1,55 +1,78 @@
 <ion-content>
-  <!-- Cabecera visual: saludo, búsqueda y acceso a Ajustes. -->
-  <header class="hero">
-    <svg
-      class="hero-art"
-      viewBox="0 0 400 220"
-      preserveAspectRatio="xMidYMid slice"
-      aria-hidden="true"
-    >
-      <path d="M-20 170 C 60 120, 120 200, 200 140 S 330 60, 420 110" />
-      <path d="M-20 90 C 80 40, 150 120, 230 70 S 350 20, 420 40" />
-      <path d="M40 240 C 90 160, 180 190, 240 120 S 340 120, 420 180" />
-      <circle cx="200" cy="140" r="6" />
-      <circle cx="230" cy="70" r="6" />
-      <circle cx="240" cy="120" r="6" />
-    </svg>
-
-    <div class="hero-top">
-      <span class="brand">
+  <div class="page">
+  <!-- Cabecera sobria: logotipo (vuelve al inicio), Ajustes, pregunta y búsqueda. -->
+  <header class="top">
+    <div class="top-bar">
+      <a class="brand" routerLink="/" (click)="resetHome()">
         <span class="brand-icon"><ion-icon name="bus-outline" aria-hidden="true" /></span>
         <span class="brand-name">{{ 'app.name' | transloco }}</span>
-      </span>
-      <a
-        class="round-button"
-        routerLink="/settings"
-        [attr.aria-label]="'settings.title' | transloco"
-      >
+      </a>
+      <a class="round-button" routerLink="/settings" [attr.aria-label]="'settings.title' | transloco">
         <ion-icon name="settings-outline" aria-hidden="true" />
       </a>
     </div>
 
-    <h1 class="greeting">{{ greetingKey() | transloco }}</h1>
-    <p class="subtitle">{{ 'home.subtitle' | transloco }}</p>
+    <h1 class="question">{{ 'home.question' | transloco }}</h1>
 
     <ion-searchbar
-      class="hero-search"
+      class="home-search"
+      [value]="query()"
       [placeholder]="'home.searchPlaceholder' | transloco"
       [attr.aria-label]="'home.searchPlaceholder' | transloco"
       [debounce]="150"
-      (ionInput)="query.set($event.detail.value ?? '')"
+      (ionInput)="setQuery($event.detail.value ?? '')"
     />
   </header>
 
   <app-data-status-banner />
 
-  @if (searching()) {
+  @if (selectedZone(); as zone) {
+    <!-- Barrio o distrito elegido en la búsqueda: todas sus paradas. -->
+    <section class="zone-view" [attr.aria-label]="zone.name">
+      <ion-button fill="clear" size="small" (click)="selectedZoneId.set(null)">
+        <ion-icon slot="start" name="arrow-back" aria-hidden="true" />
+        {{ 'home.backToResults' | transloco }}
+      </ion-button>
+      <h2>{{ zone.name }}</h2>
+      <p>
+        {{ zoneKindKey(zone.kind) | transloco }} ·
+        {{ 'home.stopCount' | transloco: { count: zoneStops().length } }}
+      </p>
+      <ion-button size="small" fill="outline" routerLink="/map" [queryParams]="{ zone: zone.id }">
+        <ion-icon slot="start" name="map-outline" aria-hidden="true" />
+        {{ 'home.zoneOnMap' | transloco }}
+      </ion-button>
+    </section>
+    <app-stop-list [stops]="zoneStops()" [label]="'map.zoneStops' | transloco" />
+  } @else if (searching()) {
     <!-- Resultados de búsqueda (RF-05): sustituyen al menú mientras hay texto. -->
     <p class="ion-padding-horizontal" role="status">
       {{
-        'home.resultCount' | transloco: { lines: lineResults().length, stops: totalStopResults() }
+        'home.resultCountWithZones'
+          | transloco
+            : {
+                zones: zoneResults().length,
+                lines: lineResults().length,
+                stops: totalStopResults(),
+              }
       }}
     </p>
+    @if (zoneResults().length > 0) {
+      <h2 class="ion-padding-horizontal">{{ 'map.zoneResults' | transloco }}</h2>
+      <ion-list [attr.aria-label]="'map.zoneResults' | transloco">
+        @for (zone of zoneResults(); track zone.id) {
+          <ion-item button detail (click)="selectedZoneId.set(zone.id)">
+            <ion-label class="ion-text-wrap">
+              {{ zone.name }}
+              <p>
+                {{ zoneKindKey(zone.kind) | transloco }} ·
+                {{ 'home.stopCount' | transloco: { count: zone.stopIds.length } }}
+              </p>
+            </ion-label>
+          </ion-item>
+        }
+      </ion-list>
+    }
     @if (lineResults().length > 0) {
       <h2 class="ion-padding-horizontal">{{ 'home.lineResults' | transloco }}</h2>
       <app-line-list [lines]="lineResults()" [label]="'home.lineResults' | transloco" />
@@ -66,7 +89,7 @@
   } @else {
     <nav class="sections" [attr.aria-label]="'home.menuLabel' | transloco">
       <!-- Acción principal: planificar un viaje. -->
-      <a class="tile tile-plan" routerLink="/plan">
+      <a class="plan-card" routerLink="/plan">
         <span class="tile-icon"><ion-icon name="trail-sign-outline" aria-hidden="true" /></span>
         <span class="tile-text">
           <span class="tile-title">{{ 'plan.title' | transloco }}</span>
@@ -76,79 +99,37 @@
       </a>
 
       <div class="tile-grid">
-        <a class="tile tile-map" routerLink="/map">
-          <svg class="mini-map" viewBox="0 0 160 90" aria-hidden="true">
-            <path d="M5 70 C 40 30, 70 80, 100 40 S 140 20, 155 30" stroke="#1B8DCE" />
-            <path d="M10 20 C 50 30, 70 10, 110 60 S 150 80, 158 70" stroke="#D55E00" />
-            <path d="M30 88 C 50 50, 90 60, 120 10" stroke="#00996F" />
-            <circle cx="100" cy="40" r="4" />
-            <circle cx="70" cy="40" r="4" />
-          </svg>
-          <span class="tile-title">{{ 'home.mapSummary' | transloco }}</span>
+        <a class="tile tone-blue" routerLink="/map">
+          <span class="tile-icon"><ion-icon name="map-outline" aria-hidden="true" /></span>
+          <span class="tile-title">{{ 'map.title' | transloco }}</span>
           <span class="tile-description">{{ 'home.mapDescription' | transloco }}</span>
         </a>
-
-        <div class="tile-stack">
-          <a class="tile tile-small" routerLink="/lines">
-            <span class="tile-icon small"><ion-icon name="bus-outline" aria-hidden="true" /></span>
-            <span class="tile-text">
-              <span class="tile-title">{{ 'lines.title' | transloco }}</span>
-              <span class="tile-description">{{
-                'home.lineCount' | transloco: { count: lineCount() }
-              }}</span>
-            </span>
-          </a>
-          <a class="tile tile-small" routerLink="/stops">
-            <span class="tile-icon small"
-              ><ion-icon name="location-outline" aria-hidden="true"
-            /></span>
-            <span class="tile-text">
-              <span class="tile-title">{{ 'stops.title' | transloco }}</span>
-              <span class="tile-description">{{
-                'home.stopCount' | transloco: { count: stopCount() }
-              }}</span>
-            </span>
-          </a>
+        <a class="tile tone-green" routerLink="/lines">
+          <span class="tile-icon"><ion-icon name="bus-outline" aria-hidden="true" /></span>
+          <span class="tile-title">{{ 'home.linesTile' | transloco }}</span>
+          <span class="tile-description">{{
+            'home.lineCount' | transloco: { count: lineCount() }
+          }}</span>
+        </a>
+        <a class="tile tone-orange" routerLink="/stops">
+          <span class="tile-icon"><ion-icon name="location-outline" aria-hidden="true" /></span>
+          <span class="tile-title">{{ 'stops.title' | transloco }}</span>
+          <span class="tile-description">{{
+            'home.stopCount' | transloco: { count: stopCount() }
+          }}</span>
+        </a>
+        <!-- Fase 2: visible pero no pulsable. -->
+        <div class="tile tile-soon" aria-disabled="true">
+          <span class="tile-icon"><ion-icon name="star-outline" aria-hidden="true" /></span>
+          <span class="tile-title">{{ 'home.favorites' | transloco }}</span>
+          <span class="tile-description">{{ 'home.comingInPhase2' | transloco }}</span>
         </div>
       </div>
     </nav>
-
-    <!-- Acceso rápido a cualquier línea: insignias deslizables. -->
-    @if (lines().length > 0) {
-      <section class="strip-section" [attr.aria-label]="'home.quickLines' | transloco">
-        <div class="section-header">
-          <h2>{{ 'home.quickLines' | transloco }}</h2>
-          <a routerLink="/lines">{{ 'home.seeAll' | transloco }}</a>
-        </div>
-        <ul class="line-strip">
-          @for (line of lines(); track line.id) {
-            <li>
-              <a
-                [routerLink]="['/lines', line.id]"
-                [attr.aria-label]="('lines.line' | transloco: { id: line.id }) + ': ' + line.name"
-              >
-                <app-line-badge [code]="line.id" />
-              </a>
-            </li>
-          }
-        </ul>
-      </section>
-    }
-
-    <!-- Espacio reservado para la Fase 2: visibles pero no pulsables. -->
-    <section class="soon" [attr.aria-label]="'home.comingInPhase2' | transloco">
-      <span class="soon-pill" aria-disabled="true">
-        <ion-icon name="navigate-outline" aria-hidden="true" />
-        {{ 'home.nearMe' | transloco }} · {{ 'home.comingInPhase2' | transloco }}
-      </span>
-      <span class="soon-pill" aria-disabled="true">
-        <ion-icon name="star-outline" aria-hidden="true" />
-        {{ 'home.favorites' | transloco }} · {{ 'home.comingInPhase2' | transloco }}
-      </span>
-    </section>
 
     <p class="notice">
       <ion-note>{{ 'app.unofficialNotice' | transloco }}</ion-note>
     </p>
   }
+  </div>
 </ion-content>

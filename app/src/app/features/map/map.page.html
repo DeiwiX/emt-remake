@@ -33,35 +33,7 @@
         (lineSelected)="highlight($event)"
         (stopSelected)="selectStop($event)"
         (zoomChanged)="onZoom($event)"
-        [baseLayer]="baseLayer()"
-        [mapScheme]="mapScheme()"
       />
-      <!-- Capa del mapa: callejero claro u oscuro y foto aérea. -->
-      <div class="layer-switch" role="group" [attr.aria-label]="'map.layer' | transloco">
-        <button
-          type="button"
-          [attr.aria-pressed]="baseLayer() === 'streets' && mapScheme() === 'light'"
-          (click)="setLayer('streets', 'light')"
-        >
-          {{ 'map.layers.light' | transloco }}
-        </button>
-        <button
-          type="button"
-          [attr.aria-pressed]="baseLayer() === 'streets' && mapScheme() === 'dark'"
-          (click)="setLayer('streets', 'dark')"
-        >
-          {{ 'map.layers.dark' | transloco }}
-        </button>
-        @if (satelliteAvailable) {
-          <button
-            type="button"
-            [attr.aria-pressed]="baseLayer() === 'satellite'"
-            (click)="setLayer('satellite', mapScheme())"
-          >
-            {{ 'map.layers.satellite' | transloco }}
-          </button>
-        }
-      </div>
     </div>
 
     <!-- Alternativa en texto de todo lo que muestra el mapa (RNF-01). -->

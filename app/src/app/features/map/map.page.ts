@@ -27,16 +27,10 @@ import {
   IonToolbar,
 } from '@ionic/angular';
 
-import {
-  DataStatusService,
-  NetworkRepository,
-  ShapeRepository,
-  ZoneRepository,
-} from '../../core/data/repositories';
+import { NetworkRepository, ShapeRepository } from '../../core/data/repositories';
+import { ZonesStore } from '../../core/data/zones-store.service';
 import { LineColorsService } from '../../core/map/line-colors.service';
 import { toMapRoutes, toMapStops } from '../../core/map/map-features';
-import { MapBaseLayer } from '../../core/map/map-provider';
-import { ColorScheme, ColorSchemeService } from '../../core/theme/color-scheme.service';
 import { LatLon, ShapeDetail, Zone } from '../../core/models/network.model';
 import { searchLines, searchStops, searchZones } from '../../core/search/search';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
@@ -50,9 +44,6 @@ const MAX_STOP_RESULTS = 30;
 /** Lo último que ha elegido el usuario: es lo que el mapa encuadra. */
 type MapFocus =
   { kind: 'line'; id: string } | { kind: 'stop'; id: string } | { kind: 'zone'; id: string };
-
-/** Foto aérea del PNOA (IGN), aprobada por el desarrollador el 03/10/2026 (ADR 0004). */
-const SATELLITE_AVAILABLE = true;
 
 /** A partir de este zoom se cargan los trazados detallados (RNF-02: geometrías según zoom). */
 const DETAIL_ZOOM = 14;
@@ -94,6 +85,8 @@ export class MapPage {
 
   /** Línea a resaltar al abrir (/map?line=C1). */
   readonly line = input<string>();
+  /** Barrio o distrito a marcar al abrir (/map?zone=...). */
+  readonly zone = input<string>();
 
   protected readonly lines = this.network.lines;
   protected readonly hiddenLines = signal<ReadonlySet<string>>(new Set());
@@ -104,10 +97,6 @@ export class MapPage {
     return id ? this.network.getLine(id) : undefined;
   });
 
-  /** Capa del mapa elegida en esta pantalla; el callejero empieza con el tema de la app. */
-  protected readonly baseLayer = signal<MapBaseLayer>('streets');
-  protected readonly mapScheme = linkedSignal<ColorScheme>(inject(ColorSchemeService).scheme);
-  protected readonly satelliteAvailable = SATELLITE_AVAILABLE;
 
   /** Búsqueda de líneas y paradas dentro del mapa (RF-05). */
   protected readonly query = signal('');
@@ -123,12 +112,10 @@ export class MapPage {
 
   /** Barrios y distritos: se descargan al abrir el mapa y solo se usan al buscar. */
   private readonly panel = viewChild<ElementRef<HTMLElement>>('panel');
-  private readonly zones = signal<readonly Zone[]>([]);
-  private readonly zoneRepository = inject(ZoneRepository);
-  private readonly dataStatus = inject(DataStatusService);
-  private loadingZones = false;
+  private readonly zonesStore = inject(ZonesStore);
+  private readonly zones = this.zonesStore.zones;
   protected readonly zoneResults = computed(() => searchZones(this.zones(), this.query()));
-  protected readonly selectedZoneId = signal<string | null>(null);
+  protected readonly selectedZoneId = linkedSignal(() => this.zone() ?? null);
   protected readonly selectedZone = computed(() =>
     this.zones().find((zone) => zone.id === this.selectedZoneId()),
   );
@@ -164,6 +151,8 @@ export class MapPage {
   );
 
   private readonly focus = linkedSignal<MapFocus | null>(() => {
+    const zone = this.zone();
+    if (zone) return { kind: 'zone', id: zone };
     const line = this.line();
     return line ? { kind: 'line', id: line } : null;
   });
@@ -231,26 +220,11 @@ export class MapPage {
 
   constructor() {
     void this.loadShapes('overview');
-    void this.loadZones();
-    // Si las zonas no se pudieron cargar al abrir (sin conexión, o datos guardados
-    // anteriores a las zonas), se reintenta al buscar y cuando llegan datos nuevos.
+    void this.zonesStore.load();
+    // Si las zonas no se pudieron cargar al abrir, se reintenta al buscar.
     effect(() => {
-      this.dataStatus.status();
-      if (this.searching()) void this.loadZones();
+      if (this.searching()) void this.zonesStore.load();
     });
-  }
-
-  private async loadZones(): Promise<void> {
-    if (this.zones().length > 0 || this.loadingZones) return;
-    this.loadingZones = true;
-    try {
-      this.zones.set(await this.zoneRepository.getZones());
-    } catch (error) {
-      // Sin zonas la búsqueda sigue funcionando con líneas y paradas.
-      console.warn('No se pudieron cargar las zonas', error);
-    } finally {
-      this.loadingZones = false;
-    }
   }
 
   protected isVisible(lineId: string): boolean {
@@ -272,11 +246,6 @@ export class MapPage {
 
   protected hideAll(): void {
     this.hiddenLines.set(new Set(this.lines().map((l) => l.id)));
-  }
-
-  protected setLayer(layer: MapBaseLayer, scheme: ColorScheme): void {
-    this.baseLayer.set(layer);
-    this.mapScheme.set(scheme);
   }
 
   protected highlight(lineId: string | null): void {

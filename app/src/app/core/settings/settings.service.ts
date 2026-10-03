@@ -3,6 +3,8 @@ import { Injectable, signal } from '@angular/core';
 import { AVAILABLE_LANGS, AppLang, DEFAULT_LANG } from '../i18n/i18n.config';
 
 export type ThemePreference = 'system' | 'light' | 'dark';
+/** Aspecto de los mapas: 'auto' sigue el tema de la app. */
+export type MapStylePreference = 'auto' | 'light' | 'dark' | 'satellite';
 
 export interface AppSettings {
   readonly language: AppLang;
@@ -10,10 +12,12 @@ export interface AppSettings {
   readonly highContrast: boolean;
   /** Modo sencillo (RF-07): solo listas, sin mapa. Se aplica en el incremento 8. */
   readonly simpleMode: boolean;
+  readonly mapStyle: MapStylePreference;
 }
 
 const STORAGE_KEY = 'emt-remake.settings.v1';
 const THEMES: readonly ThemePreference[] = ['system', 'light', 'dark'];
+const MAP_STYLES: readonly MapStylePreference[] = ['auto', 'light', 'dark', 'satellite'];
 
 /**
  * Ajustes del usuario (RF-10), guardados solo en este dispositivo. Son unos
@@ -42,6 +46,7 @@ function defaultSettings(): AppSettings {
     theme: 'system',
     highContrast: false,
     simpleMode: false,
+    mapStyle: 'auto',
   };
 }
 
@@ -57,6 +62,7 @@ export function loadSettings(): AppSettings {
   }
   const language = stored['language'];
   const theme = stored['theme'];
+  const mapStyle = stored['mapStyle'];
   return {
     language: (AVAILABLE_LANGS as readonly unknown[]).includes(language)
       ? (language as AppLang)
@@ -68,5 +74,8 @@ export function loadSettings(): AppSettings {
       typeof stored['highContrast'] === 'boolean' ? stored['highContrast'] : defaults.highContrast,
     simpleMode:
       typeof stored['simpleMode'] === 'boolean' ? stored['simpleMode'] : defaults.simpleMode,
+    mapStyle: (MAP_STYLES as readonly unknown[]).includes(mapStyle)
+      ? (mapStyle as MapStylePreference)
+      : defaults.mapStyle,
   };
 }

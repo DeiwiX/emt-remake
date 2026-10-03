@@ -10,6 +10,8 @@
 <ion-content>
   <app-data-status-banner />
 
+  <!-- Móvil: formulario, mapa y opciones en columna. Pantalla ancha: el mapa a la derecha. -->
+  <div class="plan-layout" [class.with-map]="hasOptions()">
   <section class="places ion-padding-horizontal" [attr.aria-label]="'plan.placesLabel' | transloco">
     <app-place-picker
       [label]="'plan.origin' | transloco"
@@ -75,6 +77,24 @@
     </p>
   </section>
 
+  @if (hasOptions()) {
+    <!-- Mapa de la opción elegida (al principio, la recomendada). -->
+    <div #mapSection class="map-column">
+      @defer (on viewport) {
+        <app-map-view
+          class="plan-map"
+          role="region"
+          [attr.aria-label]="'plan.mapLabel' | transloco"
+          [routes]="mapRoutes()"
+          [stops]="mapStops()"
+          [fitPoints]="fitPoints()"
+        />
+      } @placeholder {
+        <div class="plan-map"></div>
+      }
+    </div>
+  }
+
   @if (origin() && destination()) {
     <section class="results" aria-live="polite" [attr.aria-label]="'plan.resultsLabel' | transloco">
       @if (samePlace()) {
@@ -82,22 +102,6 @@
       } @else if (rows().length === 0) {
         <p class="ion-padding-horizontal">{{ 'plan.noOptions' | transloco }}</p>
       } @else {
-        <!-- Mapa de la opción elegida (al principio, la recomendada). -->
-        <div #mapSection>
-          @defer (on viewport) {
-            <app-map-view
-              class="detail-map plan-map"
-              role="region"
-              [attr.aria-label]="'plan.mapLabel' | transloco"
-              [routes]="mapRoutes()"
-              [stops]="mapStops()"
-              [fitPoints]="fitPoints()"
-            />
-          } @placeholder {
-            <div class="detail-map plan-map"></div>
-          }
-        </div>
-
         <p class="ion-padding-horizontal">
           <ion-note>{{ 'plan.timesNote' | transloco }}</ion-note>
         </p>
@@ -135,11 +139,22 @@
               <ol class="legs">
                 @for (leg of row.option.legs; track $index; let i = $index; let first = $first) {
                   @if (!first) {
+                    <!-- Las paradas del transbordo enlazan a su ficha; al volver se conserva el recorrido. -->
                     <li class="transfer">
                       @if (row.option.walkMinutes > 0) {
-                        {{ transferWalkText(row.option) }}
+                        {{ 'plan.transferWalkFrom' | transloco }}
+                        <a [routerLink]="['/stops', row.option.legs[0]!.toStopId]">{{
+                          stopLabel(row.option.legs[0]!.toStopId)
+                        }}</a>
+                        {{ 'plan.transferWalkTo' | transloco: { minutes: row.option.walkMinutes } }}
+                        <a [routerLink]="['/stops', leg.fromStopId]">{{
+                          stopLabel(leg.fromStopId)
+                        }}</a>
                       } @else {
-                        {{ 'plan.transferAt' | transloco: { stop: stopName(leg.fromStopId) } }}
+                        {{ 'plan.transferAtLabel' | transloco }}
+                        <a [routerLink]="['/stops', leg.fromStopId]">{{
+                          stopLabel(leg.fromStopId)
+                        }}</a>
                       }
                     </li>
                   }
@@ -218,4 +233,5 @@
       }
     </section>
   }
+  </div>
 </ion-content>

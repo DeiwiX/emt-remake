@@ -8,11 +8,9 @@
     "retry": "Reintentar"
   },
   "home": {
-    "searchPlaceholder": "Buscar línea o parada",
-    "mapSummary": "Mapa de líneas",
+    "searchPlaceholder": "Buscar línea, parada o barrio",
     "comingInPhase2": "Próximamente",
     "favorites": "Mis favoritos",
-    "nearMe": "Cerca de mí",
     "resultCount": "Encontradas: {{lines}} líneas y {{stops}} paradas",
     "lineResults": "Líneas",
     "stopResults": "Paradas",
@@ -22,14 +20,11 @@
     "lineCount": "{{count}} líneas",
     "stopCount": "{{count}} paradas",
     "planDescription": "Opciones y tiempo aproximado",
-    "subtitle": "¿A dónde vas hoy?",
-    "greeting": {
-      "morning": "Buenos días",
-      "afternoon": "Buenas tardes",
-      "night": "Buenas noches"
-    },
-    "quickLines": "Líneas",
-    "seeAll": "Ver todas"
+    "resultCountWithZones": "Encontradas: {{zones}} zonas, {{lines}} líneas y {{stops}} paradas",
+    "backToResults": "Volver a los resultados",
+    "zoneOnMap": "Ver la zona en el mapa",
+    "question": "¿A dónde vas?",
+    "linesTile": "Líneas"
   },
   "lines": {
     "title": "Todas las líneas",
@@ -150,13 +145,11 @@
     "optionCount": "{{count}} opciones",
     "timesNote": "Horas según el horario programado de la EMT, no en tiempo real. La recomendada es la que llega antes (o, en «Llegar a las», la que sale más tarde).",
     "minutes": "~{{minutes}} min",
-    "transferAt": "Transbordo en {{stop}}",
     "boardAt": "Sube en {{stop}} ({{code}})",
     "alightAt": "Baja en {{stop}} ({{code}})",
     "legMeta": "{{stops}} paradas · ~{{minutes}} min",
     "estimatedNote": "Alguna línea de esta opción no publica horario: su tiempo es una estimación por distancia.",
     "nightNote": "Incluye una línea nocturna: solo circula de noche.",
-    "transferWalk": "Transbordo: baja en {{from}} y camina ~{{minutes}} min hasta {{to}}",
     "when": "Cuándo",
     "timeChoice": {
       "now": "Salir ahora",
@@ -179,7 +172,10 @@
     "noServiceArrive": "no llega a tiempo según el horario",
     "day": "Día",
     "nextDayAt": "{{time}} (día siguiente)",
-    "scheduleUntil": "El horario publicado llega hasta el {{date}}."
+    "scheduleUntil": "El horario publicado llega hasta el {{date}}.",
+    "transferAtLabel": "Transbordo en",
+    "transferWalkFrom": "Transbordo: baja en",
+    "transferWalkTo": "y camina ~{{minutes}} min hasta"
   },
   "nextBus": {
     "loading": "Cargando horario…",

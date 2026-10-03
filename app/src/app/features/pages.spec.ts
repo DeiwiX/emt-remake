@@ -54,7 +54,21 @@ describe('Pantallas con datos', () => {
             getTimetables: () => Promise.resolve({ services: new Map(), departures: new Map() }),
           },
         },
-        { provide: ZoneRepository, useValue: { getZones: () => Promise.resolve([]) } },
+        {
+          provide: ZoneRepository,
+          useValue: {
+            getZones: () =>
+              Promise.resolve([
+                {
+                  id: 'b-miraflores',
+                  name: 'Miraflores de los Ángeles',
+                  kind: 'neighbourhood',
+                  polygons: [],
+                  stopIds: index.stops.map((stop) => stop.id),
+                },
+              ]),
+          },
+        },
         { provide: MapProvider, useValue: { isSupported: () => false } },
         {
           provide: NetworkRepository,
@@ -84,8 +98,29 @@ describe('Pantallas con datos', () => {
     harness.detectChanges();
     const text = (harness.routeNativeElement as HTMLElement).textContent ?? '';
 
-    expect(text).toContain('Encontradas: 1 líneas y 1 paradas');
+    expect(text).toContain('Encontradas: 0 zonas, 1 líneas y 1 paradas');
     expect(text).toContain('Alameda - Universidad');
+  });
+
+  it('la búsqueda del inicio encuentra barrios y muestra todas sus paradas', async () => {
+    const harness = await RouterTestingHarness.create();
+    const home = await harness.navigateByUrl('/', HomePage);
+    const actions = home as unknown as {
+      setQuery(v: string): void;
+      selectedZoneId: { set(v: string): void };
+    };
+    actions.setQuery('miraflores');
+    harness.detectChanges();
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+    const element = harness.routeNativeElement as HTMLElement;
+    expect(element.textContent).toContain('Miraflores de los Ángeles');
+
+    actions.selectedZoneId.set('b-miraflores');
+    harness.detectChanges();
+    const stopItems = element.querySelectorAll('app-stop-list ion-item');
+    expect(stopItems.length).toBe(networkFixture().stops.length);
+    expect(element.textContent).toContain('Ver la zona en el mapa');
   });
 
   it('la lista de líneas muestra todas las líneas ordenadas', async () => {

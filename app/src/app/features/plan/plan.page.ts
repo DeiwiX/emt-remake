@@ -8,6 +8,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import {
   IonBackButton,
@@ -21,11 +22,12 @@ import {
   IonToolbar,
 } from '@ionic/angular';
 
-import { NetworkRepository, ShapeRepository, ZoneRepository } from '../../core/data/repositories';
+import { NetworkRepository, ShapeRepository } from '../../core/data/repositories';
+import { ZonesStore } from '../../core/data/zones-store.service';
 import { LineColorsService } from '../../core/map/line-colors.service';
 import { sliceBetween, toMapStops } from '../../core/map/map-features';
 import { MapRoute } from '../../core/map/map-provider';
-import { LatLon, Zone } from '../../core/models/network.model';
+import { LatLon } from '../../core/models/network.model';
 import {
   JourneyOption,
   Leg,
@@ -79,6 +81,7 @@ interface Row {
 @Component({
   selector: 'app-plan',
   imports: [
+    RouterLink,
     TranslocoPipe,
     DataStatusBannerComponent,
     LineBadgeComponent,
@@ -106,7 +109,8 @@ export class PlanPage {
 
   protected readonly origin = signal<Place | null>(null);
   protected readonly destination = signal<Place | null>(null);
-  protected readonly zones = signal<readonly Zone[]>([]);
+  private readonly zonesStore = inject(ZonesStore);
+  protected readonly zones = this.zonesStore.zones;
   private readonly geometries = signal<ReadonlyMap<string, readonly LatLon[]>>(new Map());
 
   protected readonly timeChoice = signal<TimeChoice>('now');
@@ -192,6 +196,10 @@ export class PlanPage {
   });
   protected readonly selected = computed(() => this.rows()[this.selectedIndex()]);
 
+  /** Hay opciones que mostrar (y, por tanto, mapa). */
+  protected readonly hasOptions = computed(
+    () => !!this.origin() && !!this.destination() && !this.samePlace() && this.rows().length > 0,
+  );
   protected readonly samePlace = computed(() => {
     const origin = this.origin();
     const destination = this.destination();
@@ -238,11 +246,8 @@ export class PlanPage {
 
   constructor() {
     void this.schedule.load();
-    inject(ZoneRepository)
-      .getZones()
-      .then((zones) => this.zones.set(zones))
-      // Sin zonas se puede planificar igualmente entre paradas.
-      .catch((error: unknown) => console.warn('No se pudieron cargar las zonas', error));
+    // Sin zonas se puede planificar igualmente entre paradas.
+    void this.zonesStore.load();
     inject(ShapeRepository)
       .getShapes('detail')
       .then((shapes) => this.geometries.set(shapes))
@@ -309,15 +314,9 @@ export class PlanPage {
     return row.timed?.legs[index];
   }
 
-  /** "Transbordo: baja en X (código) y camina ~N min hasta Y (código)". */
-  protected transferWalkText(option: JourneyOption): string {
-    const from = option.legs[0]!.toStopId;
-    const to = option.legs[1]!.fromStopId;
-    return this.transloco.translate('plan.transferWalk', {
-      from: `${this.stopName(from)} (${from})`,
-      to: `${this.stopName(to)} (${to})`,
-      minutes: option.walkMinutes,
-    });
+  /** "Nombre (código)" de una parada, como se muestra en los transbordos. */
+  protected stopLabel(stopId: string): string {
+    return `${this.stopName(stopId)} (${stopId})`;
   }
 
   /** Sin horas: o alguna línea no publica horario, o no hay buses ese día ni el siguiente. */

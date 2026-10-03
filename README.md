@@ -92,8 +92,8 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
   - que dos colores cualesquiera se diferencian con claridad (CIE76 ≥ 10).
 
   Con daltonismo algunos pueden parecerse; el número de línea aparece siempre en las insignias y sobre los recorridos.
-- El buscador del mapa también encuentra barrios y distritos: al elegir uno se marca su contorno, se muestran sus paradas y se resaltan las líneas que pasan por ellas. Los límites proceden del "Sistema de información cartográfica" del Ayuntamiento (mismo portal y licencia).
-- Capas del mapa: "Claro" y "Oscuro" (OpenFreeMap) y "Satélite" (PNOA del IGN, CC BY 4.0).
+- El buscador del inicio y el del mapa también encuentran barrios y distritos. En el inicio, al elegir uno se listan todas sus paradas, con un botón para verlo en el mapa (`/map?zone=...`). En el mapa, al elegir uno se marca su contorno, se muestran sus paradas y se resaltan las líneas que pasan por ellas. Los límites proceden del "Sistema de información cartográfica" del Ayuntamiento (mismo portal y licencia).
+- Capas del mapa: "Claro" y "Oscuro" (OpenFreeMap) y "Satélite" (PNOA del IGN, CC BY 4.0). El selector está en todos los mapas (Mapa, Cómo llegar, línea y parada) y la elección se recuerda en el dispositivo; hasta elegir una, el callejero sigue el tema de la app.
 
 ### Horario programado y "Cómo llegar"
 
@@ -101,10 +101,12 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
 - **Próximo bus:** en el detalle de parada y en la ficha de parada del mapa aparece "Próximo bus según horario", con la hora de Málaga. Si hoy no hay más, muestra el próximo día con servicio.
 - **Cómo llegar:**
   - Origen y destino: parada, barrio o distrito.
-  - Modos "Salir ahora", "Salir a las…" o "Llegar a las…" (hoy).
+  - Modos "Salir ahora", "Salir a las…" o "Llegar a las…", hoy u otro día dentro del horario publicado.
   - Propone líneas directas y combinaciones con un transbordo, en la misma parada o andando hasta otra a menos de 250 m.
   - Cada opción se encaja en el horario: qué bus coger, cuánto falta para que salga y a qué hora se llega.
   - La recomendada (la primera) es la que llega antes o, en "Llegar a las", la que sale más tarde. Se muestra en el mapa con solo los tramos del viaje, y cualquier otra opción puede verse en el mapa.
+  - En pantallas anchas el mapa ocupa la columna derecha; en el móvil va entre el formulario y las opciones.
+  - Las paradas de transbordo enlazan a su ficha; al volver atrás se conserva el recorrido.
   - Las líneas sin horario (91–93) se estiman por distancia y se indica.
 - Más adelante: usar la ubicación como origen (Fase 2), tiempo real (Fase 3) y buscar comercios o direcciones.
 

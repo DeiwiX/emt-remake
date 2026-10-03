@@ -8,11 +8,9 @@
     "retry": "Try again"
   },
   "home": {
-    "searchPlaceholder": "Search line or stop",
-    "mapSummary": "Lines map",
+    "searchPlaceholder": "Search line, stop or neighbourhood",
     "comingInPhase2": "Coming soon",
     "favorites": "My favourites",
-    "nearMe": "Near me",
     "resultCount": "Found: {{lines}} lines and {{stops}} stops",
     "lineResults": "Lines",
     "stopResults": "Stops",
@@ -22,14 +20,11 @@
     "lineCount": "{{count}} lines",
     "stopCount": "{{count}} stops",
     "planDescription": "Options and approximate time",
-    "subtitle": "Where are you going today?",
-    "greeting": {
-      "morning": "Good morning",
-      "afternoon": "Good afternoon",
-      "night": "Good evening"
-    },
-    "quickLines": "Lines",
-    "seeAll": "See all"
+    "resultCountWithZones": "Found: {{zones}} areas, {{lines}} lines and {{stops}} stops",
+    "backToResults": "Back to results",
+    "zoneOnMap": "Show the area on the map",
+    "question": "Where are you going?",
+    "linesTile": "Lines"
   },
   "lines": {
     "title": "All lines",
@@ -150,13 +145,11 @@
     "optionCount": "{{count}} options",
     "timesNote": "Times from EMT's published timetable, not real time. The recommended option arrives first (or, with “Arrive by”, leaves latest).",
     "minutes": "~{{minutes}} min",
-    "transferAt": "Change at {{stop}}",
     "boardAt": "Board at {{stop}} ({{code}})",
     "alightAt": "Get off at {{stop}} ({{code}})",
     "legMeta": "{{stops}} stops · ~{{minutes}} min",
     "estimatedNote": "A line in this option has no published timetable: its time is estimated from distance.",
     "nightNote": "Includes a night line: it only runs at night.",
-    "transferWalk": "Change: get off at {{from}} and walk ~{{minutes}} min to {{to}}",
     "when": "When",
     "timeChoice": {
       "now": "Leave now",
@@ -179,7 +172,10 @@
     "noServiceArrive": "cannot arrive in time per the timetable",
     "day": "Day",
     "nextDayAt": "{{time}} (next day)",
-    "scheduleUntil": "The published timetable runs until {{date}}."
+    "scheduleUntil": "The published timetable runs until {{date}}.",
+    "transferAtLabel": "Change at",
+    "transferWalkFrom": "Change: get off at",
+    "transferWalkTo": "and walk ~{{minutes}} min to"
   },
   "nextBus": {
     "loading": "Loading timetable…",
