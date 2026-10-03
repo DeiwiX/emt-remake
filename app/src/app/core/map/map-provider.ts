@@ -7,6 +7,9 @@ import { ColorScheme } from '../theme/color-scheme.service';
  * y registrarlo en app.config.ts.
  */
 
+/** Capa base: callejero (claro u oscuro según el esquema) o foto aérea. */
+export type MapBaseLayer = 'streets' | 'satellite';
+
 export interface MapRoute {
   /** Identificador único del recorrido (un sentido de una línea). */
   readonly id: string;
@@ -48,12 +51,16 @@ export interface MapView {
   setStops(stops: readonly MapStop[]): void;
   /** Líneas visibles; null = todas. */
   setVisibleLines(lineIds: ReadonlySet<string> | null): void;
-  /** Resalta una línea y atenúa el resto; null = ninguna. */
-  setHighlightedLine(lineId: string | null): void;
+  /**
+   * Resalta unas líneas y atenúa el resto (una línea elegida, o las que
+   * coinciden con una búsqueda); null = ninguna, todas con la misma intensidad.
+   */
+  setHighlightedLines(lineIds: ReadonlySet<string> | null): void;
   /** Marca una parada (por ejemplo, la elegida en la búsqueda); null = ninguna. */
   setHighlightedStop(stop: MapStop | null): void;
   fitTo(points: readonly LatLon[]): void;
   setScheme(scheme: ColorScheme): void;
+  setBaseLayer(layer: MapBaseLayer): void;
   destroy(): void;
 }
 

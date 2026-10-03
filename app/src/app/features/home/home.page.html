@@ -2,7 +2,9 @@
   <ion-toolbar>
     <ion-title>{{ 'app.name' | transloco }}</ion-title>
     <ion-buttons slot="end">
-      <ion-button routerLink="/settings">{{ 'settings.title' | transloco }}</ion-button>
+      <ion-button routerLink="/settings" [attr.aria-label]="'settings.title' | transloco">
+        <ion-icon slot="icon-only" name="settings-outline" aria-hidden="true" />
+      </ion-button>
     </ion-buttons>
   </ion-toolbar>
   <ion-toolbar>
@@ -19,7 +21,7 @@
   <app-data-status-banner />
 
   @if (searching()) {
-    <!-- Resultados de búsqueda (RF-05): sustituyen al menú mientras hay texto. -->
+    <!-- Resultados de búsqueda (RF-05): sustituyen a las tarjetas mientras hay texto. -->
     <p class="ion-padding-horizontal" role="status">
       {{
         'home.resultCount' | transloco: { lines: lineResults().length, stops: totalStopResults() }
@@ -39,33 +41,55 @@
       <app-stop-list [stops]="stopResults()" [label]="'home.stopResults' | transloco" />
     }
   } @else {
-    <p class="ion-padding-horizontal">
+    <nav class="cards" [attr.aria-label]="'home.menuLabel' | transloco">
+      <a class="card card-hero" routerLink="/map">
+        <ion-icon class="card-icon" name="map-outline" aria-hidden="true" />
+        <span class="card-text">
+          <span class="card-title">{{ 'home.mapSummary' | transloco }}</span>
+          <span class="card-description">{{ 'home.mapDescription' | transloco }}</span>
+        </span>
+      </a>
+
+      <a class="card" routerLink="/lines">
+        <ion-icon class="card-icon" name="bus-outline" aria-hidden="true" />
+        <span class="card-text">
+          <span class="card-title">{{ 'lines.title' | transloco }}</span>
+          <span class="card-description">{{
+            'home.lineCount' | transloco: { count: lineCount() }
+          }}</span>
+        </span>
+      </a>
+
+      <a class="card" routerLink="/stops">
+        <ion-icon class="card-icon" name="location-outline" aria-hidden="true" />
+        <span class="card-text">
+          <span class="card-title">{{ 'stops.title' | transloco }}</span>
+          <span class="card-description">{{
+            'home.stopCount' | transloco: { count: stopCount() }
+          }}</span>
+        </span>
+      </a>
+
+      <!-- Espacio reservado para la Fase 2: visibles pero no pulsables. -->
+      <div class="card card-soon" aria-disabled="true">
+        <ion-icon class="card-icon" name="star-outline" aria-hidden="true" />
+        <span class="card-text">
+          <span class="card-title">{{ 'home.favorites' | transloco }}</span>
+          <span class="card-description">{{ 'home.comingInPhase2' | transloco }}</span>
+        </span>
+      </div>
+
+      <div class="card card-soon" aria-disabled="true">
+        <ion-icon class="card-icon" name="navigate-outline" aria-hidden="true" />
+        <span class="card-text">
+          <span class="card-title">{{ 'home.nearMe' | transloco }}</span>
+          <span class="card-description">{{ 'home.comingInPhase2' | transloco }}</span>
+        </span>
+      </div>
+    </nav>
+
+    <p class="ion-padding notice">
       <ion-note>{{ 'app.unofficialNotice' | transloco }}</ion-note>
     </p>
-
-    <ion-list>
-      <ion-item routerLink="/map" detail>
-        <ion-label>{{ 'home.mapSummary' | transloco }}</ion-label>
-      </ion-item>
-      <ion-item routerLink="/lines" detail>
-        <ion-label>{{ 'lines.title' | transloco }}</ion-label>
-      </ion-item>
-      <ion-item routerLink="/stops" detail>
-        <ion-label>{{ 'stops.title' | transloco }}</ion-label>
-      </ion-item>
-    </ion-list>
-
-    <!-- Espacio reservado para la Fase 2. -->
-    <ion-list>
-      <ion-list-header>
-        <ion-label>{{ 'home.comingInPhase2' | transloco }}</ion-label>
-      </ion-list-header>
-      <ion-item>
-        <ion-label>{{ 'home.favorites' | transloco }}</ion-label>
-      </ion-item>
-      <ion-item>
-        <ion-label>{{ 'home.nearMe' | transloco }}</ion-label>
-      </ion-item>
-    </ion-list>
   }
 </ion-content>

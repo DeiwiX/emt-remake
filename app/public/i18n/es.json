@@ -16,7 +16,11 @@
     "resultCount": "Encontradas: {{lines}} líneas y {{stops}} paradas",
     "lineResults": "Líneas",
     "stopResults": "Paradas",
-    "firstStops": "Se muestran las {{count}} primeras. Escribe más para afinar."
+    "firstStops": "Se muestran las {{count}} primeras. Escribe más para afinar.",
+    "menuLabel": "Secciones",
+    "mapDescription": "Todas las líneas y sus recorridos",
+    "lineCount": "{{count}} líneas",
+    "stopCount": "{{count}} paradas"
   },
   "lines": {
     "title": "Todas las líneas",
@@ -45,9 +49,11 @@
     "title": "Parada {{id}}",
     "address": "Dirección: {{address}}",
     "coordinates": "Ubicación: {{lat}}, {{lon}}",
-    "lines": "Líneas que pasan por aquí",
+    "lines": "Líneas y próximos buses",
     "notFound": "No existe la parada {{id}}.",
-    "mapLabel": "Mapa de la parada {{name}}"
+    "mapLabel": "Mapa de la parada {{name}}",
+    "nextBusSoon": "Próximo bus: tiempo real próximamente",
+    "nextBusNote": "Los tiempos de llegada en tiempo real llegarán en una próxima versión."
   },
   "map": {
     "title": "Mapa",
@@ -66,7 +72,13 @@
     "highlight": "Resaltar",
     "searchPlaceholder": "Buscar línea o parada en el mapa",
     "openStopDetail": "Ver detalle de la parada",
-    "clearStop": "Quitar parada"
+    "clearStop": "Quitar parada",
+    "layer": "Capa del mapa",
+    "layers": {
+      "light": "Claro",
+      "dark": "Oscuro",
+      "satellite": "Satélite"
+    }
   },
   "settings": {
     "title": "Ajustes",

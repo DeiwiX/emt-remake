@@ -5,10 +5,12 @@ import type {
   FilterSpecification,
   GeoJSONSource,
   Map as MapLibreMap,
+  StyleSpecification,
 } from 'maplibre-gl';
 
 import { LatLon } from '../core/models/network.model';
 import {
+  MapBaseLayer,
   MapProvider,
   MapRoute,
   MapStop,
@@ -23,6 +25,34 @@ const STYLE_URLS: Record<ColorScheme, string> = {
   light: 'https://tiles.openfreemap.org/styles/positron',
   dark: 'https://tiles.openfreemap.org/styles/dark',
 };
+
+/**
+ * Foto aérea: PNOA del Instituto Geográfico Nacional (CC BY 4.0, scne.es), servida
+ * por WMTS con CORS abierto. Los textos de las líneas usan las fuentes de OpenFreeMap.
+ */
+const SATELLITE_STYLE: StyleSpecification = {
+  version: 8,
+  glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
+  sources: {
+    pnoa: {
+      type: 'raster',
+      tiles: [
+        'https://www.ign.es/wmts/pnoa-ma?request=GetTile&service=WMTS&version=1.0.0' +
+          '&layer=OI.OrthoimageCoverage&style=default&format=image/jpeg' +
+          '&tilematrixset=GoogleMapsCompatible&tilematrix={z}&tilerow={y}&tilecol={x}',
+      ],
+      tileSize: 256,
+      maxzoom: 19,
+      attribution:
+        'PNOA cedido por © <a href="https://www.ign.es" target="_blank" rel="noopener">Instituto Geográfico Nacional</a> (CC BY 4.0 scne.es)',
+    },
+  },
+  layers: [{ id: 'pnoa', type: 'raster', source: 'pnoa' }],
+};
+
+function styleFor(layer: MapBaseLayer, scheme: ColorScheme): string | StyleSpecification {
+  return layer === 'satellite' ? SATELLITE_STYLE : STYLE_URLS[scheme];
+}
 
 /** Ficheros copiados desde node_modules en angular.json (assets y styles). */
 const WORKER_PATH = 'maplibre/maplibre-gl-worker.mjs';
@@ -74,7 +104,7 @@ export class MapLibreMapProvider extends MapProvider {
 
     const map = new maplibre.Map({
       container,
-      style: STYLE_URLS[options.scheme],
+      style: styleFor('streets', options.scheme),
       center: [options.center[1], options.center[0]],
       zoom: options.zoom,
       attributionControl: { compact: true },
@@ -97,9 +127,10 @@ class MapLibreView implements MapView {
   private routes: readonly MapRoute[] = [];
   private stops: readonly MapStop[] = [];
   private visibleLines: ReadonlySet<string> | null = null;
-  private highlighted: string | null = null;
+  private highlighted: ReadonlySet<string> | null = null;
   private highlightedStop: MapStop | null = null;
   private scheme: ColorScheme;
+  private baseLayer: MapBaseLayer = 'streets';
 
   constructor(
     private readonly map: MapLibreMap,
@@ -143,8 +174,8 @@ class MapLibreView implements MapView {
     this.applyFiltersAndHighlight();
   }
 
-  setHighlightedLine(lineId: string | null): void {
-    this.highlighted = lineId;
+  setHighlightedLines(lineIds: ReadonlySet<string> | null): void {
+    this.highlighted = lineIds;
     this.applyFiltersAndHighlight();
   }
 
@@ -174,7 +205,13 @@ class MapLibreView implements MapView {
   setScheme(scheme: ColorScheme): void {
     if (scheme === this.scheme) return;
     this.scheme = scheme;
-    this.map.setStyle(STYLE_URLS[scheme]);
+    this.map.setStyle(styleFor(this.baseLayer, scheme));
+  }
+
+  setBaseLayer(layer: MapBaseLayer): void {
+    if (layer === this.baseLayer) return;
+    this.baseLayer = layer;
+    this.map.setStyle(styleFor(layer, this.scheme));
   }
 
   destroy(): void {
@@ -283,7 +320,11 @@ class MapLibreView implements MapView {
     map.setFilter(LAYER.labels, all);
 
     const h = this.highlighted;
-    const isHighlighted: ExpressionSpecification = ['==', ['get', 'lineId'], h ?? ''];
+    const isHighlighted: ExpressionSpecification = [
+      'in',
+      ['get', 'lineId'],
+      ['literal', h ? [...h] : []],
+    ];
     const width = (normal: number, wide: number): ExpressionSpecification =>
       h
         ? [
@@ -305,7 +346,7 @@ class MapLibreView implements MapView {
     map.setPaintProperty(LAYER.casing, 'line-width', width(4, 7));
     map.setPaintProperty(LAYER.casing, 'line-opacity', opacity);
     map.setPaintProperty(LAYER.labels, 'text-opacity', opacity);
-    // La línea resaltada se dibuja por encima del resto.
+    // Las líneas resaltadas se dibujan por encima del resto.
     const sortKey: ExpressionSpecification | number = h ? ['case', isHighlighted, 1, 0] : 0;
     map.setLayoutProperty(LAYER.casing, 'line-sort-key', sortKey);
     map.setLayoutProperty(LAYER.line, 'line-sort-key', sortKey);

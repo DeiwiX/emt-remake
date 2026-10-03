@@ -18,20 +18,50 @@
 
 <ion-content [scrollY]="false">
   <div class="layout">
-    <app-map-view
-      class="map-area"
-      role="region"
-      [attr.aria-label]="'map.mapLabel' | transloco"
-      [routes]="routes()"
-      [stops]="mapStops()"
-      [visibleLines]="visibleLines()"
-      [highlightedLine]="highlightedId()"
-      [highlightedStop]="selectedStopMarker()"
-      [fitPoints]="fitPoints()"
-      (lineSelected)="highlight($event)"
-      (stopSelected)="selectStop($event)"
-      (zoomChanged)="onZoom($event)"
-    />
+    <div class="map-area">
+      <app-map-view
+        class="map-fill"
+        role="region"
+        [attr.aria-label]="'map.mapLabel' | transloco"
+        [routes]="routes()"
+        [stops]="mapStops()"
+        [visibleLines]="visibleLines()"
+        [highlightedLines]="highlightedLines()"
+        [highlightedStop]="selectedStopMarker()"
+        [fitPoints]="fitPoints()"
+        (lineSelected)="highlight($event)"
+        (stopSelected)="selectStop($event)"
+        (zoomChanged)="onZoom($event)"
+        [baseLayer]="baseLayer()"
+        [mapScheme]="mapScheme()"
+      />
+      <!-- Capa del mapa: callejero claro u oscuro y foto aérea. -->
+      <div class="layer-switch" role="group" [attr.aria-label]="'map.layer' | transloco">
+        <button
+          type="button"
+          [attr.aria-pressed]="baseLayer() === 'streets' && mapScheme() === 'light'"
+          (click)="setLayer('streets', 'light')"
+        >
+          {{ 'map.layers.light' | transloco }}
+        </button>
+        <button
+          type="button"
+          [attr.aria-pressed]="baseLayer() === 'streets' && mapScheme() === 'dark'"
+          (click)="setLayer('streets', 'dark')"
+        >
+          {{ 'map.layers.dark' | transloco }}
+        </button>
+        @if (satelliteAvailable) {
+          <button
+            type="button"
+            [attr.aria-pressed]="baseLayer() === 'satellite'"
+            (click)="setLayer('satellite', mapScheme())"
+          >
+            {{ 'map.layers.satellite' | transloco }}
+          </button>
+        }
+      </div>
+    </div>
 
     <!-- Alternativa en texto de todo lo que muestra el mapa (RNF-01). -->
     <section class="panel" [attr.aria-label]="'map.panelLabel' | transloco">

@@ -9,6 +9,8 @@ import {
   IonItem,
   IonLabel,
   IonList,
+  IonIcon,
+  IonNote,
   IonTitle,
   IonToolbar,
 } from '@ionic/angular';
@@ -41,10 +43,19 @@ import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component
     IonItem,
     IonLabel,
     IonList,
+    IonIcon,
+    IonNote,
     IonTitle,
     IonToolbar,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  styles: `
+    .next-bus {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+  `,
   template: `
     <ion-header>
       <ion-toolbar>
@@ -79,6 +90,9 @@ import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component
           <div class="detail-map"></div>
         }
         <h2 class="ion-padding-horizontal">{{ 'stopDetail.lines' | transloco }}</h2>
+        <p class="ion-padding-horizontal">
+          <ion-note>{{ 'stopDetail.nextBusNote' | transloco }}</ion-note>
+        </p>
         <ion-list [attr.aria-label]="'stopDetail.lines' | transloco">
           @for (service of services(); track service.lineId + '-' + service.directionId) {
             <ion-item
@@ -92,6 +106,12 @@ import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component
                   >{{ 'lines.line' | transloco: { id: service.lineId } }}.</span
                 >
                 {{ 'lineDetail.towards' | transloco: { headsign: service.headsign } }}
+                <!-- Hueco reservado para los tiempos de llegada (Fase 3): nunca se muestran
+                     tiempos inventados, solo el aviso de que llegarán. -->
+                <p class="next-bus">
+                  <ion-icon name="time-outline" aria-hidden="true" />
+                  {{ 'stopDetail.nextBusSoon' | transloco }}
+                </p>
               </ion-label>
             </ion-item>
           }

@@ -6,10 +6,7 @@ import {
   IonButtons,
   IonContent,
   IonHeader,
-  IonItem,
-  IonLabel,
-  IonList,
-  IonListHeader,
+  IonIcon,
   IonNote,
   IonSearchbar,
   IonTitle,
@@ -36,16 +33,14 @@ const MAX_STOP_RESULTS = 30;
     IonButtons,
     IonContent,
     IonHeader,
-    IonItem,
-    IonLabel,
-    IonList,
-    IonListHeader,
+    IonIcon,
     IonNote,
     IonSearchbar,
     IonTitle,
     IonToolbar,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  styleUrl: './home.page.scss',
   templateUrl: './home.page.html',
 })
 export class HomePage {
@@ -61,4 +56,6 @@ export class HomePage {
   /** Se pintan pocas paradas para que la búsqueda sea fluida; la lista completa está en Paradas. */
   protected readonly stopResults = computed(() => this.allStopResults().slice(0, MAX_STOP_RESULTS));
   protected readonly totalStopResults = computed(() => this.allStopResults().length);
+  protected readonly lineCount = computed(() => this.network.lines().length);
+  protected readonly stopCount = computed(() => this.network.stops().length);
 }

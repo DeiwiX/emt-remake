@@ -36,8 +36,8 @@ class FakeMapView implements MapView {
   setVisibleLines(ids: ReadonlySet<string> | null) {
     this.visible = ids;
   }
-  setHighlightedLine(id: string | null) {
-    this.highlighted = id;
+  setHighlightedLines(ids: ReadonlySet<string> | null) {
+    this.highlighted = ids ? [...ids].join(',') : null;
   }
   highlightedStop: MapStop | null = null;
   setHighlightedStop(stop: MapStop | null) {
@@ -45,6 +45,7 @@ class FakeMapView implements MapView {
   }
   fitTo = vi.fn();
   setScheme = vi.fn();
+  setBaseLayer = vi.fn();
   destroy = vi.fn();
 }
 
@@ -181,6 +182,9 @@ describe('MapPage', () => {
     harness.detectChanges();
     const text = (harness.routeNativeElement as HTMLElement).textContent ?? '';
     expect(text).toContain('Encontradas: 1 líneas y 1 paradas');
+    // Mientras se busca, solo se resaltan las líneas que coinciden.
+    TestBed.tick();
+    expect(view.highlighted).toBe('2');
 
     actions.chooseStop('2');
     TestBed.tick();

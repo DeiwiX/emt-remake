@@ -16,7 +16,8 @@ import { firstValueFrom } from 'rxjs';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { IonButton } from '@ionic/angular';
 
-import { MapProvider, MapRoute, MapStop, MapView } from '../../core/map/map-provider';
+import { MapBaseLayer, MapProvider, MapRoute, MapStop, MapView } from '../../core/map/map-provider';
+import { ColorScheme } from '../../core/theme/color-scheme.service';
 import { LatLon } from '../../core/models/network.model';
 import { ColorSchemeService, prefersReducedMotion } from '../../core/theme/color-scheme.service';
 
@@ -89,8 +90,12 @@ export class MapViewComponent {
   readonly stops = input<readonly MapStop[]>([]);
   /** Líneas visibles; null = todas. */
   readonly visibleLines = input<ReadonlySet<string> | null>(null);
-  readonly highlightedLine = input<string | null>(null);
+  /** Líneas resaltadas (el resto se atenúa); null = ninguna. */
+  readonly highlightedLines = input<ReadonlySet<string> | null>(null);
   readonly highlightedStop = input<MapStop | null>(null);
+  readonly baseLayer = input<MapBaseLayer>('streets');
+  /** Esquema del mapa; null = el de la app. */
+  readonly mapScheme = input<ColorScheme | null>(null);
   /** Puntos que el mapa debe encuadrar cuando cambian. */
   readonly fitPoints = input<readonly LatLon[]>([]);
   readonly lineSelected = output<string | null>();
@@ -108,9 +113,10 @@ export class MapViewComponent {
     effect(() => this.view()?.setRoutes(this.routes()));
     effect(() => this.view()?.setStops(this.stops()));
     effect(() => this.view()?.setVisibleLines(this.visibleLines()));
-    effect(() => this.view()?.setHighlightedLine(this.highlightedLine()));
+    effect(() => this.view()?.setHighlightedLines(this.highlightedLines()));
     effect(() => this.view()?.setHighlightedStop(this.highlightedStop()));
-    effect(() => this.view()?.setScheme(this.scheme()));
+    effect(() => this.view()?.setScheme(this.mapScheme() ?? this.scheme()));
+    effect(() => this.view()?.setBaseLayer(this.baseLayer()));
     effect(() => {
       // Se lee view() antes de salir: así el efecto se repite cuando el mapa termina de crearse.
       const view = this.view();
@@ -137,7 +143,7 @@ export class MapViewComponent {
         {
           center: MALAGA_CENTER,
           zoom: INITIAL_ZOOM,
-          scheme: this.scheme(),
+          scheme: this.mapScheme() ?? this.scheme(),
           reduceMotion: prefersReducedMotion(),
           label: await firstValueFrom(this.transloco.selectTranslate('map.mapLabel')),
         },

@@ -16,7 +16,11 @@
     "resultCount": "Found: {{lines}} lines and {{stops}} stops",
     "lineResults": "Lines",
     "stopResults": "Stops",
-    "firstStops": "Showing the first {{count}}. Type more to narrow it down."
+    "firstStops": "Showing the first {{count}}. Type more to narrow it down.",
+    "menuLabel": "Sections",
+    "mapDescription": "All lines and their routes",
+    "lineCount": "{{count}} lines",
+    "stopCount": "{{count}} stops"
   },
   "lines": {
     "title": "All lines",
@@ -45,9 +49,11 @@
     "title": "Stop {{id}}",
     "address": "Address: {{address}}",
     "coordinates": "Location: {{lat}}, {{lon}}",
-    "lines": "Lines that stop here",
+    "lines": "Lines and next buses",
     "notFound": "Stop {{id}} does not exist.",
-    "mapLabel": "Map of stop {{name}}"
+    "mapLabel": "Map of stop {{name}}",
+    "nextBusSoon": "Next bus: real time coming soon",
+    "nextBusNote": "Real-time arrival times will come in a future version."
   },
   "map": {
     "title": "Map",
@@ -66,7 +72,13 @@
     "highlight": "Highlight",
     "searchPlaceholder": "Search line or stop on the map",
     "openStopDetail": "View stop details",
-    "clearStop": "Clear stop"
+    "clearStop": "Clear stop",
+    "layer": "Map layer",
+    "layers": {
+      "light": "Light",
+      "dark": "Dark",
+      "satellite": "Satellite"
+    }
   },
   "settings": {
     "title": "Settings",

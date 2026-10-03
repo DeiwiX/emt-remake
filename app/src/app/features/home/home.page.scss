@@ -1,0 +1,90 @@
+/*
+ * Tarjetas del inicio. Las columnas se miden en rem: con el texto ampliado al
+ * 200 % pasan a una sola columna en vez de cortar el contenido (RNF-01, RNF-04).
+ */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 12px;
+  padding: 16px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 7.5rem;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--ion-color-step-50, var(--ion-background-color-step-50, #f4f5f8));
+  border: 1px solid var(--ion-color-step-150, var(--ion-background-color-step-150, #d7d8da));
+  color: var(--ion-text-color);
+  text-decoration: none;
+  transition: transform 0.15s ease;
+
+  &:focus-visible {
+    outline: 3px solid var(--ion-color-primary);
+    outline-offset: 2px;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.card-hero {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  align-items: center;
+  min-height: 6.5rem;
+  background: var(--ion-color-primary);
+  border-color: var(--ion-color-primary);
+  color: var(--ion-color-primary-contrast);
+
+  .card-icon {
+    background: rgba(255, 255, 255, 0.2);
+    color: inherit;
+  }
+
+  .card-description {
+    color: inherit;
+    opacity: 0.95;
+  }
+}
+
+.card-icon {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(var(--ion-color-primary-rgb), 0.12);
+  color: var(--ion-color-primary);
+}
+
+.card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.card-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.card-description {
+  font-size: 0.9rem;
+  color: var(--ion-color-step-600, var(--ion-text-color-step-400, #666));
+}
+
+.card-soon {
+  opacity: 0.6;
+  border-style: dashed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
+}

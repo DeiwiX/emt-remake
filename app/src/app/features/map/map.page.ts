@@ -27,6 +27,8 @@ import {
 import { NetworkRepository, ShapeRepository } from '../../core/data/repositories';
 import { LineColorsService } from '../../core/map/line-colors.service';
 import { toMapRoutes, toMapStops } from '../../core/map/map-features';
+import { MapBaseLayer } from '../../core/map/map-provider';
+import { ColorScheme, ColorSchemeService } from '../../core/theme/color-scheme.service';
 import { LatLon, ShapeDetail } from '../../core/models/network.model';
 import { searchLines, searchStops } from '../../core/search/search';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
@@ -38,6 +40,9 @@ const MAX_STOP_RESULTS = 30;
 
 /** Lo último que ha elegido el usuario: es lo que el mapa encuadra. */
 type MapFocus = { kind: 'line'; id: string } | { kind: 'stop'; id: string };
+
+/** Foto aérea del PNOA (IGN). Pendiente de que el desarrollador apruebe el servicio. */
+const SATELLITE_AVAILABLE = false;
 
 /** A partir de este zoom se cargan los trazados detallados (RNF-02: geometrías según zoom). */
 const DETAIL_ZOOM = 14;
@@ -88,6 +93,11 @@ export class MapPage {
     return id ? this.network.getLine(id) : undefined;
   });
 
+  /** Capa del mapa elegida en esta pantalla; el callejero empieza con el tema de la app. */
+  protected readonly baseLayer = signal<MapBaseLayer>('streets');
+  protected readonly mapScheme = linkedSignal<ColorScheme>(inject(ColorSchemeService).scheme);
+  protected readonly satelliteAvailable = SATELLITE_AVAILABLE;
+
   /** Búsqueda de líneas y paradas dentro del mapa (RF-05). */
   protected readonly query = signal('');
   protected readonly searching = computed(() => this.query().trim().length > 0);
@@ -133,8 +143,22 @@ export class MapPage {
     toMapRoutes(this.lines(), this.geometries(), (id) => this.colors.colorFor(id)),
   );
 
-  /** Paradas de la línea resaltada o, si no hay ninguna, todas. */
+  /**
+   * Mientras se busca, se resaltan las líneas que coinciden y el resto se atenúa
+   * (si no coincide ninguna, todas quedan atenuadas). Si no, la línea elegida.
+   */
+  protected readonly highlightedLines = computed<ReadonlySet<string> | null>(() => {
+    if (this.searching()) return new Set(this.lineResults().map((l) => l.id));
+    const id = this.highlightedId();
+    return id ? new Set([id]) : null;
+  });
+
+  /**
+   * Mientras se busca, solo las paradas que coinciden; si no, las de la línea
+   * resaltada o, si no hay ninguna, todas.
+   */
   protected readonly mapStops = computed(() => {
+    if (this.searching()) return toMapStops(this.allStopResults());
     const line = this.highlightedLine();
     if (!line) return toMapStops(this.network.stops());
     const ids = new Set(line.directions.flatMap((d) => d.stopIds));
@@ -186,6 +210,11 @@ export class MapPage {
 
   protected hideAll(): void {
     this.hiddenLines.set(new Set(this.lines().map((l) => l.id)));
+  }
+
+  protected setLayer(layer: MapBaseLayer, scheme: ColorScheme): void {
+    this.baseLayer.set(layer);
+    this.mapScheme.set(scheme);
   }
 
   protected highlight(lineId: string | null): void {
