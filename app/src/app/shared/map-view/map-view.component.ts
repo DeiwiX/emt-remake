@@ -18,7 +18,7 @@ import { IonButton } from '@ionic/angular';
 
 import { MapBaseLayer, MapProvider, MapRoute, MapStop, MapView } from '../../core/map/map-provider';
 import { ColorScheme } from '../../core/theme/color-scheme.service';
-import { LatLon } from '../../core/models/network.model';
+import { LatLon, Polygon } from '../../core/models/network.model';
 import { ColorSchemeService, prefersReducedMotion } from '../../core/theme/color-scheme.service';
 
 /** Centro de Málaga. */
@@ -93,6 +93,8 @@ export class MapViewComponent {
   /** Líneas resaltadas (el resto se atenúa); null = ninguna. */
   readonly highlightedLines = input<ReadonlySet<string> | null>(null);
   readonly highlightedStop = input<MapStop | null>(null);
+  /** Zona marcada (contorno de barrio o distrito); null = ninguna. */
+  readonly highlightedArea = input<readonly Polygon[] | null>(null);
   readonly baseLayer = input<MapBaseLayer>('streets');
   /** Esquema del mapa; null = el de la app. */
   readonly mapScheme = input<ColorScheme | null>(null);
@@ -115,6 +117,7 @@ export class MapViewComponent {
     effect(() => this.view()?.setVisibleLines(this.visibleLines()));
     effect(() => this.view()?.setHighlightedLines(this.highlightedLines()));
     effect(() => this.view()?.setHighlightedStop(this.highlightedStop()));
+    effect(() => this.view()?.setHighlightedArea(this.highlightedArea()));
     effect(() => this.view()?.setScheme(this.mapScheme() ?? this.scheme()));
     effect(() => this.view()?.setBaseLayer(this.baseLayer()));
     effect(() => {

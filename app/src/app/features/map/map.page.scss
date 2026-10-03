@@ -109,3 +109,30 @@ app-line-badge {
     border-inline-start: 1px solid var(--ion-border-color, #ccc);
   }
 }
+
+/* Líneas de la zona elegida: insignias pulsables para resaltar cada línea. */
+.zone-lines {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 12px;
+}
+
+.zone-line {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 2px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+
+  app-line-badge {
+    margin: 0;
+  }
+
+  &:focus-visible {
+    outline: 3px solid var(--ion-color-primary);
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+}

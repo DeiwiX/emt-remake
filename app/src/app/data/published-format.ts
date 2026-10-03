@@ -21,7 +21,13 @@ export interface ManifestFile {
   schemaVersion: number;
   dataVersion: string;
   generatedAt: string;
-  files: { network: FileEntry; shapesOverview: FileEntry; shapesDetail: FileEntry };
+  files: {
+    network: FileEntry;
+    shapesOverview: FileEntry;
+    shapesDetail: FileEntry;
+    /** Barrios y distritos. Opcional: las publicaciones anteriores no lo tienen. */
+    zones?: FileEntry;
+  };
   license: { id: string; url: string; attribution: string };
 }
 
@@ -60,6 +66,47 @@ export interface ShapesFile {
   shapes: Record<string, string>;
 }
 
+export interface PublishedZone {
+  id: string;
+  kind: 'neighbourhood' | 'district';
+  name: string;
+  /** Polígonos: [anillo exterior, ...huecos], como polilíneas codificadas. */
+  polygons: string[][];
+  stopIds: string[];
+}
+
+export interface ZonesFile {
+  schemaVersion: number;
+  zones: PublishedZone[];
+}
+
+export function parseZones(value: unknown): ZonesFile {
+  const z = record(value, 'zones');
+  schema(z['schemaVersion'], 'zones');
+  const zones = array(z['zones'], 'zones.zones').map((raw, i): PublishedZone => {
+    const where = `zones[${i}]`;
+    const zone = record(raw, where);
+    const kind = zone['kind'];
+    if (kind !== 'neighbourhood' && kind !== 'district') {
+      throw new DataFormatError(`${where}.kind: valor no válido`);
+    }
+    return {
+      id: nonEmpty(zone['id'], `${where}.id`),
+      kind,
+      name: nonEmpty(zone['name'], `${where}.name`),
+      polygons: array(zone['polygons'], `${where}.polygons`).map((polygon, p) =>
+        array(polygon, `${where}.polygons[${p}]`).map((ring, r) =>
+          string(ring, `${where}.polygons[${p}][${r}]`),
+        ),
+      ),
+      stopIds: array(zone['stopIds'], `${where}.stopIds`).map((id, s) =>
+        string(id, `${where}.stopIds[${s}]`),
+      ),
+    };
+  });
+  return { schemaVersion: SUPPORTED_SCHEMA_VERSION, zones };
+}
+
 export function parseManifest(value: unknown): ManifestFile {
   const m = record(value, 'manifest');
   schema(m['schemaVersion'], 'manifest');
@@ -77,6 +124,7 @@ export function parseManifest(value: unknown): ManifestFile {
       network: fileEntry(files['network'], 'network'),
       shapesOverview: fileEntry(files['shapesOverview'], 'shapesOverview'),
       shapesDetail: fileEntry(files['shapesDetail'], 'shapesDetail'),
+      ...(files['zones'] === undefined ? {} : { zones: fileEntry(files['zones'], 'zones') }),
     },
     license: {
       id: string(license['id'], 'license.id'),

@@ -24,13 +24,13 @@ import {
   IonToolbar,
 } from '@ionic/angular';
 
-import { NetworkRepository, ShapeRepository } from '../../core/data/repositories';
+import { NetworkRepository, ShapeRepository, ZoneRepository } from '../../core/data/repositories';
 import { LineColorsService } from '../../core/map/line-colors.service';
 import { toMapRoutes, toMapStops } from '../../core/map/map-features';
 import { MapBaseLayer } from '../../core/map/map-provider';
 import { ColorScheme, ColorSchemeService } from '../../core/theme/color-scheme.service';
-import { LatLon, ShapeDetail } from '../../core/models/network.model';
-import { searchLines, searchStops } from '../../core/search/search';
+import { LatLon, ShapeDetail, Zone } from '../../core/models/network.model';
+import { searchLines, searchStops, searchZones } from '../../core/search/search';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
 import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component';
 import { MapViewComponent } from '../../shared/map-view/map-view.component';
@@ -39,7 +39,8 @@ import { MapViewComponent } from '../../shared/map-view/map-view.component';
 const MAX_STOP_RESULTS = 30;
 
 /** Lo último que ha elegido el usuario: es lo que el mapa encuadra. */
-type MapFocus = { kind: 'line'; id: string } | { kind: 'stop'; id: string };
+type MapFocus =
+  { kind: 'line'; id: string } | { kind: 'stop'; id: string } | { kind: 'zone'; id: string };
 
 /** Foto aérea del PNOA (IGN), aprobada por el desarrollador el 03/10/2026 (ADR 0004). */
 const SATELLITE_AVAILABLE = true;
@@ -110,6 +111,24 @@ export class MapPage {
   protected readonly stopResults = computed(() => this.allStopResults().slice(0, MAX_STOP_RESULTS));
   protected readonly totalStopResults = computed(() => this.allStopResults().length);
 
+  /** Barrios y distritos: se descargan al abrir el mapa y solo se usan al buscar. */
+  private readonly zones = signal<readonly Zone[]>([]);
+  protected readonly zoneResults = computed(() => searchZones(this.zones(), this.query()));
+  protected readonly selectedZoneId = signal<string | null>(null);
+  protected readonly selectedZone = computed(() =>
+    this.zones().find((zone) => zone.id === this.selectedZoneId()),
+  );
+  /** Paradas de la zona elegida, en el orden de la lista de paradas (por nombre). */
+  protected readonly zoneStops = computed(() => {
+    const ids = new Set(this.selectedZone()?.stopIds ?? []);
+    return this.network.stops().filter((stop) => ids.has(stop.id));
+  });
+  /** Líneas que pasan por alguna parada de la zona elegida. */
+  protected readonly zoneLines = computed(() => {
+    const lineIds = new Set(this.zoneStops().flatMap((stop) => stop.services.map((s) => s.lineId)));
+    return this.lines().filter((line) => lineIds.has(line.id));
+  });
+
   /** Parada marcada en el mapa (elegida en la búsqueda o tocada en el mapa). */
   protected readonly selectedStopId = signal<string | null>(null);
   protected readonly selectedStop = computed(() => {
@@ -149,6 +168,7 @@ export class MapPage {
    */
   protected readonly highlightedLines = computed<ReadonlySet<string> | null>(() => {
     if (this.searching()) return new Set(this.lineResults().map((l) => l.id));
+    if (this.selectedZone()) return new Set(this.zoneLines().map((l) => l.id));
     const id = this.highlightedId();
     return id ? new Set([id]) : null;
   });
@@ -159,6 +179,7 @@ export class MapPage {
    */
   protected readonly mapStops = computed(() => {
     if (this.searching()) return toMapStops(this.allStopResults());
+    if (this.selectedZone()) return toMapStops(this.zoneStops());
     const line = this.highlightedLine();
     if (!line) return toMapStops(this.network.stops());
     const ids = new Set(line.directions.flatMap((d) => d.stopIds));
@@ -178,6 +199,9 @@ export class MapPage {
   /** El mapa encuadra la última línea resaltada o la última parada elegida. */
   protected readonly fitPoints = computed<LatLon[]>(() => {
     const focus = this.focus();
+    if (focus?.kind === 'zone') {
+      return (this.selectedZone()?.polygons ?? []).flatMap((polygon) => polygon[0] ?? []);
+    }
     if (focus?.kind === 'stop') {
       const stop = this.selectedStop();
       return stop ? [[stop.lat, stop.lon]] : [];
@@ -189,6 +213,11 @@ export class MapPage {
 
   constructor() {
     void this.loadShapes('overview');
+    inject(ZoneRepository)
+      .getZones()
+      .then((zones) => this.zones.set(zones))
+      // Sin zonas la búsqueda sigue funcionando con líneas y paradas.
+      .catch((error: unknown) => console.warn('No se pudieron cargar las zonas', error));
   }
 
   protected isVisible(lineId: string): boolean {
@@ -220,6 +249,7 @@ export class MapPage {
   protected highlight(lineId: string | null): void {
     this.highlightedId.set(lineId);
     if (lineId) {
+      this.selectedZoneId.set(null);
       this.focus.set({ kind: 'line', id: lineId });
       // Una línea resaltada siempre es visible.
       this.setVisible(lineId, true);
@@ -230,6 +260,22 @@ export class MapPage {
   protected selectStop(stopId: string | null): void {
     this.selectedStopId.set(stopId);
     if (stopId) this.focus.set({ kind: 'stop', id: stopId });
+  }
+
+  /** Marca una zona: su contorno, sus paradas y las líneas que pasan por ellas. */
+  protected chooseZone(zoneId: string): void {
+    this.selectedZoneId.set(zoneId);
+    this.highlightedId.set(null);
+    this.focus.set({ kind: 'zone', id: zoneId });
+    this.query.set('');
+  }
+
+  protected zoneKindKey(kind: Zone['kind']): string {
+    return `map.zoneKind.${kind}`;
+  }
+
+  protected clearZone(): void {
+    this.selectedZoneId.set(null);
   }
 
   protected chooseLine(lineId: string): void {

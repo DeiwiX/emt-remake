@@ -12,6 +12,8 @@ import {
 } from '../build/geometry.ts';
 import { matchShape } from '../build/match-shapes.ts';
 import { checkPlausibility } from '../build/sanity.ts';
+import { buildZones, insidePolygon, stopsInZone } from '../build/build-zones.ts';
+import { parseWktPolygons, parseZonesCsv, titleCase } from '../sources/zones.ts';
 import { parseCsv } from '../sources/csv.ts';
 import { parseEmtLines } from '../sources/emt-lines.ts';
 import { parseGtfsZip } from '../sources/gtfs.ts';
@@ -161,7 +163,7 @@ describe('buildDataset', () => {
 });
 
 describe('checkPlausibility', () => {
-  const ok = { lines: 49, stops: 1135, shapes: 89, approximateShapes: 4 };
+  const ok = { lines: 49, stops: 1135, shapes: 89, approximateShapes: 4, zones: 430 };
 
   it('acepta datos normales', () => {
     assert.doesNotThrow(() => checkPlausibility(ok, ok));
@@ -171,5 +173,74 @@ describe('checkPlausibility', () => {
   it('rechaza caídas bruscas y mínimos absurdos', () => {
     assert.throws(() => checkPlausibility({ ...ok, stops: 600 }, ok), ValidationError);
     assert.throws(() => checkPlausibility({ ...ok, lines: 3 }, null), ValidationError);
+    assert.throws(() => checkPlausibility({ ...ok, zones: 0 }, null), ValidationError);
+  });
+
+  it('acepta una publicación anterior sin zonas', () => {
+    const { zones: _zones, ...withoutZones } = ok;
+    assert.doesNotThrow(() => checkPlausibility(ok, withoutZones));
+  });
+});
+
+describe('zonas', () => {
+  // Un cuadrado de unos 220 m de lado en el centro de Málaga, con un hueco en una esquina.
+  const square: LatLon[] = [
+    [36.72, -4.42],
+    [36.72, -4.4175],
+    [36.722, -4.4175],
+    [36.722, -4.42],
+    [36.72, -4.42],
+  ];
+  const wkt =
+    'POLYGON ((-4.42 36.72, -4.4175 36.72, -4.4175 36.722, -4.42 36.722, -4.42 36.72))';
+
+  it('lee POLYGON y MULTIPOLYGON en WKT como [lat, lon]', () => {
+    assert.deepEqual(parseWktPolygons(wkt), [[square]]);
+    const multi =
+      'MULTIPOLYGON (((-4.42 36.72, -4.4175 36.72, -4.4175 36.722, -4.42 36.72)), ' +
+      '((-4.41 36.73, -4.409 36.73, -4.409 36.731, -4.41 36.73)))';
+    assert.equal(parseWktPolygons(multi).length, 2);
+    assert.throws(() => parseWktPolygons('POINT (-4.42 36.72)'), ValidationError);
+  });
+
+  it('lee los CSV de barrios y distritos y pone los nombres en formato título', () => {
+    const csv = `FID,ID_BARRIO,NUMBARRIO,NOMBARRIO,NOMCOMUNBAR,SDOAREA
+x,7,1,TEATINOS   ,T,"${wkt}"
+`;
+    const [zone] = parseZonesCsv(csv, 'neighbourhood');
+    assert.equal(zone?.id, 'b7');
+    assert.equal(zone?.name, 'Teatinos');
+    assert.equal(titleCase('CARRETERA DE CADIZ'), 'Carretera de Cadiz');
+    assert.equal(titleCase('TEATINOS-UNIVERSIDAD'), 'Teatinos-Universidad');
+  });
+
+  it('incluye las paradas de dentro y las de junto al borde, no las lejanas', () => {
+    const stop = (id: string, lat: number, lon: number) => ({ id, name: id, address: '', lat, lon });
+    const stops = [
+      stop('dentro', 36.721, -4.419),
+      stop('borde', 36.7225, -4.419), // ~55 m fuera del lado norte
+      stop('lejos', 36.73, -4.419), // ~900 m al norte
+    ];
+    assert.deepEqual(stopsInZone([[square]], stops), ['dentro', 'borde']);
+    assert.equal(insidePolygon([36.721, -4.419], [square]), true);
+    assert.equal(insidePolygon([36.721, -4.419], [square, square]), false);
+  });
+
+  it('genera zones.json con distritos primero y contornos codificados', () => {
+    const zones = buildZones(
+      [
+        { id: 'b1', kind: 'neighbourhood', name: 'Teatinos', polygons: [[square]] },
+        { id: 'd11', kind: 'district', name: 'Teatinos-Universidad', polygons: [[square]] },
+      ],
+      [{ id: '1', name: 'x', address: '', lat: 36.721, lon: -4.419 }],
+    );
+    assert.deepEqual(
+      zones.zones.map((z) => [z.id, z.stopIds]),
+      [
+        ['d11', ['1']],
+        ['b1', ['1']],
+      ],
+    );
+    assert.equal(typeof zones.zones[0]?.polygons[0]?.[0], 'string');
   });
 });

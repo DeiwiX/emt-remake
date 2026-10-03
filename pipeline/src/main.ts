@@ -18,6 +18,8 @@ import type { FileEntry, Manifest } from './output-schema.ts';
 import { parseEmtLines } from './sources/emt-lines.ts';
 import { download } from './sources/fetch.ts';
 import { parseGtfsZip } from './sources/gtfs.ts';
+import { parseZonesCsv } from './sources/zones.ts';
+import { buildZones } from './build/build-zones.ts';
 import { ValidationError } from './validation.ts';
 
 async function main(): Promise<void> {
@@ -26,20 +28,31 @@ async function main(): Promise<void> {
   });
   if (!values.out) throw new Error('Falta --out <carpeta>');
 
-  const [emtRaw, gtfsRaw] = await Promise.all([
+  const [emtRaw, gtfsRaw, neighbourhoodsRaw, districtsRaw] = await Promise.all([
     download(SOURCES.emtLines.url),
     download(SOURCES.gtfs.url),
+    download(SOURCES.neighbourhoods.url),
+    download(SOURCES.districts.url),
   ]);
+  const decode = (bytes: Uint8Array) => new TextDecoder().decode(bytes);
 
   const emtLines = parseEmtLines(JSON.parse(new TextDecoder().decode(emtRaw.bytes)));
   const gtfs = parseGtfsZip(gtfsRaw.bytes);
   const dataset = buildDataset(emtLines, gtfs);
+  const zones = buildZones(
+    [
+      ...parseZonesCsv(decode(districtsRaw.bytes), 'district'),
+      ...parseZonesCsv(decode(neighbourhoodsRaw.bytes), 'neighbourhood'),
+    ],
+    dataset.network.stops,
+  );
 
   const counts: Manifest['counts'] = {
     lines: dataset.network.lines.length,
     stops: dataset.network.stops.length,
     shapes: Object.keys(dataset.shapesDetail.shapes).length,
     approximateShapes: dataset.report.approximateDirections.length,
+    zones: zones.zones.length,
   };
   checkPlausibility(counts, await readPreviousCounts(values.previous));
 
@@ -47,6 +60,7 @@ async function main(): Promise<void> {
     network: JSON.stringify(dataset.network),
     shapesOverview: JSON.stringify(dataset.shapesOverview),
     shapesDetail: JSON.stringify(dataset.shapesDetail),
+    zones: JSON.stringify(zones),
   };
   const entry = (path: string, content: string): FileEntry => ({
     path,
@@ -57,6 +71,7 @@ async function main(): Promise<void> {
     network: entry('network.json', contents.network),
     shapesOverview: entry('shapes-overview.json', contents.shapesOverview),
     shapesDetail: entry('shapes-detail.json', contents.shapesDetail),
+    zones: entry('zones.json', contents.zones),
   };
 
   const manifest: Manifest = {
@@ -72,6 +87,8 @@ async function main(): Promise<void> {
     sources: [
       { ...SOURCES.emtLines, lastModified: emtRaw.lastModified },
       { ...SOURCES.gtfs, lastModified: gtfsRaw.lastModified },
+      { ...SOURCES.neighbourhoods, lastModified: neighbourhoodsRaw.lastModified },
+      { ...SOURCES.districts, lastModified: districtsRaw.lastModified },
     ],
     license: { ...LICENSE },
   };
@@ -81,6 +98,7 @@ async function main(): Promise<void> {
     writeFile(join(values.out, files.network.path), contents.network),
     writeFile(join(values.out, files.shapesOverview.path), contents.shapesOverview),
     writeFile(join(values.out, files.shapesDetail.path), contents.shapesDetail),
+    writeFile(join(values.out, files.zones.path), contents.zones),
     writeFile(join(values.out, 'report.json'), JSON.stringify(dataset.report, null, 2)),
   ]);
   // El manifest se escribe el último: solo existe si todo lo anterior ha ido bien.
@@ -88,12 +106,14 @@ async function main(): Promise<void> {
 
   console.log(
     `Datos ${manifest.dataVersion}: ${counts.lines} líneas, ${counts.stops} paradas, ` +
-      `${counts.shapes} trazados (${counts.approximateShapes} aproximados), ` +
+      `${counts.shapes} trazados (${counts.approximateShapes} aproximados), ${counts.zones} zonas, ` +
       `${dataset.report.stopConflicts.length} conflictos de paradas.`,
   );
 }
 
-async function readPreviousCounts(path: string | undefined): Promise<Manifest['counts'] | null> {
+async function readPreviousCounts(
+  path: string | undefined,
+): Promise<Partial<Manifest['counts']> | null> {
   if (!path || !existsSync(path)) return null;
   const previous = JSON.parse(await readFile(path, 'utf8')) as Partial<Manifest>;
   return previous.counts ?? null;

@@ -1,4 +1,6 @@
 const BASE = 'https://datosabiertos.malaga.eu/recursos/transporte/EMT';
+const CARTO_BASE =
+  'https://datosabiertos.malaga.eu/recursos/urbanismoEInfraestructura/planimetria/callejero';
 
 export const SOURCES = {
   /** Líneas con sus paradas ordenadas por sentido (JSON plano, sin geometría). */
@@ -12,6 +14,19 @@ export const SOURCES = {
     name: 'Líneas y horarios bus - Google Transit',
     dataset: 'https://datosabiertos.malaga.eu/dataset/lineas-y-horarios-bus-google-transit',
     url: `${BASE}/lineasYHorarios/google_transit_txt.zip`,
+  },
+  /** Límites de barrios (polígonos en WGS84, WKT). */
+  neighbourhoods: {
+    name: 'Sistema de información cartográfica: barrio',
+    dataset: 'https://datosabiertos.malaga.eu/dataset/sistema-de-informacion-cartografica-barrio',
+    url: `${CARTO_BASE}/da_cartografiaBarrio-4326.csv`,
+  },
+  /** Límites de distritos municipales (polígonos en WGS84, WKT). */
+  districts: {
+    name: 'Sistema de información cartográfica: distrito municipal',
+    dataset:
+      'https://datosabiertos.malaga.eu/dataset/sistema-de-informacion-cartografica-distrito-municipal',
+    url: `${CARTO_BASE}/da_cartografiaDistritoMunicipal-4326.csv`,
   },
 } as const;
 
@@ -38,7 +53,16 @@ export const SIMPLIFY_TOLERANCE_M = {
 export const MIN_RATIO_VS_PREVIOUS = 0.8;
 
 /** Mínimos absolutos de sentido común para la red de la EMT. */
-export const MIN_COUNTS = { lines: 20, stops: 500 } as const;
+export const MIN_COUNTS = { lines: 20, stops: 500, zones: 100 } as const;
+
+/** Tolerancia de simplificación de los contornos de barrios y distritos, en metros. */
+export const ZONE_SIMPLIFY_TOLERANCE_M = 8;
+
+/**
+ * Una parada cuenta como "de la zona" si está dentro o a menos de esta distancia
+ * del borde: muchas paradas están en las calles que hacen de límite.
+ */
+export const ZONE_STOP_MARGIN_M = 100;
 
 /** Distancia media máxima (m) entre las paradas de un sentido y su trazado para aceptarlo. */
 export const MAX_MEAN_STOP_TO_SHAPE_M = 60;

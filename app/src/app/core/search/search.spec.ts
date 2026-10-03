@@ -1,5 +1,5 @@
-import { Line, Stop } from '../models/network.model';
-import { normalize, searchLines, searchStops } from './search';
+import { Line, Stop, Zone } from '../models/network.model';
+import { normalize, searchLines, searchStops, searchZones } from './search';
 
 const line = (id: string, name: string): Line => ({ id, name, notes: '', directions: [] });
 const stop = (id: string, name: string): Stop => ({
@@ -70,5 +70,26 @@ describe('searchStops', () => {
   it('busca por nombre', () => {
     expect(searchStops(STOPS, 'merced').map((s) => s.id)).toEqual(['103']);
     expect(searchStops(STOPS, 'andalucia').map((s) => s.id)).toEqual(['1520']);
+  });
+});
+
+describe('searchZones', () => {
+  const zone = (id: string, name: string): Zone => ({
+    id,
+    kind: 'neighbourhood',
+    name,
+    polygons: [],
+    stopIds: [],
+  });
+  const ZONES = [
+    zone('d11', 'Teatinos-Universidad'),
+    zone('b1', 'Teatinos'),
+    zone('b2', 'El Palo'),
+  ];
+
+  it('encuentra el barrio y el distrito, primero los que empiezan por la búsqueda', () => {
+    expect(searchZones(ZONES, 'teatinos').map((z) => z.id)).toEqual(['d11', 'b1']);
+    expect(searchZones(ZONES, 'palo').map((z) => z.id)).toEqual(['b2']);
+    expect(searchZones(ZONES, '')).toEqual([]);
   });
 });

@@ -11,6 +11,7 @@ import {
   DataStatusService,
   NetworkRepository,
   ShapeRepository,
+  ZoneRepository,
 } from '../../core/data/repositories';
 import {
   MapProvider,
@@ -19,7 +20,7 @@ import {
   MapView,
   MapViewEvents,
 } from '../../core/map/map-provider';
-import { LatLon } from '../../core/models/network.model';
+import { LatLon, Zone } from '../../core/models/network.model';
 import { buildIndex } from '../../data/static-repositories';
 import { networkFixture } from '../../data/testing/data-fixtures';
 import { MapPage } from './map.page';
@@ -46,8 +47,33 @@ class FakeMapView implements MapView {
   fitTo = vi.fn();
   setScheme = vi.fn();
   setBaseLayer = vi.fn();
+  area: readonly unknown[] | null = null;
+  setHighlightedArea(polygons: readonly unknown[] | null) {
+    this.area = polygons;
+  }
   destroy = vi.fn();
 }
+
+/** Un barrio cuadrado que contiene la parada "1" (Zapateros). */
+const zones: Zone[] = [
+  {
+    id: 'b1',
+    kind: 'neighbourhood',
+    name: 'Teatinos',
+    polygons: [
+      [
+        [
+          [36.71, -4.43],
+          [36.71, -4.41],
+          [36.73, -4.41],
+          [36.73, -4.43],
+          [36.71, -4.43],
+        ],
+      ],
+    ],
+    stopIds: ['1'],
+  },
+];
 
 describe('MapPage', () => {
   let view: FakeMapView;
@@ -105,6 +131,7 @@ describe('MapPage', () => {
           },
         },
         { provide: ShapeRepository, useValue: { getShapes: () => Promise.resolve(shapes) } },
+        { provide: ZoneRepository, useValue: { getZones: () => Promise.resolve(zones) } },
         {
           provide: MapProvider,
           useValue: {
@@ -195,6 +222,30 @@ describe('MapPage', () => {
     expect((harness.routeNativeElement as HTMLElement).textContent).toContain(
       'Ver detalle de la parada',
     );
+  });
+
+  it('busca barrios y al elegir uno marca la zona, sus paradas y sus líneas', async () => {
+    const { harness, page } = await open('/map');
+    const actions = page as unknown as {
+      query: { set(v: string): void };
+      chooseZone(id: string): void;
+    };
+    await vi.waitFor(() => {
+      actions.query.set('teatinos');
+      harness.detectChanges();
+      expect((harness.routeNativeElement as HTMLElement).textContent).toContain('Zonas');
+    });
+
+    actions.chooseZone('b1');
+    TestBed.tick();
+    harness.detectChanges();
+    expect(view.area).toHaveLength(1);
+    // La parada 1 la usa solo la línea 2 (en sus dos sentidos).
+    expect(view.highlighted).toBe('2');
+    expect(view.fitTo).toHaveBeenCalled();
+    const text = (harness.routeNativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('1 paradas y 1 líneas');
+    expect(text).toContain('Zapateros');
   });
 
   it('al tocar una parada en el mapa la marca sin salir del mapa', async () => {

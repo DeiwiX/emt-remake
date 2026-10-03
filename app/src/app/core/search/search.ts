@@ -1,4 +1,4 @@
-import { Line, Stop } from '../models/network.model';
+import { Line, Stop, Zone } from '../models/network.model';
 
 /**
  * Búsqueda de líneas y paradas (RF-05). Lógica pura, sin Angular, para poder
@@ -61,4 +61,12 @@ export function searchStops(stops: readonly Stop[], rawQuery: string, limit = 20
   const query = normalize(rawQuery);
   if (!query) return [];
   return rank(stops, (stop) => scoreText(query, stop.id, stop.name), limit);
+}
+
+/** Barrios y distritos por nombre ("teatinos" encuentra "Teatinos" y "Teatinos-Universidad"). */
+export function searchZones(zones: readonly Zone[], rawQuery: string, limit = 10): Zone[] {
+  const query = normalize(rawQuery);
+  if (!query) return [];
+  // Las zonas no tienen código: se puntúa solo por nombre.
+  return rank(zones, (zone) => scoreText(query, '', zone.name), limit);
 }

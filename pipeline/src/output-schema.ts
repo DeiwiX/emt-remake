@@ -48,6 +48,23 @@ export interface ShapesFile {
   shapes: Record<string, string>;
 }
 
+export interface PublishedZone {
+  /** "d" + número de distrito o "b" + identificador de barrio. */
+  id: string;
+  kind: 'neighbourhood' | 'district';
+  name: string;
+  /** Polígonos; cada uno es [anillo exterior, ...huecos] como polilíneas codificadas. */
+  polygons: string[][];
+  /** Paradas dentro de la zona o a menos de 100 m de su borde. */
+  stopIds: string[];
+}
+
+/** Barrios y distritos (añadido sin romper el formato: la app lo trata como opcional). */
+export interface ZonesFile {
+  schemaVersion: number;
+  zones: PublishedZone[];
+}
+
 export interface FileEntry {
   path: string;
   bytes: number;
@@ -59,8 +76,19 @@ export interface Manifest {
   /** Huella del contenido: solo cambia si cambian los datos, no la fecha de generación. */
   dataVersion: string;
   generatedAt: string;
-  counts: { lines: number; stops: number; shapes: number; approximateShapes: number };
-  files: { network: FileEntry; shapesOverview: FileEntry; shapesDetail: FileEntry };
+  counts: {
+    lines: number;
+    stops: number;
+    shapes: number;
+    approximateShapes: number;
+    zones: number;
+  };
+  files: {
+    network: FileEntry;
+    shapesOverview: FileEntry;
+    shapesDetail: FileEntry;
+    zones: FileEntry;
+  };
   sources: { name: string; dataset: string; url: string; lastModified: string | null }[];
   license: { id: string; url: string; attribution: string };
 }

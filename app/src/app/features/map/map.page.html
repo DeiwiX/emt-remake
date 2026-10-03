@@ -28,6 +28,7 @@
         [visibleLines]="visibleLines()"
         [highlightedLines]="highlightedLines()"
         [highlightedStop]="selectedStopMarker()"
+        [highlightedArea]="selectedZone()?.polygons ?? null"
         [fitPoints]="fitPoints()"
         (lineSelected)="highlight($event)"
         (stopSelected)="selectStop($event)"
@@ -75,6 +76,22 @@
               | transloco: { lines: lineResults().length, stops: totalStopResults() }
           }}
         </p>
+        @if (zoneResults().length > 0) {
+          <h2 class="ion-padding-horizontal">{{ 'map.zoneResults' | transloco }}</h2>
+          <ion-list [attr.aria-label]="'map.zoneResults' | transloco">
+            @for (zone of zoneResults(); track zone.id) {
+              <ion-item button [detail]="false" (click)="chooseZone(zone.id)">
+                <ion-label class="ion-text-wrap">
+                  {{ zone.name }}
+                  <p>
+                    {{ zoneKindKey(zone.kind) | transloco }} ·
+                    {{ 'home.stopCount' | transloco: { count: zone.stopIds.length } }}
+                  </p>
+                </ion-label>
+              </ion-item>
+            }
+          </ion-list>
+        }
         @if (lineResults().length > 0) {
           <h2 class="ion-padding-horizontal">{{ 'home.lineResults' | transloco }}</h2>
           <ion-list [attr.aria-label]="'home.lineResults' | transloco">
@@ -110,6 +127,54 @@
           </ion-list>
         }
       } @else {
+        @if (selectedZone(); as zone) {
+          <div class="selected" aria-live="polite">
+            <h2>{{ zone.name }}</h2>
+            <p>
+              {{ zoneKindKey(zone.kind) | transloco }} ·
+              {{
+                'map.zoneSummary'
+                  | transloco: { stops: zoneStops().length, lines: zoneLines().length }
+              }}
+            </p>
+            @if (zoneLines().length > 0) {
+              <div
+                class="zone-lines"
+                role="list"
+                [attr.aria-label]="'home.lineResults' | transloco"
+              >
+                @for (line of zoneLines(); track line.id) {
+                  <button
+                    type="button"
+                    role="listitem"
+                    class="zone-line"
+                    [attr.aria-label]="'lines.line' | transloco: { id: line.id }"
+                    (click)="highlight(line.id)"
+                  >
+                    <app-line-badge [code]="line.id" />
+                  </button>
+                }
+              </div>
+            }
+            <div class="actions">
+              <ion-button fill="outline" (click)="clearZone()">{{
+                'map.clearZone' | transloco
+              }}</ion-button>
+            </div>
+          </div>
+          @if (zoneStops().length > 0) {
+            <ion-list [attr.aria-label]="'map.zoneStops' | transloco">
+              @for (stop of zoneStops(); track stop.id) {
+                <ion-item button [detail]="false" (click)="selectStop(stop.id)">
+                  <ion-label class="ion-text-wrap">
+                    {{ stop.name }}
+                    <p>{{ 'stops.code' | transloco: { id: stop.id } }}</p>
+                  </ion-label>
+                </ion-item>
+              }
+            </ion-list>
+          }
+        }
         @if (selectedStop(); as stop) {
           <div class="selected" aria-live="polite">
             <h2>{{ stop.name }}</h2>

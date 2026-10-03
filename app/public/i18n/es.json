@@ -70,7 +70,7 @@
     "hideAll": "Ocultar todas",
     "showLine": "Mostrar la línea {{id}} en el mapa",
     "highlight": "Resaltar",
-    "searchPlaceholder": "Buscar línea o parada en el mapa",
+    "searchPlaceholder": "Buscar línea, parada o barrio",
     "openStopDetail": "Ver detalle de la parada",
     "clearStop": "Quitar parada",
     "layer": "Capa del mapa",
@@ -78,7 +78,15 @@
       "light": "Claro",
       "dark": "Oscuro",
       "satellite": "Satélite"
-    }
+    },
+    "zoneResults": "Zonas",
+    "zoneKind": {
+      "district": "Distrito",
+      "neighbourhood": "Barrio"
+    },
+    "zoneSummary": "{{stops}} paradas y {{lines}} líneas",
+    "clearZone": "Quitar zona",
+    "zoneStops": "Paradas de la zona"
   },
   "settings": {
     "title": "Ajustes",

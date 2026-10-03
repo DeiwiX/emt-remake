@@ -1,6 +1,6 @@
 import { Signal } from '@angular/core';
 
-import { LatLon, Line, ShapeDetail, Stop } from '../models/network.model';
+import { LatLon, Line, ShapeDetail, Stop, Zone } from '../models/network.model';
 import { DataStatus } from './data-status';
 
 /**
@@ -21,6 +21,11 @@ export abstract class NetworkRepository {
 export abstract class ShapeRepository {
   /** Trazados por shapeId. Se descargan solo cuando se piden (al abrir el mapa). */
   abstract getShapes(detail: ShapeDetail): Promise<ReadonlyMap<string, readonly LatLon[]>>;
+}
+
+export abstract class ZoneRepository {
+  /** Barrios y distritos. Se descargan solo cuando se piden (búsqueda en el mapa). */
+  abstract getZones(): Promise<readonly Zone[]>;
 }
 
 export abstract class DataStatusService {

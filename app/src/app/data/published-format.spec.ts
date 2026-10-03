@@ -1,4 +1,10 @@
-import { DataFormatError, parseManifest, parseNetwork, parseShapes } from './published-format';
+import {
+  DataFormatError,
+  parseManifest,
+  parseNetwork,
+  parseShapes,
+  parseZones,
+} from './published-format';
 import { networkFixture, publishedFixture, shapesFixture } from './testing/data-fixtures';
 
 describe('Validación de los ficheros publicados', () => {
@@ -36,5 +42,21 @@ describe('Validación de los ficheros publicados', () => {
     };
     network.lines[0]!.directions[0]!['shapeQuality'] = 'guess';
     expect(() => parseNetwork(network)).toThrow(/shapeQuality/);
+  });
+
+  it('valida el fichero de zonas y acepta manifests sin zonas', async () => {
+    const zone = {
+      id: 'b1',
+      kind: 'neighbourhood',
+      name: 'Teatinos',
+      polygons: [['_p~iF~ps|U']],
+      stopIds: ['1'],
+    };
+    expect(parseZones({ schemaVersion: 1, zones: [zone] }).zones[0]?.name).toBe('Teatinos');
+    expect(() => parseZones({ schemaVersion: 1, zones: [{ ...zone, kind: 'ciudad' }] })).toThrow(
+      DataFormatError,
+    );
+    const manifest = parseManifest(JSON.parse((await publishedFixture('v1')).manifest));
+    expect(manifest.files.zones).toBeUndefined();
   });
 });

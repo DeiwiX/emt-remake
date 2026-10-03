@@ -1,4 +1,4 @@
-import { LatLon } from '../models/network.model';
+import { LatLon, Polygon } from '../models/network.model';
 import { ColorScheme } from '../theme/color-scheme.service';
 
 /**
@@ -61,6 +61,8 @@ export interface MapView {
   fitTo(points: readonly LatLon[]): void;
   setScheme(scheme: ColorScheme): void;
   setBaseLayer(layer: MapBaseLayer): void;
+  /** Marca una zona (contorno y relleno suave); null = ninguna. */
+  setHighlightedArea(polygons: readonly Polygon[] | null): void;
   destroy(): void;
 }
 

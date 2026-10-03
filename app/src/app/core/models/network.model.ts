@@ -44,5 +44,18 @@ export interface Stop {
   readonly services: readonly StopService[];
 }
 
+/** Polígono: anillo exterior seguido de los huecos. */
+export type Polygon = readonly (readonly LatLon[])[];
+
+/** Barrio o distrito municipal, para buscar paradas por zona. */
+export interface Zone {
+  readonly id: string;
+  readonly kind: 'neighbourhood' | 'district';
+  readonly name: string;
+  readonly polygons: readonly Polygon[];
+  /** Paradas dentro de la zona o a menos de 100 m de su borde. */
+  readonly stopIds: readonly string[];
+}
+
 /** Nivel de detalle de los trazados: vista general o zoom cercano. */
 export type ShapeDetail = 'overview' | 'detail';

@@ -1,7 +1,7 @@
 import { Injectable, computed, inject } from '@angular/core';
 
-import { NetworkRepository, ShapeRepository } from '../core/data/repositories';
-import { LatLon, Line, ShapeDetail, Stop, StopService } from '../core/models/network.model';
+import { NetworkRepository, ShapeRepository, ZoneRepository } from '../core/data/repositories';
+import { LatLon, Line, ShapeDetail, Stop, StopService, Zone } from '../core/models/network.model';
 import { DatasetSyncService } from './dataset-sync.service';
 import { NetworkFile } from './published-format';
 import { decodePolyline } from './polyline';
@@ -51,6 +51,20 @@ export class StaticShapeRepository extends ShapeRepository {
     return new Map(
       Object.entries(file.shapes).map(([id, encoded]) => [id, decodePolyline(encoded)]),
     );
+  }
+}
+
+/** Repositorio de barrios y distritos: descarga bajo demanda y decodifica los contornos. */
+@Injectable()
+export class StaticZoneRepository extends ZoneRepository {
+  private readonly sync = inject(DatasetSyncService);
+
+  async getZones(): Promise<readonly Zone[]> {
+    const file = await this.sync.getZonesFile();
+    return file.zones.map((zone) => ({
+      ...zone,
+      polygons: zone.polygons.map((polygon) => polygon.map(decodePolyline)),
+    }));
   }
 }
 

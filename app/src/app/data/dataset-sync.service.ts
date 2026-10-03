@@ -13,25 +13,30 @@ import {
   ManifestFile,
   NetworkFile,
   ShapesFile,
+  ZonesFile,
   parseManifest,
   parseNetwork,
   parseShapes,
+  parseZones,
 } from './published-format';
 
 const KEYS = {
   /** Manifest y red juntos en un solo registro: se guardan de forma atómica. */
   dataset: 'dataset',
-  shapes: (detail: ShapeDetail) => `shapes-${detail}`,
+  file: (name: AuxFile) => `file-${name}`,
 } as const;
+
+/** Ficheros que se descargan bajo demanda (no al arrancar). */
+type AuxFile = 'shapesOverview' | 'shapesDetail' | 'zones';
 
 interface StoredDataset {
   manifest: unknown;
   network: unknown;
 }
 
-interface StoredShapes {
+interface StoredFile {
   sha256: string;
-  file: ShapesFile;
+  file: unknown;
 }
 
 interface Current {
@@ -51,7 +56,7 @@ interface Current {
  * 3. Si algo falla se siguen mostrando los datos anteriores con el aviso de que la
  *    actualización ha fallado.
  *
- * Los trazados no se descargan aquí, sino cuando se piden (al abrir el mapa).
+ * Los trazados y las zonas no se descargan aquí, sino cuando se piden (al abrir el mapa).
  */
 @Injectable({ providedIn: 'root' })
 export class DatasetSyncService extends DataStatusService {
@@ -68,7 +73,7 @@ export class DatasetSyncService extends DataStatusService {
   private current: Current | null = null;
   private origin: DataOrigin = 'bundled';
   private refreshing: Promise<void> | null = null;
-  private readonly shapeRequests = new Map<string, Promise<ShapesFile>>();
+  private readonly fileRequests = new Map<string, Promise<unknown>>();
 
   refresh(): Promise<void> {
     this.refreshing ??= this.doRefresh().finally(() => (this.refreshing = null));
@@ -76,18 +81,27 @@ export class DatasetSyncService extends DataStatusService {
   }
 
   /** Trazados del nivel pedido, de la caché si siguen siendo válidos o descargados. */
-  async getShapesFile(detail: ShapeDetail): Promise<ShapesFile> {
+  getShapesFile(detail: ShapeDetail): Promise<ShapesFile> {
+    return this.getAuxFile(detail === 'overview' ? 'shapesOverview' : 'shapesDetail', parseShapes);
+  }
+
+  /** Barrios y distritos con sus paradas (búsqueda por zonas en el mapa). */
+  getZonesFile(): Promise<ZonesFile> {
+    return this.getAuxFile('zones', parseZones);
+  }
+
+  private async getAuxFile<T>(name: AuxFile, parse: (value: unknown) => T): Promise<T> {
     // Si se abre el mapa directamente (enlace o recarga), se espera a la carga inicial.
     if (!this.current && this.refreshing) await this.refreshing;
     const current = this.current;
     if (!current) throw new Error('No hay datos cargados');
-    const key = `${current.manifest.dataVersion}:${detail}`;
-    let request = this.shapeRequests.get(key);
+    const key = `${current.manifest.dataVersion}:${name}`;
+    let request = this.fileRequests.get(key) as Promise<T> | undefined;
     if (!request) {
-      request = this.loadShapes(current, detail);
+      request = this.loadAuxFile(current, name, parse);
       // Si falla se olvida la petición para poder reintentar.
-      request.catch(() => this.shapeRequests.delete(key));
-      this.shapeRequests.set(key, request);
+      request.catch(() => this.fileRequests.delete(key));
+      this.fileRequests.set(key, request);
     }
     return request;
   }
@@ -147,22 +161,21 @@ export class DatasetSyncService extends DataStatusService {
     this.apply(manifest, network, base, 'network');
   }
 
-  private async loadShapes(current: Current, detail: ShapeDetail): Promise<ShapesFile> {
-    const entry =
-      detail === 'overview'
-        ? current.manifest.files.shapesOverview
-        : current.manifest.files.shapesDetail;
+  private async loadAuxFile<T>(
+    current: Current,
+    name: AuxFile,
+    parse: (value: unknown) => T,
+  ): Promise<T> {
+    const entry = current.manifest.files[name];
+    if (!entry) throw new Error(`Los datos publicados no incluyen "${name}"`);
     try {
-      const stored = await this.store.get<StoredShapes>(KEYS.shapes(detail));
-      if (stored?.sha256 === entry.sha256) return parseShapes(stored.file);
+      const stored = await this.store.get<StoredFile>(KEYS.file(name));
+      if (stored?.sha256 === entry.sha256) return parse(stored.file);
     } catch {
       // Caché dañada: se descarga de nuevo.
     }
-    const file = await this.fetchVerified(current.baseUrl, entry, parseShapes);
-    await this.safeWrite(KEYS.shapes(detail), {
-      sha256: entry.sha256,
-      file,
-    } satisfies StoredShapes);
+    const file = await this.fetchVerified(current.baseUrl, entry, parse);
+    await this.safeWrite(KEYS.file(name), { sha256: entry.sha256, file } satisfies StoredFile);
     return file;
   }
 

@@ -70,7 +70,7 @@
     "hideAll": "Hide all",
     "showLine": "Show line {{id}} on the map",
     "highlight": "Highlight",
-    "searchPlaceholder": "Search line or stop on the map",
+    "searchPlaceholder": "Search line, stop or neighbourhood",
     "openStopDetail": "View stop details",
     "clearStop": "Clear stop",
     "layer": "Map layer",
@@ -78,7 +78,15 @@
       "light": "Light",
       "dark": "Dark",
       "satellite": "Satellite"
-    }
+    },
+    "zoneResults": "Areas",
+    "zoneKind": {
+      "district": "District",
+      "neighbourhood": "Neighbourhood"
+    },
+    "zoneSummary": "{{stops}} stops and {{lines}} lines",
+    "clearZone": "Clear area",
+    "zoneStops": "Stops in the area"
   },
   "settings": {
     "title": "Settings",

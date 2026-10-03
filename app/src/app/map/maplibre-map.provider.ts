@@ -8,7 +8,7 @@ import type {
   StyleSpecification,
 } from 'maplibre-gl';
 
-import { LatLon } from '../core/models/network.model';
+import { LatLon, Polygon } from '../core/models/network.model';
 import {
   MapBaseLayer,
   MapProvider,
@@ -65,8 +65,15 @@ const LAYER = {
   labels: 'routes-labels',
   stops: 'stops',
   selectedStop: 'selected-stop',
+  areaFill: 'area-fill',
+  areaOutline: 'area-outline',
 } as const;
-const SOURCE = { routes: 'routes', stops: 'stops', selectedStop: 'selected-stop' } as const;
+const SOURCE = {
+  routes: 'routes',
+  stops: 'stops',
+  selectedStop: 'selected-stop',
+  area: 'area',
+} as const;
 
 /**
  * Con muchas paradas (toda la red) solo se dibujan al acercarse, para no saturar
@@ -129,6 +136,7 @@ class MapLibreView implements MapView {
   private visibleLines: ReadonlySet<string> | null = null;
   private highlighted: ReadonlySet<string> | null = null;
   private highlightedStop: MapStop | null = null;
+  private area: readonly Polygon[] | null = null;
   private scheme: ColorScheme;
   private baseLayer: MapBaseLayer = 'streets';
 
@@ -184,6 +192,11 @@ class MapLibreView implements MapView {
     this.source(SOURCE.selectedStop)?.setData(this.selectedStopGeoJson());
   }
 
+  setHighlightedArea(polygons: readonly Polygon[] | null): void {
+    this.area = polygons;
+    this.source(SOURCE.area)?.setData(this.areaGeoJson());
+  }
+
   fitTo(points: readonly LatLon[]): void {
     if (points.length === 0) return;
     const lats = points.map((p) => p[0]);
@@ -224,6 +237,22 @@ class MapLibreView implements MapView {
     const casingColor = this.scheme === 'dark' ? '#000000' : '#FFFFFF';
     const stopStroke = this.scheme === 'dark' ? '#FFFFFF' : '#1A1A1A';
     const stopFill = this.scheme === 'dark' ? '#1A1A1A' : '#FFFFFF';
+
+    const accent = this.scheme === 'dark' ? '#4D8DFF' : '#0054E9';
+    // La zona marcada va debajo de los recorridos para no taparlos.
+    map.addSource(SOURCE.area, { type: 'geojson', data: this.areaGeoJson() });
+    map.addLayer({
+      id: LAYER.areaFill,
+      type: 'fill',
+      source: SOURCE.area,
+      paint: { 'fill-color': accent, 'fill-opacity': 0.12 },
+    });
+    map.addLayer({
+      id: LAYER.areaOutline,
+      type: 'line',
+      source: SOURCE.area,
+      paint: { 'line-color': accent, 'line-width': 3 },
+    });
 
     map.addSource(SOURCE.routes, { type: 'geojson', data: this.routesGeoJson() });
     map.addSource(SOURCE.stops, { type: 'geojson', data: this.stopsGeoJson() });
@@ -369,6 +398,20 @@ class MapLibreView implements MapView {
           approximate: route.approximate,
         },
         geometry: { type: 'LineString', coordinates: route.points.map(([lat, lon]) => [lon, lat]) },
+      })),
+    };
+  }
+
+  private areaGeoJson(): FeatureCollection {
+    return {
+      type: 'FeatureCollection',
+      features: (this.area ?? []).map((polygon) => ({
+        type: 'Feature',
+        properties: {},
+        geometry: {
+          type: 'Polygon',
+          coordinates: polygon.map((ring) => ring.map(([lat, lon]) => [lon, lat])),
+        },
       })),
     };
   }
