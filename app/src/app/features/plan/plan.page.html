@@ -48,10 +48,27 @@
       }
     </div>
     @if (timeChoice() !== 'now') {
-      <label class="time-input">
-        {{ (timeChoice() === 'depart' ? 'plan.departAt' : 'plan.arriveBy') | transloco }}
-        <input type="time" [value]="chosenTime()" (change)="setTime($any($event.target).value)" />
-      </label>
+      <div class="time-inputs">
+        <label class="time-input">
+          {{ 'plan.day' | transloco }}
+          <input
+            type="date"
+            [value]="chosenDate()"
+            [min]="minDate()"
+            [attr.max]="maxDate()"
+            (change)="setDate($any($event.target).value)"
+          />
+        </label>
+        <label class="time-input">
+          {{ (timeChoice() === 'depart' ? 'plan.departAt' : 'plan.arriveBy') | transloco }}
+          <input type="time" [value]="chosenTime()" (change)="setTime($any($event.target).value)" />
+        </label>
+      </div>
+      @if (maxDateLabel(); as max) {
+        <p class="hint">
+          <ion-note>{{ 'plan.scheduleUntil' | transloco: { date: max } }}</ion-note>
+        </p>
+      }
     }
     <p class="hint">
       <ion-note>{{ 'plan.locationSoon' | transloco }}</ion-note>

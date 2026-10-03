@@ -30,6 +30,16 @@ export class ScheduleClockService {
     const value = this.timetablesSignal();
     return value === 'error' ? null : value;
   });
+  /** Último día (AAAAMMDD) que cubre el horario publicado. */
+  readonly lastServiceDate = computed(() => {
+    const timetables = this.timetables();
+    if (!timetables) return null;
+    let last = '';
+    for (const dates of timetables.services.values()) {
+      for (const date of dates) if (date > last) last = date;
+    }
+    return last || null;
+  });
   private loading: Promise<void> | null = null;
 
   constructor() {

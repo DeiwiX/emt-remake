@@ -21,7 +21,15 @@
     "mapDescription": "Todas las líneas y sus recorridos",
     "lineCount": "{{count}} líneas",
     "stopCount": "{{count}} paradas",
-    "planDescription": "Opciones y tiempo aproximado"
+    "planDescription": "Opciones y tiempo aproximado",
+    "subtitle": "¿A dónde vas hoy?",
+    "greeting": {
+      "morning": "Buenos días",
+      "afternoon": "Buenas tardes",
+      "night": "Buenas noches"
+    },
+    "quickLines": "Líneas",
+    "seeAll": "Ver todas"
   },
   "lines": {
     "title": "Todas las líneas",
@@ -155,8 +163,8 @@
       "depart": "Salir a las",
       "arrive": "Llegar a las"
     },
-    "departAt": "Hora de salida (hoy)",
-    "arriveBy": "Llegar antes de (hoy)",
+    "departAt": "Hora de salida",
+    "arriveBy": "Llegar antes de",
     "mapLabel": "Mapa de la opción elegida",
     "recommended": "Recomendada",
     "noSchedule": "sin horario publicado",
@@ -168,7 +176,10 @@
     "shownOnMap": "En el mapa",
     "tomorrowAt": "mañana {{time}}",
     "noService": "sin buses hoy ni mañana según el horario",
-    "noServiceArrive": "no llega a tiempo según el horario"
+    "noServiceArrive": "no llega a tiempo según el horario",
+    "day": "Día",
+    "nextDayAt": "{{time}} (día siguiente)",
+    "scheduleUntil": "El horario publicado llega hasta el {{date}}."
   },
   "nextBus": {
     "loading": "Cargando horario…",

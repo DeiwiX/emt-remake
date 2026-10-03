@@ -21,7 +21,15 @@
     "mapDescription": "All lines and their routes",
     "lineCount": "{{count}} lines",
     "stopCount": "{{count}} stops",
-    "planDescription": "Options and approximate time"
+    "planDescription": "Options and approximate time",
+    "subtitle": "Where are you going today?",
+    "greeting": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "night": "Good evening"
+    },
+    "quickLines": "Lines",
+    "seeAll": "See all"
   },
   "lines": {
     "title": "All lines",
@@ -155,8 +163,8 @@
       "depart": "Leave at",
       "arrive": "Arrive by"
     },
-    "departAt": "Departure time (today)",
-    "arriveBy": "Arrive before (today)",
+    "departAt": "Departure time",
+    "arriveBy": "Arrive before",
     "mapLabel": "Map of the chosen option",
     "recommended": "Recommended",
     "noSchedule": "no published timetable",
@@ -168,7 +176,10 @@
     "shownOnMap": "On the map",
     "tomorrowAt": "tomorrow {{time}}",
     "noService": "no buses today or tomorrow per the timetable",
-    "noServiceArrive": "cannot arrive in time per the timetable"
+    "noServiceArrive": "cannot arrive in time per the timetable",
+    "day": "Day",
+    "nextDayAt": "{{time}} (next day)",
+    "scheduleUntil": "The published timetable runs until {{date}}."
   },
   "nextBus": {
     "loading": "Loading timetable…",

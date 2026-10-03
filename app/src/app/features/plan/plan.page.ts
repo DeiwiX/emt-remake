@@ -58,6 +58,11 @@ function isNightLine(lineId: string): boolean {
   return /^N\d+$/.test(lineId);
 }
 
+/** "20261005" -> "2026-10-05" (formato de los campos de fecha HTML). */
+function toInputDate(dateKey: string): string {
+  return `${dateKey.slice(0, 4)}-${dateKey.slice(4, 6)}-${dateKey.slice(6, 8)}`;
+}
+
 /** Una opción con su encaje en el horario (null si alguna línea no publica horario). */
 interface Row {
   readonly option: JourneyOption;
@@ -108,13 +113,40 @@ export class PlanPage {
   /** Hora elegida para "salir a las" / "llegar a las", "HH:MM" (por defecto, la actual). */
   protected readonly chosenTime = linkedSignal(() => formatClock(this.schedule.clock().minutes));
 
+  /** Día elegido para "salir a las" / "llegar a las", "AAAA-MM-DD" (por defecto, hoy). */
+  protected readonly chosenDate = linkedSignal(() => toInputDate(this.schedule.clock().dateKey));
+  /** Límites del selector de día: hoy y el último día del horario publicado. */
+  protected readonly minDate = computed(() => toInputDate(this.schedule.clock().dateKey));
+  protected readonly maxDate = computed(() => {
+    const last = this.schedule.lastServiceDate();
+    return last ? toInputDate(last) : null;
+  });
+
+  /** "30 de noviembre de 2026", en el idioma activo. */
+  protected readonly maxDateLabel = computed(() => {
+    const max = this.maxDate();
+    if (!max) return null;
+    const [year, month, day] = max.split('-').map(Number);
+    return new Intl.DateTimeFormat(this.transloco.getActiveLang(), {
+      dateStyle: 'long',
+      timeZone: 'UTC',
+    }).format(new Date(Date.UTC(year!, month! - 1, day!)));
+  });
+
   /** Instante de referencia del cálculo, en hora de Málaga. */
   private readonly reference = computed<ServiceClock>(() => {
     const clock = this.schedule.clock();
     if (this.timeChoice() === 'now') return clock;
     const [hours, minutes] = this.chosenTime().split(':').map(Number);
-    return { dateKey: clock.dateKey, minutes: (hours ?? 0) * 60 + (minutes ?? 0) };
+    return {
+      dateKey: this.chosenDate().replaceAll('-', ''),
+      minutes: (hours ?? 0) * 60 + (minutes ?? 0),
+    };
   });
+  /** true si el cálculo es para otro día distinto de hoy. */
+  protected readonly isOtherDay = computed(
+    () => this.reference().dateKey !== this.schedule.clock().dateKey,
+  );
   private readonly mode = computed<TimeMode>(() =>
     this.timeChoice() === 'arrive' ? 'arrive' : 'depart',
   );
@@ -231,6 +263,14 @@ export class PlanPage {
     return `plan.timeChoice.${choice}`;
   }
 
+  protected setDate(value: string): void {
+    const min = this.minDate();
+    const max = this.maxDate();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return;
+    // El campo de fecha respeta min/max, pero se acota por si el navegador no lo hace.
+    this.chosenDate.set(value < min ? min : max && value > max ? max : value);
+  }
+
   protected setTime(value: string): void {
     if (/^\d{2}:\d{2}$/.test(value)) this.chosenTime.set(value);
   }
@@ -247,9 +287,10 @@ export class PlanPage {
 
   protected time(minutes: number): string {
     const label = formatClock(minutes);
-    return dayOffsetOf(minutes) > 0
-      ? this.transloco.translate('plan.tomorrowAt', { time: label })
-      : label;
+    if (dayOffsetOf(minutes) <= 0) return label;
+    // "mañana" solo tiene sentido si se calcula para hoy; si no, "día siguiente".
+    const key = this.isOtherDay() ? 'plan.nextDayAt' : 'plan.tomorrowAt';
+    return this.transloco.translate(key, { time: label });
   }
 
   /** Minutos que faltan para el primer bus (solo en "salir ahora"). */
