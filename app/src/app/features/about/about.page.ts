@@ -79,6 +79,13 @@ import { DataStatusService } from '../../core/data/repositories';
           ·
           <a href="https://openmaptiles.org" target="_blank" rel="noopener">© OpenMapTiles</a>
         </p>
+        <p>
+          {{ 'about.mapSatellite' | transloco }}
+          <a href="https://www.ign.es" target="_blank" rel="noopener"
+            >PNOA cedido por © Instituto Geográfico Nacional</a
+          >
+          (CC BY 4.0 scne.es).
+        </p>
       </section>
 
       <section>

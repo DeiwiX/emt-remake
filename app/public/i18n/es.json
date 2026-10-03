@@ -106,7 +106,8 @@
     "mapTiles": "Teselas:",
     "privacyTitle": "Privacidad",
     "privacy": "No hay cuentas ni analítica, y la app no pide permisos. Solo guarda en este dispositivo tus ajustes y la última copia de los datos. Para descargar los datos y el mapa se conecta a GitHub Pages y a OpenFreeMap, que pueden ver tu dirección IP como cualquier web.",
-    "codeTitle": "Código fuente"
+    "codeTitle": "Código fuente",
+    "mapSatellite": "Foto aérea:"
   },
   "data": {
     "loading": "Cargando datos…",

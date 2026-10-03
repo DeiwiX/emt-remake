@@ -106,7 +106,8 @@
     "mapTiles": "Tiles:",
     "privacyTitle": "Privacy",
     "privacy": "There are no accounts or analytics, and the app asks for no permissions. It only stores your settings and the latest copy of the data on this device. To download the data and the map it connects to GitHub Pages and OpenFreeMap, which can see your IP address like any website.",
-    "codeTitle": "Source code"
+    "codeTitle": "Source code",
+    "mapSatellite": "Aerial imagery:"
   },
   "data": {
     "loading": "Loading data…",

@@ -85,7 +85,13 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
 - El mapa usa MapLibre GL JS con los estilos `positron` (claro) y `dark` (oscuro) de OpenFreeMap. La librería se descarga solo al abrir el mapa (unos 230 KB comprimidos, más su *worker*).
 - Si el dispositivo no tiene WebGL, el mapa muestra un aviso y enlaza a las listas.
 - El mapa tiene su propio buscador de líneas y paradas: al elegir una línea se resalta, y al elegir una parada se marca y el mapa se centra en ella, sin salir del mapa.
-- La paleta de líneas está en `core/map/line-palette.ts`: 7 colores con variante clara y oscura. Las pruebas comprueban que el número de la insignia tiene un contraste de al menos 4,5:1, que el trazo tiene al menos 3:1 frente al fondo del mapa y que los colores se distinguen con protanopía, deuteranopía y tritanopía. Los colores se repiten entre líneas y se reparten para que las líneas que comparten paradas no coincidan. El número de línea aparece siempre en las insignias y sobre los recorridos.
+- Cada línea tiene un color propio, generado en `core/map/line-palette.ts` (ADR 0004). Las pruebas comprueban:
+  - que el número de la insignia tiene un contraste de al menos 4,5:1;
+  - que el trazo tiene al menos 3:1 frente al fondo del mapa claro y del oscuro;
+  - que dos colores cualesquiera se diferencian con claridad (CIE76 ≥ 10).
+
+  Con daltonismo algunos pueden parecerse; el número de línea aparece siempre en las insignias y sobre los recorridos.
+- Capas del mapa: "Claro" y "Oscuro" (OpenFreeMap) y "Satélite" (PNOA del IGN, CC BY 4.0).
 
 ### Ajustes
 

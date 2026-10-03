@@ -41,8 +41,8 @@ const MAX_STOP_RESULTS = 30;
 /** Lo último que ha elegido el usuario: es lo que el mapa encuadra. */
 type MapFocus = { kind: 'line'; id: string } | { kind: 'stop'; id: string };
 
-/** Foto aérea del PNOA (IGN). Pendiente de que el desarrollador apruebe el servicio. */
-const SATELLITE_AVAILABLE = false;
+/** Foto aérea del PNOA (IGN), aprobada por el desarrollador el 03/10/2026 (ADR 0004). */
+const SATELLITE_AVAILABLE = true;
 
 /** A partir de este zoom se cargan los trazados detallados (RNF-02: geometrías según zoom). */
 const DETAIL_ZOOM = 14;
