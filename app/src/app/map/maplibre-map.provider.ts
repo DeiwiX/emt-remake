@@ -34,8 +34,9 @@ const LAYER = {
   approximate: 'routes-approximate',
   labels: 'routes-labels',
   stops: 'stops',
+  selectedStop: 'selected-stop',
 } as const;
-const SOURCE = { routes: 'routes', stops: 'stops' } as const;
+const SOURCE = { routes: 'routes', stops: 'stops', selectedStop: 'selected-stop' } as const;
 
 /**
  * Con muchas paradas (toda la red) solo se dibujan al acercarse, para no saturar
@@ -97,6 +98,7 @@ class MapLibreView implements MapView {
   private stops: readonly MapStop[] = [];
   private visibleLines: ReadonlySet<string> | null = null;
   private highlighted: string | null = null;
+  private highlightedStop: MapStop | null = null;
   private scheme: ColorScheme;
 
   constructor(
@@ -115,7 +117,7 @@ class MapLibreView implements MapView {
         [x - TAP_TOLERANCE_PX, y - TAP_TOLERANCE_PX],
         [x + TAP_TOLERANCE_PX, y + TAP_TOLERANCE_PX],
       ];
-      const stop = map.queryRenderedFeatures(box, { layers: [LAYER.stops] })[0];
+      const stop = map.queryRenderedFeatures(box, { layers: [LAYER.selectedStop, LAYER.stops] })[0];
       if (stop) {
         events.stopSelected(String(stop.properties['id']));
         return;
@@ -144,6 +146,11 @@ class MapLibreView implements MapView {
   setHighlightedLine(lineId: string | null): void {
     this.highlighted = lineId;
     this.applyFiltersAndHighlight();
+  }
+
+  setHighlightedStop(stop: MapStop | null): void {
+    this.highlightedStop = stop;
+    this.source(SOURCE.selectedStop)?.setData(this.selectedStopGeoJson());
   }
 
   fitTo(points: readonly LatLon[]): void {
@@ -183,6 +190,7 @@ class MapLibreView implements MapView {
 
     map.addSource(SOURCE.routes, { type: 'geojson', data: this.routesGeoJson() });
     map.addSource(SOURCE.stops, { type: 'geojson', data: this.stopsGeoJson() });
+    map.addSource(SOURCE.selectedStop, { type: 'geojson', data: this.selectedStopGeoJson() });
 
     map.addLayer({
       id: LAYER.casing,
@@ -235,6 +243,18 @@ class MapLibreView implements MapView {
         'circle-color': stopFill,
         'circle-stroke-color': stopStroke,
         'circle-stroke-width': 2,
+      },
+    });
+    // Parada marcada: más grande y con color de acento, visible a cualquier zoom.
+    map.addLayer({
+      id: LAYER.selectedStop,
+      type: 'circle',
+      source: SOURCE.selectedStop,
+      paint: {
+        'circle-radius': 10,
+        'circle-color': this.scheme === 'dark' ? '#4D8DFF' : '#0054E9',
+        'circle-stroke-color': this.scheme === 'dark' ? '#000000' : '#FFFFFF',
+        'circle-stroke-width': 3,
       },
     });
     this.applyFiltersAndHighlight();
@@ -309,6 +329,22 @@ class MapLibreView implements MapView {
         },
         geometry: { type: 'LineString', coordinates: route.points.map(([lat, lon]) => [lon, lat]) },
       })),
+    };
+  }
+
+  private selectedStopGeoJson(): FeatureCollection {
+    const stop = this.highlightedStop;
+    return {
+      type: 'FeatureCollection',
+      features: stop
+        ? [
+            {
+              type: 'Feature',
+              properties: { id: stop.id, name: stop.name },
+              geometry: { type: 'Point', coordinates: [stop.lon, stop.lat] },
+            },
+          ]
+        : [],
     };
   }
 

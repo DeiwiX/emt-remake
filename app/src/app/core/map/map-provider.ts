@@ -50,6 +50,8 @@ export interface MapView {
   setVisibleLines(lineIds: ReadonlySet<string> | null): void;
   /** Resalta una línea y atenúa el resto; null = ninguna. */
   setHighlightedLine(lineId: string | null): void;
+  /** Marca una parada (por ejemplo, la elegida en la búsqueda); null = ninguna. */
+  setHighlightedStop(stop: MapStop | null): void;
   fitTo(points: readonly LatLon[]): void;
   setScheme(scheme: ColorScheme): void;
   destroy(): void;

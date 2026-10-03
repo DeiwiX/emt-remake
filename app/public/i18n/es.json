@@ -60,11 +60,14 @@
     "approximate": "recorrido aproximado",
     "openDetail": "Ver detalle de la línea",
     "clearHighlight": "Quitar resaltado",
-    "hint": "Toca un recorrido en el mapa o pulsa «Resaltar» en la lista para destacar una línea.",
+    "hint": "Busca una línea o parada, toca un recorrido en el mapa o pulsa «Resaltar» en la lista.",
     "showAll": "Mostrar todas",
     "hideAll": "Ocultar todas",
     "showLine": "Mostrar la línea {{id}} en el mapa",
-    "highlight": "Resaltar"
+    "highlight": "Resaltar",
+    "searchPlaceholder": "Buscar línea o parada en el mapa",
+    "openStopDetail": "Ver detalle de la parada",
+    "clearStop": "Quitar parada"
   },
   "settings": {
     "title": "Ajustes"

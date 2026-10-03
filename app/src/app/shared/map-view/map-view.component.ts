@@ -90,6 +90,7 @@ export class MapViewComponent {
   /** Líneas visibles; null = todas. */
   readonly visibleLines = input<ReadonlySet<string> | null>(null);
   readonly highlightedLine = input<string | null>(null);
+  readonly highlightedStop = input<MapStop | null>(null);
   /** Puntos que el mapa debe encuadrar cuando cambian. */
   readonly fitPoints = input<readonly LatLon[]>([]);
   readonly lineSelected = output<string | null>();
@@ -108,6 +109,7 @@ export class MapViewComponent {
     effect(() => this.view()?.setStops(this.stops()));
     effect(() => this.view()?.setVisibleLines(this.visibleLines()));
     effect(() => this.view()?.setHighlightedLine(this.highlightedLine()));
+    effect(() => this.view()?.setHighlightedStop(this.highlightedStop()));
     effect(() => this.view()?.setScheme(this.scheme()));
     effect(() => {
       // Se lee view() antes de salir: así el efecto se repite cuando el mapa termina de crearse.

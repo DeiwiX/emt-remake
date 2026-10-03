@@ -12,7 +12,13 @@ import {
   NetworkRepository,
   ShapeRepository,
 } from '../../core/data/repositories';
-import { MapProvider, MapRoute, MapView, MapViewEvents } from '../../core/map/map-provider';
+import {
+  MapProvider,
+  MapRoute,
+  MapStop,
+  MapView,
+  MapViewEvents,
+} from '../../core/map/map-provider';
 import { LatLon } from '../../core/models/network.model';
 import { buildIndex } from '../../data/static-repositories';
 import { networkFixture } from '../../data/testing/data-fixtures';
@@ -32,6 +38,10 @@ class FakeMapView implements MapView {
   }
   setHighlightedLine(id: string | null) {
     this.highlighted = id;
+  }
+  highlightedStop: MapStop | null = null;
+  setHighlightedStop(stop: MapStop | null) {
+    this.highlightedStop = stop;
   }
   fitTo = vi.fn();
   setScheme = vi.fn();
@@ -158,6 +168,36 @@ describe('MapPage', () => {
     actions.showAll();
     TestBed.tick();
     expect(view.visible).toBeNull();
+  });
+
+  it('busca líneas y paradas y, al elegir una parada, la marca y la encuadra', async () => {
+    const { harness, page } = await open('/map');
+    const actions = page as unknown as {
+      query: { set(v: string): void };
+      chooseStop(id: string): void;
+    };
+
+    actions.query.set('alameda');
+    harness.detectChanges();
+    const text = (harness.routeNativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Encontradas: 1 líneas y 1 paradas');
+
+    actions.chooseStop('2');
+    TestBed.tick();
+    harness.detectChanges();
+    expect(view.highlightedStop?.id).toBe('2');
+    expect(view.fitTo).toHaveBeenLastCalledWith([[36.71, -4.43]]);
+    // Al elegir, la búsqueda se limpia y se muestra la ficha de la parada.
+    expect((harness.routeNativeElement as HTMLElement).textContent).toContain(
+      'Ver detalle de la parada',
+    );
+  });
+
+  it('al tocar una parada en el mapa la marca sin salir del mapa', async () => {
+    await open('/map');
+    events.stopSelected('1');
+    TestBed.tick();
+    expect(view.highlightedStop?.id).toBe('1');
   });
 
   it('avisa y ofrece las listas si el dispositivo no puede mostrar el mapa', async () => {

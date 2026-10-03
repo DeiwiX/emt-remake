@@ -7,7 +7,7 @@ import {
   linkedSignal,
   signal,
 } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import {
   IonBackButton,
@@ -19,6 +19,7 @@ import {
   IonItem,
   IonLabel,
   IonList,
+  IonSearchbar,
   IonTitle,
   IonToolbar,
 } from '@ionic/angular';
@@ -27,9 +28,16 @@ import { NetworkRepository, ShapeRepository } from '../../core/data/repositories
 import { LineColorsService } from '../../core/map/line-colors.service';
 import { toMapRoutes, toMapStops } from '../../core/map/map-features';
 import { LatLon, ShapeDetail } from '../../core/models/network.model';
+import { searchLines, searchStops } from '../../core/search/search';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
 import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component';
 import { MapViewComponent } from '../../shared/map-view/map-view.component';
+
+/** Paradas que se pintan como resultado de búsqueda; la lista completa está en Paradas. */
+const MAX_STOP_RESULTS = 30;
+
+/** Lo último que ha elegido el usuario: es lo que el mapa encuadra. */
+type MapFocus = { kind: 'line'; id: string } | { kind: 'stop'; id: string };
 
 /** A partir de este zoom se cargan los trazados detallados (RNF-02: geometrías según zoom). */
 const DETAIL_ZOOM = 14;
@@ -55,6 +63,7 @@ const DETAIL_ZOOM = 14;
     IonItem,
     IonLabel,
     IonList,
+    IonSearchbar,
     IonTitle,
     IonToolbar,
   ],
@@ -66,7 +75,6 @@ export class MapPage {
   private readonly network = inject(NetworkRepository);
   private readonly shapes = inject(ShapeRepository);
   private readonly colors = inject(LineColorsService);
-  private readonly router = inject(Router);
 
   /** Línea a resaltar al abrir (/map?line=C1). */
   readonly line = input<string>();
@@ -78,6 +86,43 @@ export class MapPage {
     this.lines();
     const id = this.highlightedId();
     return id ? this.network.getLine(id) : undefined;
+  });
+
+  /** Búsqueda de líneas y paradas dentro del mapa (RF-05). */
+  protected readonly query = signal('');
+  protected readonly searching = computed(() => this.query().trim().length > 0);
+  protected readonly lineResults = computed(() =>
+    searchLines(this.lines(), this.query(), Infinity),
+  );
+  private readonly allStopResults = computed(() =>
+    searchStops(this.network.stops(), this.query(), Infinity),
+  );
+  protected readonly stopResults = computed(() => this.allStopResults().slice(0, MAX_STOP_RESULTS));
+  protected readonly totalStopResults = computed(() => this.allStopResults().length);
+
+  /** Parada marcada en el mapa (elegida en la búsqueda o tocada en el mapa). */
+  protected readonly selectedStopId = signal<string | null>(null);
+  protected readonly selectedStop = computed(() => {
+    this.network.stops();
+    const id = this.selectedStopId();
+    return id ? this.network.getStop(id) : undefined;
+  });
+  protected readonly selectedStopMarker = computed(
+    () => toMapStops([this.selectedStop()])[0] ?? null,
+  );
+  /** Líneas que pasan por la parada marcada, con el destino de cada sentido. */
+  protected readonly selectedStopServices = computed(() =>
+    (this.selectedStop()?.services ?? []).map((service) => ({
+      ...service,
+      headsign:
+        this.network.getLine(service.lineId)?.directions.find((d) => d.id === service.directionId)
+          ?.headsign ?? '',
+    })),
+  );
+
+  private readonly focus = linkedSignal<MapFocus | null>(() => {
+    const line = this.line();
+    return line ? { kind: 'line', id: line } : null;
   });
 
   private readonly geometries = signal<ReadonlyMap<string, readonly LatLon[]>>(new Map());
@@ -106,9 +151,14 @@ export class MapPage {
     );
   });
 
-  /** Al resaltar una línea, el mapa la encuadra. */
-  protected readonly fitPoints = computed(() => {
-    const line = this.highlightedLine();
+  /** El mapa encuadra la última línea resaltada o la última parada elegida. */
+  protected readonly fitPoints = computed<LatLon[]>(() => {
+    const focus = this.focus();
+    if (focus?.kind === 'stop') {
+      const stop = this.selectedStop();
+      return stop ? [[stop.lat, stop.lon]] : [];
+    }
+    const line = focus ? this.network.getLine(focus.id) : undefined;
     const geometries = this.geometries();
     return line ? line.directions.flatMap((d) => geometries.get(d.shapeId) ?? []) : [];
   });
@@ -140,12 +190,27 @@ export class MapPage {
 
   protected highlight(lineId: string | null): void {
     this.highlightedId.set(lineId);
-    // Una línea resaltada siempre es visible.
-    if (lineId) this.setVisible(lineId, true);
+    if (lineId) {
+      this.focus.set({ kind: 'line', id: lineId });
+      // Una línea resaltada siempre es visible.
+      this.setVisible(lineId, true);
+    }
   }
 
-  protected openStop(stopId: string): void {
-    void this.router.navigate(['/stops', stopId]);
+  /** Marca una parada y centra el mapa en ella, sin salir del mapa. */
+  protected selectStop(stopId: string | null): void {
+    this.selectedStopId.set(stopId);
+    if (stopId) this.focus.set({ kind: 'stop', id: stopId });
+  }
+
+  protected chooseLine(lineId: string): void {
+    this.highlight(lineId);
+    this.query.set('');
+  }
+
+  protected chooseStop(stopId: string): void {
+    this.selectStop(stopId);
+    this.query.set('');
   }
 
   protected onZoom(zoom: number): void {
