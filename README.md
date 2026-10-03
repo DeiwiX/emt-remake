@@ -54,7 +54,7 @@ docs/adr/   decisiones de arquitectura
 
 ### Datos publicados
 
-El workflow `Datos` se ejecuta cada día a las 05:30 UTC y publica en GitHub Pages, bajo `data/v1/`:
+El workflow `Datos` se ejecuta cada día a las 05:30 UTC y publica en GitHub Pages, en https://deiwix.github.io/emt-remake/data/v1/ (con CORS abierto):
 
 | Fichero | Contenido | Tamaño aprox. (gzip, 03/10/2026) |
 | --- | --- | --- |

@@ -33,7 +33,7 @@ desarrollador.
 | Comando de lint / análisis estático | `npm run lint` en `app/` (angular-eslint, incluye reglas de accesibilidad de plantillas); `npm run typecheck` en `pipeline/` |
 | Comando de compilación | `npm run build` en `app/`; generación de datos: `npm run build-data -- --out <carpeta>` en `pipeline/` |
 | Ubicación de los ADR | `docs/adr/` |
-| Control de versiones | Git inicializado, rama `main`. Repositorio remoto en GitHub aprobado, pendiente de crear |
+| Control de versiones | Git inicializado, rama `main`. Remoto público: https://github.com/DeiwiX/emt-remake |
 
 Mientras un aspecto figure como "Sin definir":
 
