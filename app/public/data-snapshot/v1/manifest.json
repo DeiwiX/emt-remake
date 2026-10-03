@@ -1,12 +1,13 @@
 {
   "schemaVersion": 1,
-  "dataVersion": "663e9805c8fbd790",
-  "generatedAt": "2026-10-03T13:10:37.450Z",
+  "dataVersion": "4612a6fd7b37c56a",
+  "generatedAt": "2026-10-03T17:26:02.331Z",
   "counts": {
     "lines": 49,
     "stops": 1135,
     "shapes": 89,
-    "approximateShapes": 4
+    "approximateShapes": 4,
+    "zones": 430
   },
   "files": {
     "network": {
@@ -23,6 +24,11 @@
       "path": "shapes-detail.json",
       "bytes": 27223,
       "sha256": "023473ca88fc73423f899bdb1b1050527f8f8397e32c8419db55060eec910a5a"
+    },
+    "zones": {
+      "path": "zones.json",
+      "bytes": 125256,
+      "sha256": "cd054a63ffe084dedb9aea3c7d630ae3e9c35f02b75f82d263a5b0882688239f"
     }
   },
   "sources": [
@@ -37,6 +43,18 @@
       "dataset": "https://datosabiertos.malaga.eu/dataset/lineas-y-horarios-bus-google-transit",
       "url": "https://datosabiertos.malaga.eu/recursos/transporte/EMT/lineasYHorarios/google_transit_txt.zip",
       "lastModified": "Sat, 03 Oct 2026 03:10:14 GMT"
+    },
+    {
+      "name": "Sistema de información cartográfica: barrio",
+      "dataset": "https://datosabiertos.malaga.eu/dataset/sistema-de-informacion-cartografica-barrio",
+      "url": "https://datosabiertos.malaga.eu/recursos/urbanismoEInfraestructura/planimetria/callejero/da_cartografiaBarrio-4326.csv",
+      "lastModified": "Mon, 23 Mar 2026 08:04:58 GMT"
+    },
+    {
+      "name": "Sistema de información cartográfica: distrito municipal",
+      "dataset": "https://datosabiertos.malaga.eu/dataset/sistema-de-informacion-cartografica-distrito-municipal",
+      "url": "https://datosabiertos.malaga.eu/recursos/urbanismoEInfraestructura/planimetria/callejero/da_cartografiaDistritoMunicipal-4326.csv",
+      "lastModified": "Mon, 23 Mar 2026 08:05:46 GMT"
     }
   ],
   "license": {

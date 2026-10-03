@@ -65,6 +65,7 @@ El workflow `Datos` se ejecuta cada día a las 05:30 UTC y publica en GitHub Pag
 | `network.json` | líneas, sentidos con paradas en orden y destino, y paradas | 34 KB |
 | `shapes-overview.json` | trazados simplificados a 25 m (vista general) | 7 KB |
 | `shapes-detail.json` | trazados simplificados a 4 m (zoom cercano) | 14 KB |
+| `zones.json` | barrios (419) y distritos (11): contorno simplificado y paradas de cada zona (dentro o a menos de 100 m del borde) | 58 KB |
 | `report.json` | incidencias: sentidos con recorrido aproximado y paradas en conflicto | 1 KB |
 
 Los trazados son polilíneas codificadas con el algoritmo de Google (precisión 1e-5). Si un sentido no tiene trazado oficial, se unen sus paradas con tramos rectos y se marca `shapeQuality: "approximate"`. El 03/10/2026 son las líneas 91, 92 y 93. Las líneas L y 20E del GTFS no aparecen porque no tienen viajes ni figuran en la fuente de líneas y paradas.
@@ -91,6 +92,7 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
   - que dos colores cualesquiera se diferencian con claridad (CIE76 ≥ 10).
 
   Con daltonismo algunos pueden parecerse; el número de línea aparece siempre en las insignias y sobre los recorridos.
+- El buscador del mapa también encuentra barrios y distritos: al elegir uno se marca su contorno, se muestran sus paradas y se resaltan las líneas que pasan por ellas. Los límites proceden del "Sistema de información cartográfica" del Ayuntamiento (mismo portal y licencia).
 - Capas del mapa: "Claro" y "Oscuro" (OpenFreeMap) y "Satélite" (PNOA del IGN, CC BY 4.0).
 
 ### Ajustes
