@@ -65,7 +65,7 @@
     </div>
 
     <!-- Alternativa en texto de todo lo que muestra el mapa (RNF-01). -->
-    <section class="panel" [attr.aria-label]="'map.panelLabel' | transloco">
+    <section #panel class="panel" [attr.aria-label]="'map.panelLabel' | transloco">
       <app-data-status-banner />
 
       @if (searching()) {
@@ -127,6 +127,43 @@
           </ion-list>
         }
       } @else {
+        <!-- La parada elegida va arriba del todo: es lo último que ha pedido el usuario. -->
+        @if (selectedStop(); as stop) {
+          <div class="selected stop-card" aria-live="polite">
+            <h2>{{ stop.name }}</h2>
+            <p>{{ 'stops.code' | transloco: { id: stop.id } }}</p>
+            <ul class="stop-services">
+              @for (
+                service of selectedStopServices();
+                track service.lineId + '-' + service.directionId
+              ) {
+                <li>
+                  <app-line-badge [code]="service.lineId" />
+                  <span class="service-text">
+                    <span class="visually-hidden"
+                      >{{ 'lines.line' | transloco: { id: service.lineId } }}.</span
+                    >
+                    {{ 'lineDetail.towards' | transloco: { headsign: service.headsign } }}
+                    <!-- Hueco para los tiempos de llegada (Fase 3): sin tiempos inventados. -->
+                    <span class="next-bus">
+                      <ion-icon name="time-outline" aria-hidden="true" />
+                      {{ 'stopDetail.nextBusSoon' | transloco }}
+                    </span>
+                  </span>
+                </li>
+              }
+            </ul>
+            <div class="actions">
+              <ion-button [routerLink]="['/stops', stop.id]">{{
+                'map.openStopDetail' | transloco
+              }}</ion-button>
+              <ion-button fill="outline" (click)="selectStop(null)">{{
+                'map.clearStop' | transloco
+              }}</ion-button>
+            </div>
+          </div>
+        }
+
         @if (selectedZone(); as zone) {
           <div class="selected" aria-live="polite">
             <h2>{{ zone.name }}</h2>
@@ -175,32 +212,6 @@
             </ion-list>
           }
         }
-        @if (selectedStop(); as stop) {
-          <div class="selected" aria-live="polite">
-            <h2>{{ stop.name }}</h2>
-            <p>{{ 'stops.code' | transloco: { id: stop.id } }}</p>
-            <ul>
-              @for (
-                service of selectedStopServices();
-                track service.lineId + '-' + service.directionId
-              ) {
-                <li>
-                  {{ 'lines.line' | transloco: { id: service.lineId } }} ·
-                  {{ 'lineDetail.towards' | transloco: { headsign: service.headsign } }}
-                </li>
-              }
-            </ul>
-            <div class="actions">
-              <ion-button [routerLink]="['/stops', stop.id]">{{
-                'map.openStopDetail' | transloco
-              }}</ion-button>
-              <ion-button fill="outline" (click)="selectStop(null)">{{
-                'map.clearStop' | transloco
-              }}</ion-button>
-            </div>
-          </div>
-        }
-
         @if (highlightedLine(); as line) {
           <div class="selected" aria-live="polite">
             <div class="selected-title">

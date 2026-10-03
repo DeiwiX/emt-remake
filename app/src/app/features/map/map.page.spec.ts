@@ -264,6 +264,32 @@ describe('MapPage', () => {
     });
   });
 
+  it('al elegir una parada de una zona, la parada pasa a primer plano', async () => {
+    const { harness, page } = await open('/map');
+    const actions = page as unknown as {
+      chooseZone(id: string): void;
+      selectStop(id: string): void;
+    };
+    await vi.waitFor(() => {
+      actions.chooseZone('b1');
+      TestBed.tick();
+      expect(view.area).toHaveLength(1);
+    });
+
+    actions.selectStop('2');
+    TestBed.tick();
+    harness.detectChanges();
+
+    // Se encuadra la parada, se resaltan sus líneas y su ficha va antes que la de la zona.
+    expect(view.fitTo).toHaveBeenLastCalledWith([[36.71, -4.43]]);
+    expect(view.highlighted).toBe('2,10');
+    const cards = [...(harness.routeNativeElement as HTMLElement).querySelectorAll('.selected h2')];
+    expect(cards.map((h) => h.textContent?.trim())).toEqual(['Alameda', 'Teatinos']);
+    expect((harness.routeNativeElement as HTMLElement).textContent).toContain(
+      'Próximo bus: tiempo real próximamente',
+    );
+  });
+
   it('al tocar una parada en el mapa la marca sin salir del mapa', async () => {
     await open('/map');
     events.stopSelected('1');

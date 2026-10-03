@@ -1,12 +1,14 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
   computed,
   effect,
   inject,
   input,
   linkedSignal,
   signal,
+  viewChild,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
@@ -18,6 +20,7 @@ import {
   IonContent,
   IonHeader,
   IonItem,
+  IonIcon,
   IonLabel,
   IonList,
   IonSearchbar,
@@ -73,6 +76,7 @@ const DETAIL_ZOOM = 14;
     IonContent,
     IonHeader,
     IonItem,
+    IonIcon,
     IonLabel,
     IonList,
     IonSearchbar,
@@ -118,6 +122,7 @@ export class MapPage {
   protected readonly totalStopResults = computed(() => this.allStopResults().length);
 
   /** Barrios y distritos: se descargan al abrir el mapa y solo se usan al buscar. */
+  private readonly panel = viewChild<ElementRef<HTMLElement>>('panel');
   private readonly zones = signal<readonly Zone[]>([]);
   private readonly zoneRepository = inject(ZoneRepository);
   private readonly dataStatus = inject(DataStatusService);
@@ -177,6 +182,10 @@ export class MapPage {
    */
   protected readonly highlightedLines = computed<ReadonlySet<string> | null>(() => {
     if (this.searching()) return new Set(this.lineResults().map((l) => l.id));
+    const stop = this.selectedStop();
+    if (stop && this.focus()?.kind === 'stop') {
+      return new Set(stop.services.map((s) => s.lineId));
+    }
     if (this.selectedZone()) return new Set(this.zoneLines().map((l) => l.id));
     const id = this.highlightedId();
     return id ? new Set([id]) : null;
@@ -283,7 +292,15 @@ export class MapPage {
   /** Marca una parada y centra el mapa en ella, sin salir del mapa. */
   protected selectStop(stopId: string | null): void {
     this.selectedStopId.set(stopId);
-    if (stopId) this.focus.set({ kind: 'stop', id: stopId });
+    if (stopId) {
+      this.focus.set({ kind: 'stop', id: stopId });
+      this.scrollPanelToTop();
+    }
+  }
+
+  private scrollPanelToTop(): void {
+    const panel = this.panel()?.nativeElement;
+    if (panel) panel.scrollTop = 0;
   }
 
   /** Marca una zona: su contorno, sus paradas y las líneas que pasan por ellas. */
