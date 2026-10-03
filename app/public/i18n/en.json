@@ -13,19 +13,39 @@
     "mapSummary": "Lines map",
     "comingInPhase2": "Coming soon",
     "favorites": "My favourites",
-    "nearMe": "Near me"
+    "nearMe": "Near me",
+    "resultCount": "Found: {{lines}} lines and {{stops}} stops",
+    "lineResults": "Lines",
+    "stopResults": "Stops",
+    "firstStops": "Showing the first {{count}}. Type more to narrow it down."
   },
   "lines": {
-    "title": "All lines"
+    "title": "All lines",
+    "line": "Line {{id}}"
   },
   "lineDetail": {
-    "title": "Line {{id}}"
+    "notes": "EMT notice: {{notes}}",
+    "direction": "Direction",
+    "towards": "Towards {{headsign}}",
+    "stopCount": "{{count}} stops",
+    "approximateRoute": "Approximate route: the official source does not publish this line's path; its stops are shown in order.",
+    "stopsInOrder": "Stops in order",
+    "notFound": "Line {{id}} does not exist."
   },
   "stops": {
-    "title": "Stops"
+    "title": "Stops",
+    "code": "Code {{id}}",
+    "servedBy": "Lines: {{lines}}",
+    "filterPlaceholder": "Filter by name or code",
+    "showing": "Showing {{shown}} of {{total}} stops",
+    "showMore": "Show more stops"
   },
   "stopDetail": {
-    "title": "Stop {{id}}"
+    "title": "Stop {{id}}",
+    "address": "Address: {{address}}",
+    "coordinates": "Location: {{lat}}, {{lon}}",
+    "lines": "Lines that stop here",
+    "notFound": "Stop {{id}} does not exist."
   },
   "map": {
     "title": "Map"

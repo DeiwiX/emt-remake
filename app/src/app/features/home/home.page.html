@@ -6,10 +6,11 @@
     </ion-buttons>
   </ion-toolbar>
   <ion-toolbar>
-    <!-- La búsqueda se implementa en el incremento 4. -->
     <ion-searchbar
       [placeholder]="'home.searchPlaceholder' | transloco"
       [attr.aria-label]="'home.searchPlaceholder' | transloco"
+      [debounce]="150"
+      (ionInput)="query.set($event.detail.value ?? '')"
     />
   </ion-toolbar>
 </ion-header>
@@ -17,32 +18,54 @@
 <ion-content>
   <app-data-status-banner />
 
-  <p class="ion-padding-horizontal">
-    <ion-note>{{ 'app.unofficialNotice' | transloco }}</ion-note>
-  </p>
+  @if (searching()) {
+    <!-- Resultados de búsqueda (RF-05): sustituyen al menú mientras hay texto. -->
+    <p class="ion-padding-horizontal" role="status">
+      {{
+        'home.resultCount' | transloco: { lines: lineResults().length, stops: totalStopResults() }
+      }}
+    </p>
+    @if (lineResults().length > 0) {
+      <h2 class="ion-padding-horizontal">{{ 'home.lineResults' | transloco }}</h2>
+      <app-line-list [lines]="lineResults()" [label]="'home.lineResults' | transloco" />
+    }
+    @if (stopResults().length > 0) {
+      <h2 class="ion-padding-horizontal">{{ 'home.stopResults' | transloco }}</h2>
+      @if (totalStopResults() > stopResults().length) {
+        <p class="ion-padding-horizontal">
+          {{ 'home.firstStops' | transloco: { count: stopResults().length } }}
+        </p>
+      }
+      <app-stop-list [stops]="stopResults()" [label]="'home.stopResults' | transloco" />
+    }
+  } @else {
+    <p class="ion-padding-horizontal">
+      <ion-note>{{ 'app.unofficialNotice' | transloco }}</ion-note>
+    </p>
 
-  <ion-list>
-    <ion-item routerLink="/map" detail>
-      <ion-label>{{ 'home.mapSummary' | transloco }}</ion-label>
-    </ion-item>
-    <ion-item routerLink="/lines" detail>
-      <ion-label>{{ 'lines.title' | transloco }}</ion-label>
-    </ion-item>
-    <ion-item routerLink="/stops" detail>
-      <ion-label>{{ 'stops.title' | transloco }}</ion-label>
-    </ion-item>
-  </ion-list>
+    <ion-list>
+      <ion-item routerLink="/map" detail>
+        <ion-label>{{ 'home.mapSummary' | transloco }}</ion-label>
+      </ion-item>
+      <ion-item routerLink="/lines" detail>
+        <ion-label>{{ 'lines.title' | transloco }}</ion-label>
+      </ion-item>
+      <ion-item routerLink="/stops" detail>
+        <ion-label>{{ 'stops.title' | transloco }}</ion-label>
+      </ion-item>
+    </ion-list>
 
-  <!-- Espacio reservado para la Fase 2. -->
-  <ion-list>
-    <ion-list-header>
-      <ion-label>{{ 'home.comingInPhase2' | transloco }}</ion-label>
-    </ion-list-header>
-    <ion-item>
-      <ion-label>{{ 'home.favorites' | transloco }}</ion-label>
-    </ion-item>
-    <ion-item>
-      <ion-label>{{ 'home.nearMe' | transloco }}</ion-label>
-    </ion-item>
-  </ion-list>
+    <!-- Espacio reservado para la Fase 2. -->
+    <ion-list>
+      <ion-list-header>
+        <ion-label>{{ 'home.comingInPhase2' | transloco }}</ion-label>
+      </ion-list-header>
+      <ion-item>
+        <ion-label>{{ 'home.favorites' | transloco }}</ion-label>
+      </ion-item>
+      <ion-item>
+        <ion-label>{{ 'home.nearMe' | transloco }}</ion-label>
+      </ion-item>
+    </ion-list>
+  }
 </ion-content>

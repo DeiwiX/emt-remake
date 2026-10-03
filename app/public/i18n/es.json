@@ -13,19 +13,39 @@
     "mapSummary": "Mapa de líneas",
     "comingInPhase2": "Próximamente",
     "favorites": "Mis favoritos",
-    "nearMe": "Cerca de mí"
+    "nearMe": "Cerca de mí",
+    "resultCount": "Encontradas: {{lines}} líneas y {{stops}} paradas",
+    "lineResults": "Líneas",
+    "stopResults": "Paradas",
+    "firstStops": "Se muestran las {{count}} primeras. Escribe más para afinar."
   },
   "lines": {
-    "title": "Todas las líneas"
+    "title": "Todas las líneas",
+    "line": "Línea {{id}}"
   },
   "lineDetail": {
-    "title": "Línea {{id}}"
+    "notes": "Aviso de la EMT: {{notes}}",
+    "direction": "Sentido",
+    "towards": "Hacia {{headsign}}",
+    "stopCount": "{{count}} paradas",
+    "approximateRoute": "Recorrido aproximado: la fuente oficial no publica el trazado de esta línea; se muestran sus paradas en orden.",
+    "stopsInOrder": "Paradas en orden",
+    "notFound": "No existe la línea {{id}}."
   },
   "stops": {
-    "title": "Paradas"
+    "title": "Paradas",
+    "code": "Código {{id}}",
+    "servedBy": "Líneas: {{lines}}",
+    "filterPlaceholder": "Filtrar por nombre o código",
+    "showing": "Mostrando {{shown}} de {{total}} paradas",
+    "showMore": "Mostrar más paradas"
   },
   "stopDetail": {
-    "title": "Parada {{id}}"
+    "title": "Parada {{id}}",
+    "address": "Dirección: {{address}}",
+    "coordinates": "Ubicación: {{lat}}, {{lon}}",
+    "lines": "Líneas que pasan por aquí",
+    "notFound": "No existe la parada {{id}}."
   },
   "map": {
     "title": "Mapa"

@@ -125,23 +125,25 @@ export function parseShapes(value: unknown): ShapesFile {
 function parseLine(value: unknown, index: number): PublishedLine {
   const where = `network.lines[${index}]`;
   const l = record(value, where);
-  const directions = array(l['directions'], `${where}.directions`).map((d, i): PublishedDirection => {
-    const dw = `${where}.directions[${i}]`;
-    const direction = record(d, dw);
-    const quality = direction['shapeQuality'];
-    if (quality !== 'official' && quality !== 'approximate') {
-      throw new DataFormatError(`${dw}.shapeQuality: valor no válido`);
-    }
-    return {
-      id: number(direction['id'], `${dw}.id`),
-      headsign: string(direction['headsign'], `${dw}.headsign`),
-      stopIds: array(direction['stopIds'], `${dw}.stopIds`).map((id, j) =>
-        string(id, `${dw}.stopIds[${j}]`),
-      ),
-      shapeId: string(direction['shapeId'], `${dw}.shapeId`),
-      shapeQuality: quality,
-    };
-  });
+  const directions = array(l['directions'], `${where}.directions`).map(
+    (d, i): PublishedDirection => {
+      const dw = `${where}.directions[${i}]`;
+      const direction = record(d, dw);
+      const quality = direction['shapeQuality'];
+      if (quality !== 'official' && quality !== 'approximate') {
+        throw new DataFormatError(`${dw}.shapeQuality: valor no válido`);
+      }
+      return {
+        id: number(direction['id'], `${dw}.id`),
+        headsign: string(direction['headsign'], `${dw}.headsign`),
+        stopIds: array(direction['stopIds'], `${dw}.stopIds`).map((id, j) =>
+          string(id, `${dw}.stopIds[${j}]`),
+        ),
+        shapeId: string(direction['shapeId'], `${dw}.shapeId`),
+        shapeQuality: quality,
+      };
+    },
+  );
   if (directions.length === 0) throw new DataFormatError(`${where}: sin sentidos`);
   return {
     id: nonEmpty(l['id'], `${where}.id`),

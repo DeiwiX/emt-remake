@@ -4,7 +4,7 @@ Aplicación **no oficial** para consultar los autobuses urbanos de Málaga (EMT)
 
 ## Estado
 
-Fase 1 en construcción. Hechos: incremento 1 (esqueleto, navegación, idiomas ES/EN, lint y pruebas) incremento 2 (script de datos publicado cada noche) e incremento 3 (capa de datos con caché en el dispositivo).
+Fase 1 en construcción. Hechos: incremento 1 (esqueleto, navegación, idiomas ES/EN, lint y pruebas) incremento 2 (script de datos publicado cada noche) incremento 3 (capa de datos con caché en el dispositivo) e incremento 4 (listas de líneas y paradas, búsqueda y detalle en texto de línea y parada; el detalle con mapa llega en los incrementos 5 y 6).
 
 ## Requisitos
 
@@ -39,7 +39,7 @@ npm run typecheck                            # comprobación de tipos estricta
 
 ```
 app/        Aplicación Ionic 9 + Angular 22
-  src/app/core/      modelo de dominio, interfaces de repositorio, i18n
+  src/app/core/      modelo de dominio, interfaces de repositorio, búsqueda, i18n
   src/app/data/      implementación de la Fase 1: ficheros publicados + caché IndexedDB
   src/app/features/  pantallas, cargadas de forma diferida
   src/app/shared/    componentes reutilizables

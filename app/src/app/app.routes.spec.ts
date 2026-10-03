@@ -7,7 +7,7 @@ import { TranslocoTestingModule } from '@jsverse/transloco';
 
 import { routes } from './app.routes';
 import { signal } from '@angular/core';
-import { DataStatusService } from './core/data/repositories';
+import { DataStatusService, NetworkRepository } from './core/data/repositories';
 import es from '../../public/i18n/es.json';
 import { HomePage } from './features/home/home.page';
 import { LinesPage } from './features/lines/lines.page';
@@ -33,6 +33,15 @@ describe('Rutas de la app', () => {
         {
           provide: DataStatusService,
           useValue: { status: signal({ state: 'loading' }), refresh: () => Promise.resolve() },
+        },
+        {
+          provide: NetworkRepository,
+          useValue: {
+            lines: signal([]),
+            stops: signal([]),
+            getLine: () => undefined,
+            getStop: () => undefined,
+          },
         },
       ],
     });
