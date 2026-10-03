@@ -4,7 +4,7 @@ Aplicación **no oficial** para consultar los autobuses urbanos de Málaga (EMT)
 
 ## Estado
 
-Fase 1 en construcción. Hechos: incremento 1 (esqueleto, navegación, idiomas ES/EN, lint y pruebas) e incremento 2 (script de datos publicado cada noche).
+Fase 1 en construcción. Hechos: incremento 1 (esqueleto, navegación, idiomas ES/EN, lint y pruebas) incremento 2 (script de datos publicado cada noche) e incremento 3 (capa de datos con caché en el dispositivo).
 
 ## Requisitos
 
@@ -21,6 +21,7 @@ npm start                    # servidor de desarrollo en http://localhost:4200
 npm test -- --watch=false    # pruebas unitarias (Vitest)
 npm run lint                 # ESLint, con reglas de accesibilidad de plantillas
 npm run build                # compilación de producción en app/dist/
+npm run data:snapshot        # actualiza la copia de datos incluida en la app (public/data-snapshot)
 ```
 
 Script de datos:
@@ -38,7 +39,8 @@ npm run typecheck                            # comprobación de tipos estricta
 
 ```
 app/        Aplicación Ionic 9 + Angular 22
-  src/app/core/      configuración transversal (i18n)
+  src/app/core/      modelo de dominio, interfaces de repositorio, i18n
+  src/app/data/      implementación de la Fase 1: ficheros publicados + caché IndexedDB
   src/app/features/  pantallas, cargadas de forma diferida
   src/app/shared/    componentes reutilizables
   public/i18n/       textos en español e inglés
@@ -67,6 +69,15 @@ El workflow `Datos` se ejecuta cada día a las 05:30 UTC y publica en GitHub Pag
 Los trazados son polilíneas codificadas con el algoritmo de Google (precisión 1e-5). Si un sentido no tiene trazado oficial, se unen sus paradas con tramos rectos y se marca `shapeQuality: "approximate"`. El 03/10/2026 son las líneas 91, 92 y 93. Las líneas L y 20E del GTFS no aparecen porque no tienen viajes ni figuran en la fuente de líneas y paradas.
 
 Si la descarga falla o los datos no son plausibles (por debajo de 20 líneas o 500 paradas, o una caída de más del 20 % frente a la publicación anterior), no se publica nada y se mantiene la versión anterior.
+
+### Cómo los usa la app
+
+1. Al arrancar muestra lo guardado en el dispositivo (IndexedDB) o, la primera vez, la copia incluida en `app/public/data-snapshot/`.
+2. Después descarga `manifest.json`. Si `dataVersion` no ha cambiado no descarga nada más. Si ha cambiado, descarga `network.json`, comprueba su huella SHA-256 y su formato, y solo entonces sustituye la copia guardada.
+3. Los trazados se descargan solo al abrir el mapa y también se guardan.
+4. Si algo falla, se siguen mostrando los últimos datos válidos, con un aviso de que pueden estar desactualizados y la fecha de los datos.
+
+Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para cambiar de fuente (API propia u oficial) basta con otra implementación registrada en `data/provide-data.ts`.
 
 ### Origen y licencia
 

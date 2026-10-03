@@ -5,6 +5,7 @@ import { provideIonicAngular } from '@ionic/angular';
 
 import { routes } from './app.routes';
 import { provideI18n } from './core/i18n/i18n.providers';
+import { provideData } from './data/provide-data';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -14,5 +15,6 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes, withComponentInputBinding()),
     provideIonicAngular(),
     provideI18n(),
+    provideData(),
   ],
 };

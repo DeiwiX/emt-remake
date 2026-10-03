@@ -6,6 +6,8 @@ import { provideIonicAngular } from '@ionic/angular';
 import { TranslocoTestingModule } from '@jsverse/transloco';
 
 import { routes } from './app.routes';
+import { signal } from '@angular/core';
+import { DataStatusService } from './core/data/repositories';
 import es from '../../public/i18n/es.json';
 import { HomePage } from './features/home/home.page';
 import { LinesPage } from './features/lines/lines.page';
@@ -25,7 +27,14 @@ describe('Rutas de la app', () => {
           translocoConfig: { availableLangs: ['es'], defaultLang: 'es' },
         }),
       ],
-      providers: [provideRouter(routes, withComponentInputBinding()), provideIonicAngular()],
+      providers: [
+        provideRouter(routes, withComponentInputBinding()),
+        provideIonicAngular(),
+        {
+          provide: DataStatusService,
+          useValue: { status: signal({ state: 'loading' }), refresh: () => Promise.resolve() },
+        },
+      ],
     });
   });
 

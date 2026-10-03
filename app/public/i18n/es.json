@@ -5,7 +5,8 @@
   },
   "common": {
     "back": "Atrás",
-    "comingSoon": "Esta pantalla se completará en el incremento {{increment}}."
+    "comingSoon": "Esta pantalla se completará en el incremento {{increment}}.",
+    "retry": "Reintentar"
   },
   "home": {
     "searchPlaceholder": "Buscar línea o parada",
@@ -14,11 +15,31 @@
     "favorites": "Mis favoritos",
     "nearMe": "Cerca de mí"
   },
-  "lines": { "title": "Todas las líneas" },
-  "lineDetail": { "title": "Línea {{id}}" },
-  "stops": { "title": "Paradas" },
-  "stopDetail": { "title": "Parada {{id}}" },
-  "map": { "title": "Mapa" },
-  "settings": { "title": "Ajustes" },
-  "about": { "title": "Acerca de" }
+  "lines": {
+    "title": "Todas las líneas"
+  },
+  "lineDetail": {
+    "title": "Línea {{id}}"
+  },
+  "stops": {
+    "title": "Paradas"
+  },
+  "stopDetail": {
+    "title": "Parada {{id}}"
+  },
+  "map": {
+    "title": "Mapa"
+  },
+  "settings": {
+    "title": "Ajustes"
+  },
+  "about": {
+    "title": "Acerca de"
+  },
+  "data": {
+    "loading": "Cargando datos…",
+    "unavailable": "No hay datos disponibles. Comprueba tu conexión e inténtalo de nuevo.",
+    "outdated": "No se han podido actualizar los datos. Se muestran los del {{date}}, que pueden estar desactualizados.",
+    "updatedOn": "Datos del {{date}}"
+  }
 }

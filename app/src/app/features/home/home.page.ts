@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
+import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
 import {
   IonButton,
   IonButtons,
@@ -21,6 +22,7 @@ import {
   imports: [
     RouterLink,
     TranslocoPipe,
+    DataStatusBannerComponent,
     IonButton,
     IonButtons,
     IonContent,

@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "dataVersion": "663e9805c8fbd790",
+  "generatedAt": "2026-10-03T13:10:37.450Z",
+  "counts": {
+    "lines": 49,
+    "stops": 1135,
+    "shapes": 89,
+    "approximateShapes": 4
+  },
+  "files": {
+    "network": {
+      "path": "network.json",
+      "bytes": 152061,
+      "sha256": "d0003df134603266fb4c5356fa3283aa193e4dc5809cbedab53ff3d95a20ca58"
+    },
+    "shapesOverview": {
+      "path": "shapes-overview.json",
+      "bytes": 11939,
+      "sha256": "5212619fb9ed7f8652c6cab18f6ceaa9e39fd00060b1daf38bab2443a2062944"
+    },
+    "shapesDetail": {
+      "path": "shapes-detail.json",
+      "bytes": 27223,
+      "sha256": "023473ca88fc73423f899bdb1b1050527f8f8397e32c8419db55060eec910a5a"
+    }
+  },
+  "sources": [
+    {
+      "name": "Líneas y paradas autobuses EMT",
+      "dataset": "https://datosabiertos.malaga.eu/dataset/lineas-y-paradas-autobuses-emt",
+      "url": "https://datosabiertos.malaga.eu/recursos/transporte/EMT/EMTLineasYParadas/lineasyparadas.geojson",
+      "lastModified": "Sat, 03 Oct 2026 04:30:01 GMT"
+    },
+    {
+      "name": "Líneas y horarios bus - Google Transit",
+      "dataset": "https://datosabiertos.malaga.eu/dataset/lineas-y-horarios-bus-google-transit",
+      "url": "https://datosabiertos.malaga.eu/recursos/transporte/EMT/lineasYHorarios/google_transit_txt.zip",
+      "lastModified": "Sat, 03 Oct 2026 03:10:14 GMT"
+    }
+  ],
+  "license": {
+    "id": "CC-BY-SA-4.0",
+    "url": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "attribution": "Datos: Ayuntamiento de Málaga – datosabiertos.malaga.eu (EMT Málaga)"
+  }
+}

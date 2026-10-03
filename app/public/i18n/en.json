@@ -5,7 +5,8 @@
   },
   "common": {
     "back": "Back",
-    "comingSoon": "This screen will be completed in increment {{increment}}."
+    "comingSoon": "This screen will be completed in increment {{increment}}.",
+    "retry": "Try again"
   },
   "home": {
     "searchPlaceholder": "Search line or stop",
@@ -14,11 +15,31 @@
     "favorites": "My favourites",
     "nearMe": "Near me"
   },
-  "lines": { "title": "All lines" },
-  "lineDetail": { "title": "Line {{id}}" },
-  "stops": { "title": "Stops" },
-  "stopDetail": { "title": "Stop {{id}}" },
-  "map": { "title": "Map" },
-  "settings": { "title": "Settings" },
-  "about": { "title": "About" }
+  "lines": {
+    "title": "All lines"
+  },
+  "lineDetail": {
+    "title": "Line {{id}}"
+  },
+  "stops": {
+    "title": "Stops"
+  },
+  "stopDetail": {
+    "title": "Stop {{id}}"
+  },
+  "map": {
+    "title": "Map"
+  },
+  "settings": {
+    "title": "Settings"
+  },
+  "about": {
+    "title": "About"
+  },
+  "data": {
+    "loading": "Loading data…",
+    "unavailable": "No data available. Check your connection and try again.",
+    "outdated": "The data could not be updated. Showing data from {{date}}, which may be out of date.",
+    "updatedOn": "Data from {{date}}"
+  }
 }
