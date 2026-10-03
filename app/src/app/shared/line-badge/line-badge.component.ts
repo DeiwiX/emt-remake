@@ -1,13 +1,19 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+
+import { LineColorsService } from '../../core/map/line-colors.service';
 
 /**
- * Número de línea siempre visible. El color propio de cada línea llega con la
- * paleta validada del incremento 5; nunca será la única forma de identificarla.
+ * Número de línea siempre visible, con el color de la línea en el mapa. El
+ * color nunca es la única forma de identificarla: el número lo es.
  */
 @Component({
   selector: 'app-line-badge',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { 'aria-hidden': 'true' },
+  host: {
+    'aria-hidden': 'true',
+    '[style.background]': 'color().line',
+    '[style.color]': 'color().text',
+  },
   styles: `
     :host {
       display: inline-flex;
@@ -17,8 +23,6 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
       min-height: 2rem;
       padding: 0 0.5rem;
       border-radius: 0.5rem;
-      background: var(--ion-color-primary);
-      color: var(--ion-color-primary-contrast);
       font-weight: 700;
       font-size: 1rem;
       line-height: 1;
@@ -28,5 +32,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
   template: `{{ code() }}`,
 })
 export class LineBadgeComponent {
+  private readonly colors = inject(LineColorsService);
   readonly code = input.required<string>();
+  protected readonly color = computed(() => this.colors.colorFor(this.code()));
 }

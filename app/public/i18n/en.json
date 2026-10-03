@@ -48,7 +48,20 @@
     "notFound": "Stop {{id}} does not exist."
   },
   "map": {
-    "title": "Map"
+    "title": "Map",
+    "mapLabel": "Map of the Málaga bus lines",
+    "panelLabel": "Map lines",
+    "loading": "Loading the map…",
+    "unsupported": "This device cannot display the map. You can check the same lines and stops in the lists.",
+    "error": "The map could not be loaded. Check your connection.",
+    "approximate": "approximate route",
+    "openDetail": "View line details",
+    "clearHighlight": "Clear highlight",
+    "hint": "Tap a route on the map or press “Highlight” in the list to highlight a line.",
+    "showAll": "Show all",
+    "hideAll": "Hide all",
+    "showLine": "Show line {{id}} on the map",
+    "highlight": "Highlight"
   },
   "settings": {
     "title": "Settings"

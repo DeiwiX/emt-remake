@@ -3,7 +3,10 @@
   "version": 1,
   "cli": {
     "packageManager": "npm",
-    "schematicCollections": ["angular-eslint"]
+    "schematicCollections": [
+      "angular-eslint"
+    ],
+    "analytics": false
   },
   "newProjectRoot": "projects",
   "projects": {
@@ -28,9 +31,26 @@
               {
                 "glob": "**/*",
                 "input": "public"
+              },
+              {
+                "glob": "maplibre-gl-worker.mjs",
+                "input": "node_modules/maplibre-gl/dist",
+                "output": "maplibre"
+              },
+              {
+                "glob": "maplibre-gl-shared.mjs",
+                "input": "node_modules/maplibre-gl/dist",
+                "output": "maplibre"
               }
             ],
-            "styles": ["src/styles.scss"]
+            "styles": [
+              "src/styles.scss",
+              {
+                "input": "node_modules/maplibre-gl/dist/maplibre-gl.css",
+                "bundleName": "maplibre",
+                "inject": false
+              }
+            ]
           },
           "configurations": {
             "production": {
@@ -74,7 +94,10 @@
         "lint": {
           "builder": "@angular-eslint/builder:lint",
           "options": {
-            "lintFilePatterns": ["src/**/*.ts", "src/**/*.html"]
+            "lintFilePatterns": [
+              "src/**/*.ts",
+              "src/**/*.html"
+            ]
           }
         }
       }

@@ -4,7 +4,7 @@ Aplicación **no oficial** para consultar los autobuses urbanos de Málaga (EMT)
 
 ## Estado
 
-Fase 1 en construcción. Hechos: incremento 1 (esqueleto, navegación, idiomas ES/EN, lint y pruebas) incremento 2 (script de datos publicado cada noche) incremento 3 (capa de datos con caché en el dispositivo) e incremento 4 (listas de líneas y paradas, búsqueda y detalle en texto de línea y parada; el detalle con mapa llega en los incrementos 5 y 6).
+Fase 1 en construcción. Hechos: incremento 1 (esqueleto, navegación, idiomas ES/EN, lint y pruebas) incremento 2 (script de datos publicado cada noche) incremento 3 (capa de datos con caché en el dispositivo) e incremento 4 (listas de líneas y paradas, búsqueda y detalle en texto de línea y parada; el detalle con mapa llega en el incremento 6) e incremento 5 (mapa con los recorridos de todas las líneas).
 
 ## Requisitos
 
@@ -41,6 +41,7 @@ npm run typecheck                            # comprobación de tipos estricta
 app/        Aplicación Ionic 9 + Angular 22
   src/app/core/      modelo de dominio, interfaces de repositorio, búsqueda, i18n
   src/app/data/      implementación de la Fase 1: ficheros publicados + caché IndexedDB
+  src/app/map/       adaptador del mapa con MapLibre (detrás de core/map/map-provider.ts)
   src/app/features/  pantallas, cargadas de forma diferida
   src/app/shared/    componentes reutilizables
   public/i18n/       textos en español e inglés
@@ -78,6 +79,12 @@ Si la descarga falla o los datos no son plausibles (por debajo de 20 líneas o 5
 4. Si algo falla, se siguen mostrando los últimos datos válidos, con un aviso de que pueden estar desactualizados y la fecha de los datos.
 
 Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para cambiar de fuente (API propia u oficial) basta con otra implementación registrada en `data/provide-data.ts`.
+
+### Mapa y colores de línea
+
+- El mapa usa MapLibre GL JS con los estilos `positron` (claro) y `dark` (oscuro) de OpenFreeMap. La librería se descarga solo al abrir el mapa (unos 230 KB comprimidos, más su *worker*).
+- Si el dispositivo no tiene WebGL, el mapa muestra un aviso y enlaza a las listas.
+- La paleta de líneas está en `core/map/line-palette.ts`: 7 colores con variante clara y oscura. Las pruebas comprueban que el número de la insignia tiene un contraste de al menos 4,5:1, que el trazo tiene al menos 3:1 frente al fondo del mapa y que los colores se distinguen con protanopía, deuteranopía y tritanopía. Los colores se repiten entre líneas y se reparten para que las líneas que comparten paradas no coincidan. El número de línea aparece siempre en las insignias y sobre los recorridos.
 
 ### Origen y licencia
 

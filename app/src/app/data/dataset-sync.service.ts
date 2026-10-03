@@ -76,9 +76,11 @@ export class DatasetSyncService extends DataStatusService {
   }
 
   /** Trazados del nivel pedido, de la caché si siguen siendo válidos o descargados. */
-  getShapesFile(detail: ShapeDetail): Promise<ShapesFile> {
+  async getShapesFile(detail: ShapeDetail): Promise<ShapesFile> {
+    // Si se abre el mapa directamente (enlace o recarga), se espera a la carga inicial.
+    if (!this.current && this.refreshing) await this.refreshing;
     const current = this.current;
-    if (!current) return Promise.reject(new Error('Todavía no hay datos cargados'));
+    if (!current) throw new Error('No hay datos cargados');
     const key = `${current.manifest.dataVersion}:${detail}`;
     let request = this.shapeRequests.get(key);
     if (!request) {

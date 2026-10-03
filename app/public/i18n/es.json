@@ -48,7 +48,20 @@
     "notFound": "No existe la parada {{id}}."
   },
   "map": {
-    "title": "Mapa"
+    "title": "Mapa",
+    "mapLabel": "Mapa de las líneas de autobús de Málaga",
+    "panelLabel": "Líneas del mapa",
+    "loading": "Cargando el mapa…",
+    "unsupported": "Este dispositivo no puede mostrar el mapa. Puedes consultar las mismas líneas y paradas en las listas.",
+    "error": "No se pudo cargar el mapa. Comprueba tu conexión.",
+    "approximate": "recorrido aproximado",
+    "openDetail": "Ver detalle de la línea",
+    "clearHighlight": "Quitar resaltado",
+    "hint": "Toca un recorrido en el mapa o pulsa «Resaltar» en la lista para destacar una línea.",
+    "showAll": "Mostrar todas",
+    "hideAll": "Ocultar todas",
+    "showLine": "Mostrar la línea {{id}} en el mapa",
+    "highlight": "Resaltar"
   },
   "settings": {
     "title": "Ajustes"

@@ -6,6 +6,8 @@ import { provideIonicAngular } from '@ionic/angular';
 import { routes } from './app.routes';
 import { provideI18n } from './core/i18n/i18n.providers';
 import { provideData } from './data/provide-data';
+import { MapProvider } from './core/map/map-provider';
+import { MapLibreMapProvider } from './map/maplibre-map.provider';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -16,5 +18,7 @@ export const appConfig: ApplicationConfig = {
     provideIonicAngular(),
     provideI18n(),
     provideData(),
+    // Proveedor de mapas intercambiable (ADR 0003).
+    { provide: MapProvider, useClass: MapLibreMapProvider },
   ],
 };

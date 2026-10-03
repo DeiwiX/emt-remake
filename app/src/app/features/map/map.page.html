@@ -1,0 +1,104 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/" [text]="'common.back' | transloco" />
+    </ion-buttons>
+    <ion-title>{{ 'map.title' | transloco }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [scrollY]="false">
+  <div class="layout">
+    <section class="map-area" [attr.aria-label]="'map.mapLabel' | transloco">
+      <div #map class="map" [class.hidden]="state() !== 'ready' && state() !== 'loading'"></div>
+      @switch (state()) {
+        @case ('loading') {
+          <p class="map-message" role="status">{{ 'map.loading' | transloco }}</p>
+        }
+        @case ('unsupported') {
+          <div class="map-message" role="status">
+            <p>{{ 'map.unsupported' | transloco }}</p>
+            <ion-button routerLink="/lines">{{ 'lines.title' | transloco }}</ion-button>
+          </div>
+        }
+        @case ('error') {
+          <div class="map-message" role="alert">
+            <p>{{ 'map.error' | transloco }}</p>
+            <ion-button (click)="retry()">{{ 'common.retry' | transloco }}</ion-button>
+          </div>
+        }
+      }
+    </section>
+
+    <!-- Alternativa en texto de todo lo que muestra el mapa (RNF-01). -->
+    <section class="panel" [attr.aria-label]="'map.panelLabel' | transloco">
+      <app-data-status-banner />
+
+      @if (highlightedLine(); as line) {
+        <div class="selected" aria-live="polite">
+          <div class="selected-title">
+            <app-line-badge [code]="line.id" />
+            <h2>
+              <span class="visually-hidden">{{ 'lines.line' | transloco: { id: line.id } }}.</span>
+              {{ line.name }}
+            </h2>
+          </div>
+          <ul>
+            @for (d of line.directions; track d.id) {
+              <li>
+                {{ 'lineDetail.towards' | transloco: { headsign: d.headsign } }}
+                · {{ 'lineDetail.stopCount' | transloco: { count: d.stopIds.length } }}
+                @if (d.shapeQuality === 'approximate') {
+                  ({{ 'map.approximate' | transloco }})
+                }
+              </li>
+            }
+          </ul>
+          <div class="actions">
+            <ion-button [routerLink]="['/lines', line.id]">{{
+              'map.openDetail' | transloco
+            }}</ion-button>
+            <ion-button fill="outline" (click)="highlight(null)">{{
+              'map.clearHighlight' | transloco
+            }}</ion-button>
+          </div>
+        </div>
+      } @else {
+        <p class="ion-padding-horizontal">{{ 'map.hint' | transloco }}</p>
+      }
+
+      <div class="actions ion-padding-horizontal">
+        <ion-button size="small" fill="outline" (click)="showAll()">{{
+          'map.showAll' | transloco
+        }}</ion-button>
+        <ion-button size="small" fill="outline" (click)="hideAll()">{{
+          'map.hideAll' | transloco
+        }}</ion-button>
+      </div>
+
+      <ion-list [attr.aria-label]="'lines.title' | transloco">
+        @for (line of lines(); track line.id) {
+          <ion-item [class.is-highlighted]="highlightedId() === line.id">
+            <ion-checkbox
+              slot="start"
+              [checked]="isVisible(line.id)"
+              [attr.aria-label]="'map.showLine' | transloco: { id: line.id }"
+              (ionChange)="setVisible(line.id, $event.detail.checked)"
+            />
+            <app-line-badge slot="start" [code]="line.id" />
+            <ion-label class="ion-text-wrap">{{ line.name }}</ion-label>
+            <ion-button
+              slot="end"
+              fill="clear"
+              [attr.aria-pressed]="highlightedId() === line.id"
+              (click)="highlight(highlightedId() === line.id ? null : line.id)"
+            >
+              {{ 'map.highlight' | transloco }}
+              <span class="visually-hidden">{{ 'lines.line' | transloco: { id: line.id } }}</span>
+            </ion-button>
+          </ion-item>
+        }
+      </ion-list>
+    </section>
+  </div>
+</ion-content>
