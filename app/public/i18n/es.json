@@ -1,0 +1,24 @@
+{
+  "app": {
+    "name": "EMT remake",
+    "unofficialNotice": "Aplicación no oficial. No está vinculada a la EMT Málaga ni al Ayuntamiento de Málaga."
+  },
+  "common": {
+    "back": "Atrás",
+    "comingSoon": "Esta pantalla se completará en el incremento {{increment}}."
+  },
+  "home": {
+    "searchPlaceholder": "Buscar línea o parada",
+    "mapSummary": "Mapa de líneas",
+    "comingInPhase2": "Próximamente",
+    "favorites": "Mis favoritos",
+    "nearMe": "Cerca de mí"
+  },
+  "lines": { "title": "Todas las líneas" },
+  "lineDetail": { "title": "Línea {{id}}" },
+  "stops": { "title": "Paradas" },
+  "stopDetail": { "title": "Parada {{id}}" },
+  "map": { "title": "Mapa" },
+  "settings": { "title": "Ajustes" },
+  "about": { "title": "Acerca de" }
+}

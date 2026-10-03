@@ -1,0 +1,24 @@
+{
+  "app": {
+    "name": "EMT remake",
+    "unofficialNotice": "Unofficial app. Not affiliated with EMT Málaga or Málaga City Council."
+  },
+  "common": {
+    "back": "Back",
+    "comingSoon": "This screen will be completed in increment {{increment}}."
+  },
+  "home": {
+    "searchPlaceholder": "Search line or stop",
+    "mapSummary": "Lines map",
+    "comingInPhase2": "Coming soon",
+    "favorites": "My favourites",
+    "nearMe": "Near me"
+  },
+  "lines": { "title": "All lines" },
+  "lineDetail": { "title": "Line {{id}}" },
+  "stops": { "title": "Stops" },
+  "stopDetail": { "title": "Stop {{id}}" },
+  "map": { "title": "Map" },
+  "settings": { "title": "Settings" },
+  "about": { "title": "About" }
+}

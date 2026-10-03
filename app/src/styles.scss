@@ -1,0 +1,9 @@
+/* Estilos base de Ionic: solo los módulos necesarios. */
+@use '@ionic/angular/css/core.css';
+@use '@ionic/angular/css/normalize.css';
+@use '@ionic/angular/css/structure.css';
+@use '@ionic/angular/css/typography.css';
+@use '@ionic/angular/css/padding.css';
+
+/* Tema oscuro según la preferencia del sistema; el selector de tema llega en el incremento 7. */
+@use '@ionic/angular/css/palettes/dark.system.css';

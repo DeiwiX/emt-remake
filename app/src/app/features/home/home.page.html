@@ -1,0 +1,46 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>{{ 'app.name' | transloco }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-button routerLink="/settings">{{ 'settings.title' | transloco }}</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+  <ion-toolbar>
+    <!-- La búsqueda se implementa en el incremento 4. -->
+    <ion-searchbar
+      [placeholder]="'home.searchPlaceholder' | transloco"
+      [attr.aria-label]="'home.searchPlaceholder' | transloco"
+    />
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <p class="ion-padding-horizontal">
+    <ion-note>{{ 'app.unofficialNotice' | transloco }}</ion-note>
+  </p>
+
+  <ion-list>
+    <ion-item routerLink="/map" detail>
+      <ion-label>{{ 'home.mapSummary' | transloco }}</ion-label>
+    </ion-item>
+    <ion-item routerLink="/lines" detail>
+      <ion-label>{{ 'lines.title' | transloco }}</ion-label>
+    </ion-item>
+    <ion-item routerLink="/stops" detail>
+      <ion-label>{{ 'stops.title' | transloco }}</ion-label>
+    </ion-item>
+  </ion-list>
+
+  <!-- Espacio reservado para la Fase 2. -->
+  <ion-list>
+    <ion-list-header>
+      <ion-label>{{ 'home.comingInPhase2' | transloco }}</ion-label>
+    </ion-list-header>
+    <ion-item>
+      <ion-label>{{ 'home.favorites' | transloco }}</ion-label>
+    </ion-item>
+    <ion-item>
+      <ion-label>{{ 'home.nearMe' | transloco }}</ion-label>
+    </ion-item>
+  </ion-list>
+</ion-content>
