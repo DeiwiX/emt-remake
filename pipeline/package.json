@@ -1,0 +1,22 @@
+{
+  "name": "emt-remake-pipeline",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Descarga, valida y preprocesa los datos abiertos de la EMT Málaga para la app.",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build-data": "node src/main.ts",
+    "test": "node --test \"src/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "fflate": "^0.8.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.1",
+    "typescript": "~6.0.2"
+  }
+}

@@ -27,11 +27,11 @@ desarrollador.
 | Aspecto | Estado |
 | --- | --- |
 | Lenguajes y frameworks | TypeScript estricto; Angular 22, Ionic 9, Capacitor 8 (pendiente de añadir), Transloco para idiomas, MapLibre + OpenFreeMap para el mapa (pendiente de añadir). Mínimos: Android 8+, iOS 16+ |
-| Estructura de carpetas | `app/` (aplicación Ionic/Angular), `pipeline/` (script de preprocesado de datos, pendiente), `docs/adr/` |
+| Estructura de carpetas | `app/` (aplicación Ionic/Angular), `pipeline/` (script de preprocesado de datos, Node 24 + TypeScript, dependencia `fflate`), `docs/adr/` |
 | Gestor de paquetes | npm (dentro de `app/`) |
-| Comando de pruebas | `npm test -- --watch=false` en `app/` (Vitest vía `ng test`) |
-| Comando de lint / análisis estático | `npm run lint` en `app/` (angular-eslint, incluye reglas de accesibilidad de plantillas) |
-| Comando de compilación | `npm run build` en `app/` |
+| Comando de pruebas | `npm test -- --watch=false` en `app/` (Vitest vía `ng test`); `npm test` en `pipeline/` (node:test) |
+| Comando de lint / análisis estático | `npm run lint` en `app/` (angular-eslint, incluye reglas de accesibilidad de plantillas); `npm run typecheck` en `pipeline/` |
+| Comando de compilación | `npm run build` en `app/`; generación de datos: `npm run build-data -- --out <carpeta>` en `pipeline/` |
 | Ubicación de los ADR | `docs/adr/` |
 | Control de versiones | Git inicializado, rama `main`. Repositorio remoto en GitHub aprobado, pendiente de crear |
 
