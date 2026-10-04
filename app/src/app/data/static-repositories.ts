@@ -114,6 +114,17 @@ export class StaticScheduleRepository extends ScheduleRepository {
           new Map(Object.entries(byService)),
         ]),
       ),
+      ...(file.profiles && file.departureProfiles
+        ? {
+            profiles: new Map(Object.entries(file.profiles)),
+            departureProfiles: new Map(
+              Object.entries(file.departureProfiles).map(([key, byService]) => [
+                key,
+                new Map(Object.entries(byService)),
+              ]),
+            ),
+          }
+        : {}),
     };
   }
 }

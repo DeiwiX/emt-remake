@@ -2,6 +2,7 @@ import { Line } from '../models/network.model';
 import { JourneyOption } from '../planner/planner';
 import { compareTimed, scheduleJourney } from '../planner/scheduled-journey';
 import {
+  passingTrips,
   Timetables,
   addDays,
   dayOffsetOf,
@@ -47,33 +48,63 @@ describe('horario programado', () => {
   it('calcula el paso por una parada sumando los minutos desde la primera', () => {
     // Parada a 10 min de la primera. Lunes: 7:10, 7:40, 0:00 (día siguiente);
     // martes (+1 día): 7:10 → 1440 + 430...
-    expect(passingTimes(TIMETABLES, '1', 1, 10, MONDAY).slice(0, 3)).toEqual([430, 460, 1440]);
+    expect(passingTimes(TIMETABLES, '1', 1, { index: 0, typical: 10 }, MONDAY).slice(0, 3)).toEqual(
+      [430, 460, 1440],
+    );
   });
 
   it('incluye el viaje de la noche anterior que pasa de medianoche', () => {
     // El lunes a las 23:50 + 15 min pasa el martes a las 0:05.
-    expect(passingTimes(TIMETABLES, '1', 1, 15, '20261006')[0]).toBe(5);
+    expect(passingTimes(TIMETABLES, '1', 1, { index: 0, typical: 15 }, '20261006')[0]).toBe(5);
   });
 
   it('devuelve los próximos pasos a partir de una hora', () => {
-    expect(nextPassing(TIMETABLES, '1', 1, 0, { dateKey: MONDAY, minutes: 425 }, 2)).toEqual([
-      450, 1430,
-    ]);
+    expect(
+      nextPassing(
+        TIMETABLES,
+        '1',
+        1,
+        { index: 0, typical: 0 },
+        { dateKey: MONDAY, minutes: 425 },
+        2,
+      ),
+    ).toEqual([450, 1430]);
     // Domingo: solo el servicio festivo.
-    expect(nextPassing(TIMETABLES, '1', 1, 0, { dateKey: '20261004', minutes: 0 }, 1)).toEqual([
-      540,
-    ]);
+    expect(
+      nextPassing(
+        TIMETABLES,
+        '1',
+        1,
+        { index: 0, typical: 0 },
+        { dateKey: '20261004', minutes: 0 },
+        1,
+      ),
+    ).toEqual([540]);
   });
 
   it('si no hay servicio hoy ni mañana, busca en los días siguientes', () => {
     // El sábado 3 no hay servicio; el domingo 4 sí (festivo, 9:00): 1440 + 540.
-    expect(nextPassing(TIMETABLES, '1', 1, 0, { dateKey: '20261003', minutes: 600 }, 1)).toEqual([
-      1440 + 540,
-    ]);
+    expect(
+      nextPassing(
+        TIMETABLES,
+        '1',
+        1,
+        { index: 0, typical: 0 },
+        { dateKey: '20261003', minutes: 600 },
+        1,
+      ),
+    ).toEqual([1440 + 540]);
     // El jueves 1 no hay servicio hasta el domingo 4 (tres días después).
-    expect(nextPassing(TIMETABLES, '1', 1, 0, { dateKey: '20261001', minutes: 0 }, 1)).toEqual([
-      3 * 1440 + 540,
-    ]);
+    expect(
+      nextPassing(
+        TIMETABLES,
+        '1',
+        1,
+        { index: 0, typical: 0 },
+        { dateKey: '20261001', minutes: 0 },
+        1,
+      ),
+    ).toEqual([3 * 1440 + 540]);
   });
 
   it('formatea horas y detecta el día siguiente', () => {
@@ -217,5 +248,36 @@ describe('scheduleJourney', () => {
     expect(walked.departure).toBeGreaterThanOrEqual(clock.minutes + 10);
     expect(walked.departure).toBeGreaterThanOrEqual(plain.departure);
     expect(walked.leaveAt).toBe(walked.departure - 10);
+  });
+});
+
+describe('horario exacto por viaje', () => {
+  it('usa el paso de cada viaje por las paradas y, sin perfil, los minutos típicos', () => {
+    const exact: Timetables = {
+      services: new Map([['LAB', new Set(['20261005'])]]),
+      departures: new Map([['1|1', new Map([['LAB', [420, 450]]])]]),
+      // El viaje de las 7:00 tarda 7 min hasta la parada 2; el de las 7:30, 5.
+      profiles: new Map([
+        [
+          '1|1',
+          [
+            [0, 3, 7],
+            [0, 2, 5],
+          ],
+        ],
+      ]),
+      departureProfiles: new Map([['1|1', new Map([['LAB', [0, 1]]])]]),
+    };
+    const from = { index: 0, typical: 0 };
+    const to = { index: 2, typical: 6 };
+    expect(passingTrips(exact, '1', 1, from, to, '20261005')).toEqual([
+      { departure: 420, arrival: 427 },
+      { departure: 450, arrival: 455 },
+    ]);
+    const plain: Timetables = { services: exact.services, departures: exact.departures };
+    expect(passingTrips(plain, '1', 1, from, to, '20261005')[0]).toEqual({
+      departure: 420,
+      arrival: 426,
+    });
   });
 });

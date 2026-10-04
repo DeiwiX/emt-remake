@@ -99,6 +99,13 @@ export interface TimetablesFile {
   services: Record<string, string[]>;
   /** Clave "línea|sentido" -> día de servicio -> minutos desde medianoche (pueden pasar de 1440). */
   departures: Record<string, Record<string, number[]>>;
+  /**
+   * Horario exacto (Fase 3, opcional): perfiles de paso de cada sentido, es decir,
+   * minutos desde la salida en cada parada del sentido (alineados con stopIds)…
+   */
+  profiles?: Record<string, number[][]>;
+  /** …y el perfil de cada salida, en el mismo orden que `departures`. */
+  departureProfiles?: Record<string, Record<string, number[]>>;
 }
 
 export interface FileEntry {

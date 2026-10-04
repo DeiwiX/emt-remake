@@ -74,7 +74,7 @@ export class ScheduleClockService {
       timetables,
       lineId,
       directionId,
-      direction.minutes[index]!,
+      { index, typical: direction.minutes[index]! },
       clock,
       count,
     );

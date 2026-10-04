@@ -12,6 +12,24 @@ export interface Timetables {
   readonly services: ReadonlyMap<string, ReadonlySet<string>>;
   /** "línea|sentido" -> servicio -> minutos de salida desde la primera parada. */
   readonly departures: ReadonlyMap<string, ReadonlyMap<string, readonly number[]>>;
+  /**
+   * Horario exacto (opcional): perfiles de paso de cada sentido (minutos desde la
+   * salida en cada parada) y, para cada salida, el índice de su perfil.
+   */
+  readonly profiles?: ReadonlyMap<string, readonly (readonly number[])[]>;
+  readonly departureProfiles?: ReadonlyMap<string, ReadonlyMap<string, readonly number[]>>;
+}
+
+/** Parada de un sentido: su posición y los minutos típicos desde la primera parada. */
+export interface StopAt {
+  readonly index: number;
+  readonly typical: number;
+}
+
+/** Paso de un viaje por dos paradas de su sentido, en minutos desde la medianoche de referencia. */
+export interface PassingTrip {
+  readonly departure: number;
+  readonly arrival: number;
 }
 
 /** Instante de consulta en hora de Málaga. */
@@ -58,29 +76,55 @@ export function addDays(dateKey: string, days: number): string {
 export const departuresKey = (lineId: string, directionId: number) => `${lineId}|${directionId}`;
 
 /**
- * Pasos programados por una parada en el día de referencia y el siguiente,
- * ordenados. `offset` son los minutos desde la primera parada del sentido.
- * Incluye los viajes del día anterior que pasan de medianoche.
+ * Viajes programados que pasan por `from` y después por `to` en el día de
+ * referencia y el siguiente (y los del anterior que pasan de medianoche),
+ * ordenados por la hora de paso por `from`. Con horario exacto se usa el paso
+ * de cada viaje; si no, los minutos típicos del sentido.
  */
-export function passingTimes(
+export function passingTrips(
   timetables: Timetables,
   lineId: string,
   directionId: number,
-  offset: number,
+  from: StopAt,
+  to: StopAt,
   referenceDateKey: string,
-): number[] {
-  const byService = timetables.departures.get(departuresKey(lineId, directionId));
+): PassingTrip[] {
+  const key = departuresKey(lineId, directionId);
+  const byService = timetables.departures.get(key);
   if (!byService) return [];
-  const times: number[] = [];
+  const profiles = timetables.profiles?.get(key);
+  const profileOf = timetables.departureProfiles?.get(key);
+  const trips: PassingTrip[] = [];
   // Día anterior (-1), día de referencia (0) y siguiente (+1).
   for (const dayOffset of [-1, 0, 1]) {
     const dateKey = addDays(referenceDateKey, dayOffset);
     for (const [service, starts] of byService) {
       if (!timetables.services.get(service)?.has(dateKey)) continue;
-      for (const start of starts) times.push(dayOffset * MINUTES_PER_DAY + start + offset);
+      const indexes = profileOf?.get(service);
+      starts.forEach((start, i) => {
+        const profile = indexes ? profiles?.[indexes[i]!] : undefined;
+        const base = dayOffset * MINUTES_PER_DAY + start;
+        trips.push({
+          departure: base + (profile?.[from.index] ?? from.typical),
+          arrival: base + (profile?.[to.index] ?? to.typical),
+        });
+      });
     }
   }
-  return times.filter((t) => t >= 0).sort((a, b) => a - b);
+  return trips.filter((t) => t.departure >= 0).sort((a, b) => a.departure - b.departure);
+}
+
+/** Pasos programados por una parada (ver passingTrips). */
+export function passingTimes(
+  timetables: Timetables,
+  lineId: string,
+  directionId: number,
+  stop: StopAt,
+  referenceDateKey: string,
+): number[] {
+  return passingTrips(timetables, lineId, directionId, stop, stop, referenceDateKey).map(
+    (t) => t.departure,
+  );
 }
 
 /** Días que se miran hacia delante para encontrar el próximo bus (líneas sin servicio en festivos). */
@@ -95,7 +139,7 @@ export function nextPassing(
   timetables: Timetables,
   lineId: string,
   directionId: number,
-  offset: number,
+  stop: StopAt,
   clock: ServiceClock,
   count = 3,
 ): number[] {
@@ -103,7 +147,7 @@ export function nextPassing(
   // passingTimes ya cubre el día anterior, el de referencia y el siguiente: se avanza de dos en dos.
   for (let day = 0; day < LOOKAHEAD_DAYS && found.length < count; day += 2) {
     const shift = day * MINUTES_PER_DAY;
-    const times = passingTimes(timetables, lineId, directionId, offset, addDays(clock.dateKey, day))
+    const times = passingTimes(timetables, lineId, directionId, stop, addDays(clock.dateKey, day))
       .map((t) => t + shift)
       .filter((t) => t >= clock.minutes && !found.includes(t));
     found.push(...times);

@@ -19,7 +19,7 @@ import { parseWktPolygons, parseZonesCsv, titleCase } from '../sources/zones.ts'
 import { parseCsv } from '../sources/csv.ts';
 import { parseStopTimes } from '../sources/gtfs-times.ts';
 import { parseServiceDates } from '../sources/gtfs.ts';
-import { buildTimetables } from '../build/build-timetables.ts';
+import { buildTimetables, tripProfile } from '../build/build-timetables.ts';
 import { directionTimes } from '../build/travel-times.ts';
 import { parseEmtLines } from '../sources/emt-lines.ts';
 import { parseGtfsZip } from '../sources/gtfs.ts';
@@ -468,5 +468,20 @@ describe('Calles del callejero', () => {
       decodePolyline(street!.points).map(([lat]) => lat),
       [36.72, 36.721],
     );
+  });
+});
+
+describe('horario exacto por viaje', () => {
+  it('alinea las paradas del viaje con las del sentido y completa las que faltan', () => {
+    const profile = tripProfile(['a', 'b', 'c', 'd'], [0, 3, 6, 9], {
+      stopCodes: ['a', 'c', 'd'],
+      minutes: [0, 5, 11],
+    });
+    // b no viene en el viaje: a (0) + (3 − 0) del tiempo típico.
+    assert.deepEqual(profile, [0, 3, 5, 11]);
+  });
+
+  it('si el viaje casi no coincide con el sentido, no da perfil', () => {
+    assert.equal(tripProfile(['a', 'b'], [0, 3], { stopCodes: ['x', 'b'], minutes: [0, 4] }), null);
   });
 });

@@ -1,5 +1,5 @@
 import { Line } from '../models/network.model';
-import { ServiceClock, Timetables, passingTimes } from '../schedule/schedule';
+import { PassingTrip, ServiceClock, Timetables, passingTrips } from '../schedule/schedule';
 import { JourneyOption, Leg } from './planner';
 
 /** "Salir a las" (o "ahora") o "Llegar a las". */
@@ -53,7 +53,8 @@ export function scheduleJourney(
 
   // "Llegar a las": el último primer bus con el que se llega a tiempo.
   const earliest = clock.minutes - MAX_ARRIVE_BY_WINDOW_MINUTES;
-  const candidates = legPlans[0]!.times
+  const candidates = legPlans[0]!.trips
+    .map((t) => t.departure)
     .filter(
       (t) => t <= clock.minutes - option.egressMinutes && t - option.accessMinutes >= earliest,
     )
@@ -75,10 +76,8 @@ export function compareTimed(mode: TimeMode) {
 
 interface LegPlan {
   leg: Leg;
-  /** Pasos programados por la parada de subida. */
-  times: number[];
-  /** Minutos de viaje entre subida y bajada según el horario. */
-  rideMinutes: number;
+  /** Viajes programados: paso por la parada de subida y por la de bajada. */
+  trips: PassingTrip[];
 }
 
 function legPlan(
@@ -94,19 +93,24 @@ function legPlan(
   const from = direction.stopIds.indexOf(leg.fromStopId);
   const to = direction.stopIds.indexOf(leg.toStopId, from + 1);
   if (from === -1 || to === -1) return null;
-  const offset = direction.minutes[from]!;
-  const times = passingTimes(timetables, leg.lineId, leg.directionId, offset, dateKey);
-  if (times.length === 0) return null;
-  return { leg, times, rideMinutes: direction.minutes[to]! - offset };
+  const trips = passingTrips(
+    timetables,
+    leg.lineId,
+    leg.directionId,
+    { index: from, typical: direction.minutes[from]! },
+    { index: to, typical: direction.minutes[to]! },
+    dateKey,
+  );
+  return trips.length > 0 ? { leg, trips } : null;
 }
 
 function ride(option: JourneyOption, plans: LegPlan[], from: number): TimedJourney | null {
   let ready = from;
   const legs: TimedLeg[] = [];
   for (const [i, plan] of plans.entries()) {
-    const departure = plan.times.find((t) => t >= ready);
-    if (departure === undefined) return null;
-    const arrival = departure + plan.rideMinutes;
+    const trip = plan.trips.find((t) => t.departure >= ready);
+    if (!trip) return null;
+    const { departure, arrival } = trip;
     legs.push({ leg: plan.leg, departure, arrival });
     const isLast = i === plans.length - 1;
     ready = arrival + (isLast ? 0 : option.walkMinutes + TRANSFER_BUFFER_MINUTES);

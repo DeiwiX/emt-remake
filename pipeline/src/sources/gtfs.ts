@@ -1,7 +1,7 @@
 import { strFromU8, unzipSync } from 'fflate';
 
 import { parseCsv } from './csv.ts';
-import { type TravelPattern, parseStopTimes } from './gtfs-times.ts';
+import { type TravelPattern, type TripTimes, parseStopTimes } from './gtfs-times.ts';
 import type { LatLon } from '../build/geometry.ts';
 import { ValidationError, requireMalagaCoordinate, requireNumber } from '../validation.ts';
 
@@ -31,6 +31,8 @@ export interface GtfsTrip {
   shapeId: string;
   /** Segundos desde medianoche del día de servicio (puede pasar de 24 h). */
   startSeconds: number;
+  /** Paso por cada parada (horario exacto); sin él se usa el tiempo típico del sentido. */
+  times?: TripTimes;
 }
 
 const NEEDED_FILES = ['routes', 'trips', 'shapes'] as const;
@@ -86,7 +88,11 @@ export function parseGtfsZip(zip: Uint8Array): GtfsData {
   const summary =
     stopTimes && stops
       ? parseStopTimes(stopTimes, table('trips'), stops)
-      : { patterns: new Map<string, TravelPattern>(), tripStarts: new Map<string, number>() };
+      : {
+          patterns: new Map<string, TravelPattern>(),
+          tripStarts: new Map<string, number>(),
+          tripTimes: new Map<string, TripTimes>(),
+        };
 
   const trips: GtfsTrip[] = table('trips').flatMap((t) => {
     const startSeconds = summary.tripStarts.get(t['trip_id'] ?? '');
@@ -99,6 +105,7 @@ export function parseGtfsZip(zip: Uint8Array): GtfsData {
         directionId: t['direction_id'] ?? '',
         shapeId: t['shape_id'],
         startSeconds,
+        times: summary.tripTimes.get(t['trip_id'] ?? ''),
       },
     ];
   });

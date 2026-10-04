@@ -149,6 +149,8 @@ export interface TimetablesFile {
   schemaVersion: number;
   services: Record<string, string[]>;
   departures: Record<string, Record<string, number[]>>;
+  profiles?: Record<string, number[][]>;
+  departureProfiles?: Record<string, Record<string, number[]>>;
 }
 
 export function parseTimetables(value: unknown): TimetablesFile {
@@ -178,7 +180,46 @@ export function parseTimetables(value: unknown): TimetablesFile {
       ),
     ]),
   );
-  return { schemaVersion: SUPPORTED_SCHEMA_VERSION, services, departures };
+  // Horario exacto (opcional): las publicaciones anteriores no lo traen.
+  const profiles =
+    t['profiles'] === undefined
+      ? undefined
+      : Object.fromEntries(
+          Object.entries(record(t['profiles'], 'timetables.profiles')).map(([key, list]) => [
+            key,
+            array(list, `profiles.${key}`).map((profile, p) =>
+              array(profile, `profiles.${key}[${p}]`).map((m, i) =>
+                number(m, `profiles.${key}[${p}][${i}]`),
+              ),
+            ),
+          ]),
+        );
+  const departureProfiles =
+    t['departureProfiles'] === undefined
+      ? undefined
+      : Object.fromEntries(
+          Object.entries(record(t['departureProfiles'], 'timetables.departureProfiles')).map(
+            ([key, byService]) => [
+              key,
+              Object.fromEntries(
+                Object.entries(record(byService, `departureProfiles.${key}`)).map(
+                  ([service, list]) => [
+                    service,
+                    array(list, `departureProfiles.${key}.${service}`).map((n, i) =>
+                      number(n, `departureProfiles.${key}.${service}[${i}]`),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+  return {
+    schemaVersion: SUPPORTED_SCHEMA_VERSION,
+    services,
+    departures,
+    ...(profiles && departureProfiles ? { profiles, departureProfiles } : {}),
+  };
 }
 
 export function parseManifest(value: unknown): ManifestFile {

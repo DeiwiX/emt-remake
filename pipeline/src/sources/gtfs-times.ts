@@ -19,11 +19,20 @@ interface TripStop {
   seconds: number;
 }
 
+/** Paradas de un viaje concreto con los minutos desde su salida (horario exacto, Fase 3). */
+export interface TripTimes {
+  /** Códigos públicos de parada (stop_code) en orden de paso; vacío si el GTFS no lo trae. */
+  stopCodes: string[];
+  minutes: number[];
+}
+
 export interface StopTimesSummary {
   /** Patrón de tiempos por trazado (shape_id). */
   patterns: Map<string, TravelPattern>;
   /** Hora de salida de cada viaje desde su primera parada, en segundos desde medianoche. */
   tripStarts: Map<string, number>;
+  /** Paso de cada viaje por sus paradas. */
+  tripTimes: Map<string, TripTimes>;
 }
 
 /**
@@ -53,7 +62,7 @@ export function parseStopTimes(
     col('stop_sequence'),
   ];
   if ([tripCol, stopCol, sequenceCol].includes(-1) || (arrivalCol === -1 && departureCol === -1)) {
-    return { patterns: new Map(), tripStarts: new Map() };
+    return { patterns: new Map(), tripStarts: new Map(), tripTimes: new Map() };
   }
 
   const stopsByTrip = new Map<string, TripStop[]>();
@@ -72,11 +81,16 @@ export function parseStopTimes(
   // Por trazado: viajes agrupados por secuencia de paradas.
   const byShape = new Map<string, Map<string, number[][]>>();
   const tripStarts = new Map<string, number>();
+  const tripTimes = new Map<string, TripTimes>();
   for (const [tripId, tripStops] of stopsByTrip) {
     tripStops.sort((a, b) => a.sequence - b.sequence);
     const start = tripStops[0]!.seconds;
     tripStarts.set(tripId, start);
     const codes = tripStops.map((s) => codeByStopId.get(s.stopId) ?? '');
+    tripTimes.set(tripId, {
+      stopCodes: codes,
+      minutes: tripStops.map((s) => (s.seconds - start) / 60),
+    });
     if (codes.some((c) => !c)) continue;
     const key = codes.join(',');
     const shapeId = shapeByTrip.get(tripId)!;
@@ -93,7 +107,7 @@ export function parseStopTimes(
     const minutes = samples[0]!.map((_, i) => round1(median(samples.map((s) => s[i]!))));
     result.set(shapeId, { stopCodes: key.split(','), minutes, trips: samples.length });
   }
-  return { patterns: result, tripStarts };
+  return { patterns: result, tripStarts, tripTimes };
 }
 
 /** "25:10:00" -> segundos (GTFS admite horas ≥ 24 para viajes que pasan de medianoche). */
