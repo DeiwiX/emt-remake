@@ -170,3 +170,31 @@ export function formatClock(minutes: number): string {
 export function dayOffsetOf(minutes: number): number {
   return Math.floor(minutes / MINUTES_PER_DAY);
 }
+
+/**
+ * Instante (ms) de unos minutos contados desde la medianoche de Madrid del día
+ * `dateKey`: para programar avisos a la hora de un paso del horario.
+ */
+export function madridInstantOf(dateKey: string, minutes: number): number {
+  const wall = Date.UTC(
+    Number(dateKey.slice(0, 4)),
+    Number(dateKey.slice(4, 6)) - 1,
+    Number(dateKey.slice(6, 8)),
+    0,
+    minutes,
+  );
+  // Se corrige la diferencia con la hora de Madrid (dos pasos por los cambios de hora).
+  let instant = wall;
+  for (let i = 0; i < 2; i++) {
+    const clock = madridClock(new Date(instant));
+    const shown = Date.UTC(
+      Number(clock.dateKey.slice(0, 4)),
+      Number(clock.dateKey.slice(4, 6)) - 1,
+      Number(clock.dateKey.slice(6, 8)),
+      0,
+      clock.minutes,
+    );
+    instant += wall - shown;
+  }
+  return instant;
+}

@@ -2,18 +2,30 @@ import { Injectable, effect, inject, signal, untracked } from '@angular/core';
 import { TranslocoService } from '@jsverse/transloco';
 
 import { NetworkRepository } from '../data/repositories';
-import { ArrivalAlert, decideAlert } from './arrival-alert';
+import { ArrivalAlert, LiveArrival, createAlert, parseAlert, updateAlert } from './arrival-alert';
 import { ArrivalNotifier, NotificationText } from './arrival-notifier';
 import { estimateArrivals } from './realtime';
 import { RealtimeService } from './realtime.service';
 
-/** Cambios menores que esto en la hora del aviso no lo reprograman. */
-const RESCHEDULE_MS = 20_000;
+const STORAGE_KEY = 'emt-remake.arrival-alert.v1';
+const MINUTE_MS = 60_000;
+
+/** Paso de un autobús sobre el que se pone el aviso. */
+export interface AlertTarget {
+  readonly stopId: string;
+  readonly lineId: string;
+  readonly directionId: number;
+  /** Hora de paso (ms). */
+  readonly at: number;
+  /** Autobús en tiempo real, si el paso elegido es uno visto en tiempo real. */
+  readonly vehicleId: string | null;
+}
 
 /**
- * Aviso de llegada activo (uno a la vez). Mientras existe, mantiene la descarga
- * del tiempo real y, con cada dato nuevo, reprograma la notificación del
- * sistema para cuando falten los minutos elegidos.
+ * Aviso de llegada activo (uno a la vez). Se guarda en el dispositivo y la
+ * notificación queda programada en el sistema, así que vale para mañana y
+ * aunque se cierre la app. Mientras la app está abierta sigue el tiempo real
+ * y mueve la hora del aviso si el autobús se adelanta o se retrasa.
  */
 @Injectable({ providedIn: 'root' })
 export class ArrivalAlertService {
@@ -21,75 +33,101 @@ export class ArrivalAlertService {
   private readonly network = inject(NetworkRepository);
   private readonly notifier = inject(ArrivalNotifier);
   private readonly transloco = inject(TranslocoService);
-  private readonly alertSignal = signal<ArrivalAlert | null>(null);
-  private scheduledAt: number | null = null;
+  private readonly alertSignal = signal<ArrivalAlert | null>(this.available() ? load() : null);
   private stopWatching: (() => void) | null = null;
 
-  readonly available = this.realtime.available && this.notifier.available;
   readonly alert = this.alertSignal.asReadonly();
 
   constructor() {
+    if (this.alertSignal()) this.watchRealtime();
     effect(() => {
       const alert = this.alertSignal();
-      this.realtime.vehicles();
-      const now = this.realtime.now();
-      if (alert) untracked(() => this.update(alert, now));
+      const live = this.liveArrivals(alert);
+      if (alert) untracked(() => this.apply(alert, updateAlert(alert, live, Date.now())));
     });
   }
 
-  /** Activa el aviso; false si no hay permiso para notificar. */
-  async start(alert: ArrivalAlert): Promise<boolean> {
-    if (!this.available || !(await this.notifier.requestPermission())) return false;
-    this.scheduledAt = null;
-    if (!this.stopWatching) {
-      const callbacks: (() => void)[] = [];
-      this.realtime.watch({
-        onDestroy: (fn: () => void) => {
-          callbacks.push(fn);
-          return () => undefined;
-        },
-      });
-      this.stopWatching = () => callbacks.forEach((fn) => fn());
-    }
-    this.alertSignal.set(alert);
+  /** Los avisos necesitan notificaciones del sistema (solo en la app del móvil). */
+  available(): boolean {
+    return this.notifier.available;
+  }
+
+  /** Activa el aviso (sustituye al anterior); false si no hay permiso para notificar. */
+  async start(target: AlertTarget, minutes: number): Promise<boolean> {
+    if (!this.available() || !(await this.notifier.requestPermission())) return false;
+    const alert = createAlert(target, minutes);
+    await this.notifier.schedule(new Date(alert.notifyAt), this.text(alert, minutes));
+    this.set(alert);
+    this.watchRealtime();
     return true;
   }
 
   cancel(): void {
     void this.notifier.cancel();
-    this.finish();
+    this.set(null);
   }
 
-  private update(alert: ArrivalAlert, now: ReturnType<RealtimeService['now']>): void {
+  /** Llegadas en tiempo real a la parada del aviso; null si aún no hay datos. */
+  private liveArrivals(alert: ArrivalAlert | null): readonly LiveArrival[] | null {
+    if (!alert || !this.realtime.hasData()) return null;
     const direction = this.network
       .getLine(alert.lineId)
       ?.directions.find((d) => d.id === alert.directionId);
-    const eta = direction
-      ? (estimateArrivals(
-          this.realtime.vehicles(),
-          alert.lineId,
-          direction,
-          direction.stopIds.indexOf(alert.stopId),
-          now,
-        ).find((a) => a.vehicleId === alert.vehicleId)?.minutes ?? null)
-      : null;
-    const decision = decideAlert(alert.minutes, eta);
-    switch (decision.kind) {
-      case 'lost':
-        // Ya no viene (o se perdió su señal): se quita el aviso programado.
-        this.cancel();
+    if (!direction) return null;
+    const now = Date.now();
+    return estimateArrivals(
+      this.realtime.vehicles(),
+      alert.lineId,
+      direction,
+      direction.stopIds.indexOf(alert.stopId),
+      this.realtime.now(),
+    ).map((a) => ({ vehicleId: a.vehicleId, at: now + a.minutes * MINUTE_MS }));
+  }
+
+  private apply(alert: ArrivalAlert, update: ReturnType<typeof updateAlert>): void {
+    switch (update.kind) {
+      case 'keep':
         return;
-      case 'now':
-        void this.notifier.showNow(this.text(alert, decision.eta));
-        this.finish();
+      case 'schedule':
+        if (update.alert.notifyAt !== alert.notifyAt) {
+          void this.notifier.schedule(
+            new Date(update.alert.notifyAt),
+            this.text(update.alert, update.alert.minutes),
+          );
+        }
+        this.set(update.alert);
         return;
-      case 'later': {
-        const at = Date.now() + decision.inMinutes * 60_000;
-        if (this.scheduledAt !== null && Math.abs(at - this.scheduledAt) < RESCHEDULE_MS) return;
-        this.scheduledAt = at;
-        void this.notifier.schedule(new Date(at), this.text(alert, alert.minutes));
+      case 'notify-now': {
+        const minutes = Math.max(0, Math.round((update.alert.expectedAt - Date.now()) / MINUTE_MS));
+        void this.notifier.showNow(this.text(update.alert, minutes));
+        this.set(null);
+        return;
       }
+      case 'done':
+        this.set(null);
     }
+  }
+
+  private set(alert: ArrivalAlert | null): void {
+    this.alertSignal.set(alert);
+    save(alert);
+    if (!alert) {
+      this.stopWatching?.();
+      this.stopWatching = null;
+    }
+  }
+
+  /** Mantiene la descarga del tiempo real mientras haya aviso. */
+  private watchRealtime(): void {
+    if (this.stopWatching || !this.realtime.available) return;
+    const callbacks: (() => void)[] = [];
+    this.realtime.watch({
+      onDestroy: (fn: () => void) => {
+        callbacks.push(fn);
+        return () => undefined;
+      },
+    });
+    this.stopWatching = () => callbacks.forEach((fn) => fn());
   }
 
   private text(alert: ArrivalAlert, minutes: number): NotificationText {
@@ -102,11 +140,21 @@ export class ArrivalAlertService {
       }),
     };
   }
+}
 
-  private finish(): void {
-    this.alertSignal.set(null);
-    this.scheduledAt = null;
-    this.stopWatching?.();
-    this.stopWatching = null;
+function load(): ArrivalAlert | null {
+  try {
+    return parseAlert(localStorage.getItem(STORAGE_KEY));
+  } catch {
+    return null;
+  }
+}
+
+function save(alert: ArrivalAlert | null): void {
+  try {
+    if (alert) localStorage.setItem(STORAGE_KEY, JSON.stringify(alert));
+    else localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Sin almacenamiento: el aviso vale mientras la app siga abierta.
   }
 }

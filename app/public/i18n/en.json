@@ -278,14 +278,22 @@
   },
   "alert": {
     "notifyMe": "Notify me",
-    "choose": "Notify me when it is (min) away:",
-    "option": "Notify when {{minutes}} minutes away",
+    "chooseBus": "Which bus should I notify you about?",
+    "chooseMinutes": "How many minutes before?",
+    "liveOption": "~{{minutes}} min (real time)",
+    "tomorrowAt": "tomorrow {{time}}",
+    "option": "Notify {{minutes}} minutes before",
     "close": "Cancel",
-    "active": "I will notify you {{minutes}} min before",
     "cancel": "Remove alert",
+    "activeToday": "I will notify you {{minutes}} min before the {{time}} bus.",
+    "activeTomorrow": "I will notify you {{minutes}} min before tomorrow's {{time}} bus.",
+    "activeLater": "I will notify you {{minutes}} min before the {{day}} {{time}} bus.",
+    "adjusted": "Time adjusted with real-time data.",
     "denied": "Notifications are not allowed: enable them in the phone settings.",
     "title": "Line {{line}}",
     "body": "Arrives at {{stop}} in about {{minutes}} min",
-    "bodyNow": "Arriving at {{stop}} now"
+    "bodyNow": "Arriving at {{stop}} now",
+    "todayAt": "{{time}}",
+    "dayAt": "{{day}} {{time}}"
   }
 }

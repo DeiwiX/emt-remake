@@ -8,6 +8,7 @@ import {
   dayOffsetOf,
   formatClock,
   madridClock,
+  madridInstantOf,
   nextPassing,
   passingTimes,
 } from './schedule';
@@ -279,5 +280,13 @@ describe('horario exacto por viaje', () => {
       departure: 420,
       arrival: 426,
     });
+  });
+});
+
+describe('madridInstantOf', () => {
+  it('convierte la hora de Madrid en un instante, también al pasar de día y en invierno', () => {
+    expect(madridInstantOf('20261004', 15 * 60)).toBe(Date.UTC(2026, 9, 4, 13, 0));
+    expect(madridInstantOf('20261004', 24 * 60 + 7 * 60)).toBe(Date.UTC(2026, 9, 5, 5, 0));
+    expect(madridInstantOf('20261215', 8 * 60)).toBe(Date.UTC(2026, 11, 15, 7, 0));
   });
 });

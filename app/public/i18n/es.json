@@ -278,14 +278,22 @@
   },
   "alert": {
     "notifyMe": "Avísame",
-    "choose": "Avísame cuando falten (min):",
-    "option": "Avisar cuando falten {{minutes}} minutos",
+    "chooseBus": "¿De qué autobús quieres el aviso?",
+    "chooseMinutes": "¿Cuántos minutos antes?",
+    "liveOption": "~{{minutes}} min (tiempo real)",
+    "tomorrowAt": "mañana {{time}}",
+    "option": "Avisar {{minutes}} minutos antes",
     "close": "Cancelar",
-    "active": "Te aviso cuando falten {{minutes}} min",
     "cancel": "Quitar aviso",
+    "activeToday": "Te aviso {{minutes}} min antes del bus de las {{time}}.",
+    "activeTomorrow": "Te aviso {{minutes}} min antes del bus de mañana a las {{time}}.",
+    "activeLater": "Te aviso {{minutes}} min antes del bus del {{day}} a las {{time}}.",
+    "adjusted": "Hora ajustada con el tiempo real.",
     "denied": "Sin permiso para notificaciones: actívalo en los ajustes del móvil.",
     "title": "Línea {{line}}",
     "body": "Llega a {{stop}} en unos {{minutes}} min",
-    "bodyNow": "Está llegando a {{stop}}"
+    "bodyNow": "Está llegando a {{stop}}",
+    "todayAt": "{{time}}",
+    "dayAt": "{{day}} {{time}}"
   }
 }

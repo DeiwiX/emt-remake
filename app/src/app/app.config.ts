@@ -1,4 +1,9 @@
-import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
+import {
+  ApplicationConfig,
+  inject,
+  provideAppInitializer,
+  provideBrowserGlobalErrorListeners,
+} from '@angular/core';
 import { provideHttpClient, withFetch } from '@angular/common/http';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { provideIonicAngular } from '@ionic/angular';
@@ -15,6 +20,7 @@ import { CapacitorLocationService } from './location/capacitor-location.service'
 import { RealtimeSource } from './core/realtime/realtime.service';
 import { CapacitorRealtimeSource } from './realtime/capacitor-realtime.source';
 import { ArrivalNotifier } from './core/realtime/arrival-notifier';
+import { ArrivalAlertService } from './core/realtime/arrival-alert.service';
 import { CapacitorArrivalNotifier } from './realtime/capacitor-arrival.notifier';
 
 export const appConfig: ApplicationConfig = {
@@ -33,5 +39,7 @@ export const appConfig: ApplicationConfig = {
     { provide: LocationService, useClass: CapacitorLocationService },
     { provide: RealtimeSource, useClass: CapacitorRealtimeSource },
     { provide: ArrivalNotifier, useClass: CapacitorArrivalNotifier },
+    // Un aviso de llegada guardado sigue ajustándose con el tiempo real al abrir la app.
+    provideAppInitializer(() => void inject(ArrivalAlertService)),
   ],
 };
