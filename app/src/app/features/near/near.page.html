@@ -1,0 +1,103 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/" [text]="'common.back' | transloco" />
+    </ion-buttons>
+    <ion-title>{{ 'near.title' | transloco }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-button
+        [disabled]="state().status === 'locating'"
+        [attr.aria-label]="'near.refresh' | transloco"
+        (click)="refresh()"
+      >
+        <ion-icon slot="icon-only" name="locate-outline" aria-hidden="true" />
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [scrollY]="false">
+  <!-- Mismo esquema que Mapa y Paradas; en modo sencillo, solo la lista. -->
+  <div class="split-layout" [class.text-only]="simpleMode()">
+    @if (!simpleMode()) {
+      <div class="split-map">
+        <app-map-view
+          class="split-map-fill"
+          [label]="'near.mapLabel' | transloco"
+          [stops]="mapStops()"
+          [highlightedStop]="selectedMarker()"
+          [userLocation]="point()"
+          [fitPoints]="fitPoints()"
+          (stopSelected)="selectStop($event)"
+        />
+      </div>
+    }
+
+    <section #panel class="split-panel" [attr.aria-label]="'near.title' | transloco">
+      <app-data-status-banner />
+
+      @switch (state().status) {
+        @case ('ready') {
+          @if (selectedStop(); as stop) {
+            <app-stop-card [stop]="stop" (closed)="selectStop(null)" />
+          }
+          @if (near(); as near) {
+            <div class="status" role="status">
+              @if (near.stops.length === 0) {
+                <p>{{ 'near.none' | transloco: { radius: near.radius } }}</p>
+              } @else {
+                <p>
+                  {{ 'near.count' | transloco: { count: near.stops.length, radius: near.radius } }}
+                </p>
+              }
+              @if (rough(); as accuracy) {
+                <ion-note>{{ 'near.rough' | transloco: { accuracy } }}</ion-note>
+              }
+            </div>
+            <ion-list [attr.aria-label]="'near.title' | transloco">
+              @for (item of near.stops; track item.stop.id) {
+                <ion-item
+                  button
+                  [detail]="false"
+                  [class.is-selected]="item.stop.id === selectedId()"
+                  [attr.aria-current]="item.stop.id === selectedId() ? 'true' : null"
+                  (click)="selectStop(item.stop.id)"
+                >
+                  <ion-label class="ion-text-wrap">
+                    {{ item.stop.name }}
+                    <p>
+                      <span class="distance">{{
+                        'near.distance'
+                          | transloco: { metres: roundMetres(item.metres), minutes: item.minutes }
+                      }}</span>
+                      · {{ 'stops.code' | transloco: { id: item.stop.id } }} ·
+                      {{ 'stops.servedBy' | transloco: { lines: lineCodes(item.stop) } }}
+                    </p>
+                  </ion-label>
+                </ion-item>
+              }
+            </ion-list>
+          }
+        }
+        @case ('denied') {
+          <div class="status" role="alert">
+            <p>{{ 'near.denied' | transloco }}</p>
+            <ion-button (click)="refresh()">{{ 'common.retry' | transloco }}</ion-button>
+          </div>
+        }
+        @case ('unavailable') {
+          <div class="status" role="alert">
+            <p>{{ 'near.unavailable' | transloco }}</p>
+            <ion-button (click)="refresh()">{{ 'common.retry' | transloco }}</ion-button>
+          </div>
+        }
+        @default {
+          <p class="status" role="status">{{ 'near.locating' | transloco }}</p>
+        }
+      }
+      <p class="status">
+        <ion-note>{{ 'near.privacy' | transloco }}</ion-note>
+      </p>
+    </section>
+  </div>
+</ion-content>

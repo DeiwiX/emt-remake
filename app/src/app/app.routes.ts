@@ -33,6 +33,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/map/map.page').then((m) => m.MapPage),
   },
   {
+    path: 'near',
+    loadComponent: () => import('./features/near/near.page').then((m) => m.NearPage),
+  },
+  {
     path: 'plan',
     loadComponent: () => import('./features/plan/plan.page').then((m) => m.PlanPage),
   },

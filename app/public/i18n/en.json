@@ -119,7 +119,7 @@
     "mapData": "Map data:",
     "mapTiles": "Tiles:",
     "privacyTitle": "Privacy",
-    "privacy": "There are no accounts or analytics, and the app asks for no permissions. It only stores your settings and the latest copy of the data on this device. To download the data and the map it connects to GitHub Pages and OpenFreeMap, which can see your IP address like any website.",
+    "privacy": "No accounts or analytics. Only your settings, your favourites and the latest copy of the data are stored on this device. Your location is only requested when you open \"Near me\" or choose it as the starting point, and it is never stored or sent. To download the data and the map the app connects to GitHub Pages and OpenFreeMap, which can see your IP address like any website.",
     "codeTitle": "Source code",
     "mapSatellite": "Aerial imagery:"
   },
@@ -203,5 +203,19 @@
     "trips": "Trips",
     "lines": "Lines",
     "stops": "Stops"
+  },
+  "near": {
+    "title": "Near me",
+    "tile": "Stops around you",
+    "refresh": "Update my location",
+    "mapLabel": "Map of the stops near your location",
+    "locating": "Finding your location…",
+    "denied": "No permission to use your location. You can allow it in the system settings (Apps → EMT remake → Permissions) or in the browser, then try again.",
+    "unavailable": "Your location could not be found. Check that location is turned on and try again.",
+    "count": "{{count}} stops within {{radius}} m",
+    "none": "No stops within {{radius}} m.",
+    "rough": "Approximate location (±{{accuracy}} m).",
+    "distance": "{{metres}} m · {{minutes}} min walk",
+    "privacy": "Your location is only used on this device and is never stored or sent anywhere."
   }
 }

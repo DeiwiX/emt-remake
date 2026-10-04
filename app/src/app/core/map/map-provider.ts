@@ -63,6 +63,8 @@ export interface MapView {
   setBaseLayer(layer: MapBaseLayer): void;
   /** Nombre accesible del mapa (el lienzo es la región que anuncian los lectores de pantalla). */
   setLabel(label: string): void;
+  /** Posición del usuario (punto azul); null para quitarla. */
+  setUserLocation(point: LatLon | null): void;
   /** Marca una zona (contorno y relleno suave); null = ninguna. */
   setHighlightedArea(polygons: readonly Polygon[] | null): void;
   destroy(): void;

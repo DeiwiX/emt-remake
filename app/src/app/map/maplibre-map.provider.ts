@@ -67,12 +67,15 @@ const LAYER = {
   selectedStop: 'selected-stop',
   areaFill: 'area-fill',
   areaOutline: 'area-outline',
+  userHalo: 'user-halo',
+  user: 'user',
 } as const;
 const SOURCE = {
   routes: 'routes',
   stops: 'stops',
   selectedStop: 'selected-stop',
   area: 'area',
+  user: 'user',
 } as const;
 
 /**
@@ -136,6 +139,7 @@ class MapLibreView implements MapView {
   private visibleLines: ReadonlySet<string> | null = null;
   private highlighted: ReadonlySet<string> | null = null;
   private highlightedStop: MapStop | null = null;
+  private userLocation: LatLon | null = null;
   private area: readonly Polygon[] | null = null;
   private scheme: ColorScheme;
   private baseLayer: MapBaseLayer = 'streets';
@@ -190,6 +194,11 @@ class MapLibreView implements MapView {
   setHighlightedStop(stop: MapStop | null): void {
     this.highlightedStop = stop;
     this.source(SOURCE.selectedStop)?.setData(this.selectedStopGeoJson());
+  }
+
+  setUserLocation(point: LatLon | null): void {
+    this.userLocation = point;
+    this.source(SOURCE.user)?.setData(this.userGeoJson());
   }
 
   setHighlightedArea(polygons: readonly Polygon[] | null): void {
@@ -327,6 +336,25 @@ class MapLibreView implements MapView {
         'circle-stroke-width': 3,
       },
     });
+    // Posición del usuario: punto azul con halo, encima de todo.
+    map.addSource(SOURCE.user, { type: 'geojson', data: this.userGeoJson() });
+    map.addLayer({
+      id: LAYER.userHalo,
+      type: 'circle',
+      source: SOURCE.user,
+      paint: { 'circle-radius': 18, 'circle-color': '#1A73E8', 'circle-opacity': 0.2 },
+    });
+    map.addLayer({
+      id: LAYER.user,
+      type: 'circle',
+      source: SOURCE.user,
+      paint: {
+        'circle-radius': 8,
+        'circle-color': '#1A73E8',
+        'circle-stroke-color': '#FFFFFF',
+        'circle-stroke-width': 3,
+      },
+    });
     this.applyFiltersAndHighlight();
     this.applyStopsZoomRange();
   }
@@ -430,6 +458,22 @@ class MapLibreView implements MapView {
               type: 'Feature',
               properties: { id: stop.id, name: stop.name },
               geometry: { type: 'Point', coordinates: [stop.lon, stop.lat] },
+            },
+          ]
+        : [],
+    };
+  }
+
+  private userGeoJson(): FeatureCollection {
+    const point = this.userLocation;
+    return {
+      type: 'FeatureCollection',
+      features: point
+        ? [
+            {
+              type: 'Feature',
+              properties: {},
+              geometry: { type: 'Point', coordinates: [point[1], point[0]] },
             },
           ]
         : [],

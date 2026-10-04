@@ -154,6 +154,8 @@ export class MapViewComponent {
   readonly highlightedStop = input<MapStop | null>(null);
   /** Zona marcada (contorno de barrio o distrito); null = ninguna. */
   readonly highlightedArea = input<readonly Polygon[] | null>(null);
+  /** Posición del usuario; null = no se muestra. */
+  readonly userLocation = input<LatLon | null>(null);
   /**
    * Nombre accesible del mapa. Se pone en el lienzo, que MapLibre ya marca como
    * región: así no hay dos regiones con el mismo nombre.
@@ -192,6 +194,7 @@ export class MapViewComponent {
     effect(() => this.view()?.setHighlightedLines(this.highlightedLines()));
     effect(() => this.view()?.setHighlightedStop(this.highlightedStop()));
     effect(() => this.view()?.setHighlightedArea(this.highlightedArea()));
+    effect(() => this.view()?.setUserLocation(this.userLocation()));
     effect(() => {
       const label = this.label();
       if (label) this.view()?.setLabel(label);

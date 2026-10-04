@@ -10,6 +10,8 @@ import { provideSettings } from './core/settings/provide-settings';
 import { prefersReducedMotion } from './core/theme/color-scheme.service';
 import { MapProvider } from './core/map/map-provider';
 import { MapLibreMapProvider } from './map/maplibre-map.provider';
+import { LocationService } from './core/location/location.service';
+import { CapacitorLocationService } from './location/capacitor-location.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -24,5 +26,6 @@ export const appConfig: ApplicationConfig = {
     provideData(),
     // Proveedor de mapas intercambiable (ADR 0003).
     { provide: MapProvider, useClass: MapLibreMapProvider },
+    { provide: LocationService, useClass: CapacitorLocationService },
   ],
 };

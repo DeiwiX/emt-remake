@@ -1,4 +1,5 @@
 import { Direction, Line, Stop } from '../models/network.model';
+import { WALK_DETOUR, WALK_METRES_PER_MINUTE, metresBetween } from '../location/geo';
 
 /**
  * Planificador "Cómo llegar" (versión con datos programados). Lógica pura, sin
@@ -63,10 +64,6 @@ const DEFAULT_OPTIONS: PlanOptions = {
   isSecondary: () => false,
   nearbyStops: () => [],
 };
-/** Paso tranquilo (~4,8 km/h), con margen para cruzar calles. */
-const WALK_METRES_PER_MINUTE = 80;
-/** Rodeo de las calles frente a la línea recta. */
-const WALK_DETOUR = 1.3;
 /** Distancia máxima a pie para un transbordo entre paradas distintas. */
 export const MAX_TRANSFER_WALK_M = 250;
 /** Si una línea no trae tiempos (datos antiguos), se supone esto por parada. */
@@ -221,8 +218,6 @@ export function buildNearbyStops(
   maxMetres = MAX_TRANSFER_WALK_M,
 ): (stopId: string) => readonly NearbyStop[] {
   const nearby = new Map<string, NearbyStop[]>();
-  const metresPerDegreeLat = 111_320;
-  const metresPerDegreeLon = metresPerDegreeLat * Math.cos((36.72 * Math.PI) / 180);
   const add = (from: string, to: string, metres: number) => {
     const list = nearby.get(from) ?? [];
     list.push({ stopId: to, metres });
@@ -232,10 +227,7 @@ export function buildNearbyStops(
     for (let j = i + 1; j < stops.length; j++) {
       const a = stops[i]!;
       const b = stops[j]!;
-      const metres = Math.hypot(
-        (a.lat - b.lat) * metresPerDegreeLat,
-        (a.lon - b.lon) * metresPerDegreeLon,
-      );
+      const metres = metresBetween([a.lat, a.lon], [b.lat, b.lon]);
       if (metres > maxMetres) continue;
       add(a.id, b.id, metres);
       add(b.id, a.id, metres);

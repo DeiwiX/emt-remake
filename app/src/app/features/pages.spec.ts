@@ -19,6 +19,7 @@ import { buildIndex } from '../data/static-repositories';
 import { networkFixture } from '../data/testing/data-fixtures';
 import { HomePage } from './home/home.page';
 import { FavoritesService } from '../core/favorites/favorites.service';
+import { LocationService, LocationState } from '../core/location/location.service';
 import { PlanPage } from './plan/plan.page';
 import { StopsPage } from './stops/stops.page';
 
@@ -180,6 +181,32 @@ describe('Pantallas con datos', () => {
     const text =
       (harness.routeNativeElement as HTMLElement).textContent?.replace(/\s+/g, ' ') ?? '';
     expect(text).toContain('Sube en Zapateros (1)');
+  });
+
+  it('"Cerca de mí" lista las paradas cercanas con su distancia', async () => {
+    const stop = networkFixture().stops[0]!;
+    const state = signal<LocationState>({ status: 'idle' });
+    TestBed.overrideProvider(LocationService, {
+      useValue: {
+        state,
+        locate: async () =>
+          state.set({ status: 'ready', point: [stop.lat, stop.lon], accuracy: 10, at: new Date() }),
+      },
+    });
+    const element = await open('/near');
+    await Promise.resolve();
+    TestBed.tick();
+    const text = element.textContent ?? '';
+    expect(text).toContain(stop.name);
+    expect(text).toMatch(/\d+ m · \d+ min andando/);
+  });
+
+  it('"Cerca de mí" explica qué hacer si no hay permiso', async () => {
+    TestBed.overrideProvider(LocationService, {
+      useValue: { state: signal({ status: 'denied' }), locate: async () => undefined },
+    });
+    const element = await open('/near');
+    expect(element.textContent).toContain('Sin permiso para usar tu ubicación');
   });
 
   it('la lista de líneas muestra todas las líneas ordenadas', async () => {

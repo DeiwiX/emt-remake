@@ -1,0 +1,17 @@
+@use '../../shared/styles/split-layout';
+
+.status {
+  padding: 8px 16px;
+
+  p {
+    margin: 4px 0 8px;
+  }
+}
+
+ion-item.is-selected {
+  --background: var(--ion-color-step-100, rgba(127, 127, 127, 0.15));
+}
+
+.distance {
+  font-weight: 600;
+}

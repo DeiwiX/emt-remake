@@ -137,6 +137,11 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
 - En el inicio, "Mis favoritos" muestra cada parada guardada con los próximos buses de sus líneas, los trayectos (abren "Cómo llegar" ya rellenado: `/plan?from=stop:152&to=neighbourhood:...`) y las líneas.
 - Se guardan solo en el dispositivo (`localStorage`), sin cuentas (ADR 0006).
 
+### Cerca de mí
+
+- Pantalla `/near`: pide tu ubicación al abrirla (y con el botón de actualizar) y lista las paradas a menos de 500 m, o hasta 1 km si no hay ninguna, de la más cercana a la más lejana, con la distancia y los minutos andando. Al elegir una aparece su ficha con el próximo bus. Tu posición se ve como un punto azul en el mapa.
+- En la app nativa se pide el permiso del sistema (`@capacitor/geolocation`, que se carga solo al pedir la ubicación); en la web, el del navegador. La ubicación no se guarda ni se envía (ADR 0006).
+
 ### Ajustes
 
 - Idioma (español o inglés), tema (según el sistema, claro u oscuro), alto contraste y modo sencillo. Se aplican al momento y se guardan solo en el dispositivo (`localStorage`). La primera vez el idioma se elige según el del navegador.

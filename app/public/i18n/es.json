@@ -119,7 +119,7 @@
     "mapData": "Datos del mapa:",
     "mapTiles": "Teselas:",
     "privacyTitle": "Privacidad",
-    "privacy": "No hay cuentas ni analítica, y la app no pide permisos. Solo guarda en este dispositivo tus ajustes y la última copia de los datos. Para descargar los datos y el mapa se conecta a GitHub Pages y a OpenFreeMap, que pueden ver tu dirección IP como cualquier web.",
+    "privacy": "No hay cuentas ni analítica. Solo guarda en este dispositivo tus ajustes, tus favoritos y la última copia de los datos. Tu ubicación solo se pide cuando abres \"Cerca de mí\" o la eliges como origen, y no se guarda ni se envía. Para descargar los datos y el mapa se conecta a GitHub Pages y a OpenFreeMap, que pueden ver tu dirección IP como cualquier web.",
     "codeTitle": "Código fuente",
     "mapSatellite": "Foto aérea:"
   },
@@ -203,5 +203,19 @@
     "trips": "Trayectos",
     "lines": "Líneas",
     "stops": "Paradas"
+  },
+  "near": {
+    "title": "Cerca de mí",
+    "tile": "Paradas a tu alrededor",
+    "refresh": "Actualizar mi ubicación",
+    "mapLabel": "Mapa de las paradas cercanas a tu ubicación",
+    "locating": "Buscando tu ubicación…",
+    "denied": "Sin permiso para usar tu ubicación. Puedes darlo en los ajustes del sistema (Aplicaciones → EMT remake → Permisos) o del navegador, y volver a intentarlo.",
+    "unavailable": "No se ha podido obtener tu ubicación. Comprueba que la ubicación del dispositivo está activada e inténtalo de nuevo.",
+    "count": "{{count}} paradas a menos de {{radius}} m",
+    "none": "No hay paradas a menos de {{radius}} m.",
+    "rough": "Ubicación aproximada (±{{accuracy}} m).",
+    "distance": "{{metres}} m · {{minutes}} min andando",
+    "privacy": "Tu ubicación solo se usa en este dispositivo y no se guarda ni se envía a ningún sitio."
   }
 }

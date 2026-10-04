@@ -19,6 +19,8 @@
   --green-fg: #0b6b46;
   --orange-bg: #fff0e0;
   --orange-fg: #a64b00;
+  --purple-bg: #f1e8ff;
+  --purple-fg: #6a2fc0;
 }
 
 :host-context(.ion-palette-dark) {
@@ -30,6 +32,8 @@
   --green-fg: #6ddba8;
   --orange-bg: rgba(255, 160, 80, 0.16);
   --orange-fg: #ffb57a;
+  --purple-bg: rgba(180, 130, 255, 0.16);
+  --purple-fg: #c9a6ff;
 }
 
 ion-content {
@@ -219,7 +223,15 @@ ion-content {
   color: var(--orange-fg);
 }
 
+.tone-purple .tile-icon {
+  background: var(--purple-bg);
+  color: var(--purple-fg);
+}
+
+/* La pista de "Mis favoritos" (sin favoritos) ocupa la fila entera. */
 .tile-soon {
+  grid-column: 1 / -1;
+
   border: 1px dashed var(--ion-color-step-300, #b5b5b5);
   background: transparent;
   box-shadow: none;
@@ -239,9 +251,9 @@ ion-content {
   padding: 0 16px 16px;
 }
 
-/* Modo sencillo en el móvil: con tres tarjetas, "Favoritos" ocupa la fila entera. */
+/* Modo sencillo en el móvil: sin la tarjeta del mapa, "Cerca de mí" ocupa la fila entera. */
 @media (max-width: 767px) {
-  .tile-grid.simple .tile-soon {
+  .tile-grid.simple .tile-near {
     grid-column: 1 / -1;
   }
 }

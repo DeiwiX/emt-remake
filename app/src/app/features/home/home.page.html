@@ -111,6 +111,11 @@
               'home.stopCount' | transloco: { count: stopCount() }
             }}</span>
           </a>
+          <a class="tile tone-purple tile-near" routerLink="/near">
+            <span class="tile-icon"><ion-icon name="navigate-outline" aria-hidden="true" /></span>
+            <span class="tile-title">{{ 'near.title' | transloco }}</span>
+            <span class="tile-description">{{ 'near.tile' | transloco }}</span>
+          </a>
           @if (!hasFavorites()) {
             <!-- Sin favoritos todavía: explica cómo guardarlos. -->
             <div class="tile tile-soon">
