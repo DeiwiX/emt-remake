@@ -22,7 +22,26 @@ npm test -- --watch=false    # pruebas unitarias (Vitest)
 npm run lint                 # ESLint, con reglas de accesibilidad de plantillas
 npm run build                # compilación de producción en app/dist/
 npm run data:snapshot        # actualiza la copia de datos incluida en la app (public/data-snapshot)
+npm run native:sync          # compila la web y la copia a los proyectos Android e iOS
 ```
+
+### Apps nativas (Capacitor)
+
+Android (8 o superior). Requisitos: Android Studio con el SDK de Android y **JDK 21** (Gradle 8.14 no admite Java 25; en Windows: `winget install EclipseAdoptium.Temurin.21.JDK`).
+
+```bash
+cd app
+npm run native:sync
+cd android
+JAVA_HOME="C:/Program Files/Eclipse Adoptium/jdk-21..." ./gradlew assembleDebug
+# APK de prueba: app/android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+También se puede abrir `app/android` en Android Studio (que usa su propio Java; en Ajustes → Gradle JDK, elegir el 21) y ejecutar en un emulador o en el móvil.
+
+iOS (16 o superior): el proyecto está en `app/ios`, pero compilarlo exige un Mac con Xcode (`npx cap open ios`).
+
+El botón "atrás" de Android navega dentro de la app gracias al plugin `@capacitor/app`. La app no se publica en tiendas: el APK de depuración es para uso personal.
 
 Script de datos:
 

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">EMT remake</string>
+    <string name="title_activity_main">EMT remake</string>
+    <string name="package_name">io.github.deiwix.emtremake</string>
+    <string name="custom_url_scheme">io.github.deiwix.emtremake</string>
+</resources>

@@ -8,7 +8,8 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint": "ng lint",
-    "data:snapshot": "node scripts/update-data-snapshot.mjs"
+    "data:snapshot": "node scripts/update-data-snapshot.mjs",
+    "native:sync": "ng build && cap sync"
   },
   "private": true,
   "packageManager": "npm@11.17.0",
@@ -19,6 +20,10 @@
     "@angular/forms": "^22.2.0",
     "@angular/platform-browser": "^22.2.0",
     "@angular/router": "^22.2.0",
+    "@capacitor/android": "8.5.2",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/core": "8.5.2",
+    "@capacitor/ios": "8.5.2",
     "@ionic/angular": "^9.0.6",
     "@jsverse/transloco": "^8.4.0",
     "ionicons": "^8.1.0",
@@ -30,6 +35,7 @@
     "@angular/build": "^22.2.1",
     "@angular/cli": "^22.2.1",
     "@angular/compiler-cli": "^22.2.0",
+    "@capacitor/cli": "8.5.2",
     "@eslint/js": "^10.0.1",
     "angular-eslint": "22.5.0",
     "eslint": "^10.9.1",
