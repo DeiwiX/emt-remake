@@ -18,12 +18,14 @@ import { MapProvider } from '../core/map/map-provider';
 import { buildIndex } from '../data/static-repositories';
 import { networkFixture } from '../data/testing/data-fixtures';
 import { HomePage } from './home/home.page';
+import { FavoritesService } from '../core/favorites/favorites.service';
 import { PlanPage } from './plan/plan.page';
 import { StopsPage } from './stops/stops.page';
 
 /** Pantallas con datos de prueba: búsqueda, listas y detalles (RF-03 a RF-06). */
 describe('Pantallas con datos', () => {
   beforeEach(() => {
+    localStorage.clear();
     const index = buildIndex(networkFixture());
     TestBed.configureTestingModule({
       imports: [
@@ -147,6 +149,37 @@ describe('Pantallas con datos', () => {
     const stop = await open('/stops/2');
     expect(stop.textContent).toContain('Alameda');
     expect(stop.querySelector('app-map-view, .detail-map')).toBeNull();
+  });
+
+  it('las paradas guardadas aparecen en el inicio con sus líneas', async () => {
+    localStorage.setItem(
+      'emt-remake.favorites.v1',
+      JSON.stringify([
+        { kind: 'stop', stopId: '2' },
+        {
+          kind: 'trip',
+          origin: { kind: 'stop', id: '1', name: 'Zapateros' },
+          destination: { kind: 'stop', id: '2', name: 'Alameda' },
+        },
+      ]),
+    );
+    TestBed.inject(FavoritesService);
+    const home = await open('/');
+    const section = home.querySelector('app-favorites-section');
+    expect(section?.textContent).toContain('Mis favoritos');
+    expect(section?.querySelectorAll('app-next-bus').length).toBeGreaterThan(0);
+    expect(section?.querySelector('a[href^="/plan"]')?.getAttribute('href')).toBe(
+      '/plan?from=stop:1&to=stop:2',
+    );
+  });
+
+  it('"Cómo llegar" abre con origen y destino desde la URL', async () => {
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/plan?from=stop:1&to=stop:2');
+    harness.detectChanges();
+    const text =
+      (harness.routeNativeElement as HTMLElement).textContent?.replace(/\s+/g, ' ') ?? '';
+    expect(text).toContain('Sube en Zapateros (1)');
   });
 
   it('la lista de líneas muestra todas las líneas ordenadas', async () => {

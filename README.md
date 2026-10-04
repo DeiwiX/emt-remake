@@ -131,6 +131,12 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
   - Las líneas sin horario (91–93) se estiman por distancia y se indica.
 - Más adelante: usar la ubicación como origen (Fase 2), tiempo real (Fase 3) y buscar comercios o direcciones.
 
+### Favoritos
+
+- Estrella en el detalle de parada, en la ficha de parada de Mapa y Paradas, en el detalle de línea y en "Cómo llegar" (trayecto origen → destino).
+- En el inicio, "Mis favoritos" muestra cada parada guardada con los próximos buses de sus líneas, los trayectos (abren "Cómo llegar" ya rellenado: `/plan?from=stop:152&to=neighbourhood:...`) y las líneas.
+- Se guardan solo en el dispositivo (`localStorage`), sin cuentas (ADR 0006).
+
 ### Ajustes
 
 - Idioma (español o inglés), tema (según el sistema, claro u oscuro), alto contraste y modo sencillo. Se aplican al momento y se guardan solo en el dispositivo (`localStorage`). La primera vez el idioma se elige según el del navegador.

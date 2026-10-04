@@ -85,6 +85,10 @@
           <ion-icon class="tile-arrow" name="arrow-forward" aria-hidden="true" />
         </a>
 
+        @if (hasFavorites()) {
+          <app-favorites-section />
+        }
+
         <div class="tile-grid" [class.simple]="simpleMode()">
           @if (!simpleMode()) {
             <a class="tile tone-blue" routerLink="/map">
@@ -107,12 +111,14 @@
               'home.stopCount' | transloco: { count: stopCount() }
             }}</span>
           </a>
-          <!-- Fase 2: visible pero no pulsable. -->
-          <div class="tile tile-soon" aria-disabled="true">
-            <span class="tile-icon"><ion-icon name="star-outline" aria-hidden="true" /></span>
-            <span class="tile-title">{{ 'home.favorites' | transloco }}</span>
-            <span class="tile-description">{{ 'home.comingInPhase2' | transloco }}</span>
-          </div>
+          @if (!hasFavorites()) {
+            <!-- Sin favoritos todavía: explica cómo guardarlos. -->
+            <div class="tile tile-soon">
+              <span class="tile-icon"><ion-icon name="star-outline" aria-hidden="true" /></span>
+              <span class="tile-title">{{ 'favorites.title' | transloco }}</span>
+              <span class="tile-description">{{ 'favorites.empty' | transloco }}</span>
+            </div>
+          }
         </div>
       </nav>
 

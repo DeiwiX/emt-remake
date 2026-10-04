@@ -37,9 +37,3 @@ export interface ServiceAlert {
   readonly validFrom?: Date;
   readonly validTo?: Date;
 }
-
-/** Fase 2: favorito guardado en el dispositivo. */
-export type Favorite =
-  | { readonly kind: 'line'; readonly lineId: string }
-  | { readonly kind: 'stop'; readonly stopId: string }
-  | { readonly kind: 'place'; readonly label: string; readonly lat: number; readonly lon: number };

@@ -9,8 +9,6 @@
   },
   "home": {
     "searchPlaceholder": "Buscar línea, parada o barrio",
-    "comingInPhase2": "Próximamente",
-    "favorites": "Mis favoritos",
     "resultCount": "Encontradas: {{lines}} líneas y {{stops}} paradas",
     "lineResults": "Líneas",
     "stopResults": "Paradas",
@@ -191,5 +189,19 @@
     "inMinutes": "{{minutes}} min",
     "inHours": "en {{hours}} h {{minutes}} min",
     "today": "hoy"
+  },
+  "favorites": {
+    "save": "Guardar",
+    "saved": "Guardado",
+    "addLabel": "Guardar {{name}} en favoritos",
+    "removeLabel": "Quitar {{name}} de favoritos",
+    "stopLabel": "la parada {{name}}",
+    "lineLabel": "la línea {{id}}",
+    "tripLabel": "el trayecto {{from}} → {{to}}",
+    "title": "Mis favoritos",
+    "empty": "Pulsa la estrella en una parada, una línea o un trayecto de \"Cómo llegar\" para tenerlo aquí.",
+    "trips": "Trayectos",
+    "lines": "Líneas",
+    "stops": "Paradas"
   }
 }

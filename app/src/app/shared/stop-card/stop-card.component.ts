@@ -5,6 +5,7 @@ import { IonButton } from '@ionic/angular';
 
 import { NetworkRepository } from '../../core/data/repositories';
 import { Stop } from '../../core/models/network.model';
+import { FavoriteButtonComponent } from '../favorite-button/favorite-button.component';
 import { LineBadgeComponent } from '../line-badge/line-badge.component';
 import { NextBusComponent } from '../next-bus/next-bus.component';
 
@@ -14,13 +15,26 @@ import { NextBusComponent } from '../next-bus/next-bus.component';
  */
 @Component({
   selector: 'app-stop-card',
-  imports: [RouterLink, TranslocoPipe, IonButton, LineBadgeComponent, NextBusComponent],
+  imports: [
+    RouterLink,
+    TranslocoPipe,
+    IonButton,
+    FavoriteButtonComponent,
+    LineBadgeComponent,
+    NextBusComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
     :host {
       display: block;
       padding: 8px 16px;
       border-bottom: 1px solid var(--ion-border-color, #ccc);
+    }
+    .title {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
     }
     h2 {
       margin: 8px 0 4px;
@@ -52,8 +66,16 @@ import { NextBusComponent } from '../next-bus/next-bus.component';
   `,
   template: `
     <div aria-live="polite">
-      <h2>{{ stop().name }}</h2>
-      <p>{{ 'stops.code' | transloco: { id: stop().id } }}</p>
+      <div class="title">
+        <div>
+          <h2>{{ stop().name }}</h2>
+          <p>{{ 'stops.code' | transloco: { id: stop().id } }}</p>
+        </div>
+        <app-favorite-button
+          [favorite]="{ kind: 'stop', stopId: stop().id }"
+          [label]="'favorites.stopLabel' | transloco: { name: stop().name }"
+        />
+      </div>
       <ul>
         @for (service of services(); track service.lineId + '-' + service.directionId) {
           <li>

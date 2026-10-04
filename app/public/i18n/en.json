@@ -9,8 +9,6 @@
   },
   "home": {
     "searchPlaceholder": "Search line, stop or neighbourhood",
-    "comingInPhase2": "Coming soon",
-    "favorites": "My favourites",
     "resultCount": "Found: {{lines}} lines and {{stops}} stops",
     "lineResults": "Lines",
     "stopResults": "Stops",
@@ -191,5 +189,19 @@
     "inMinutes": "{{minutes}} min",
     "inHours": "in {{hours}} h {{minutes}} min",
     "today": "today"
+  },
+  "favorites": {
+    "save": "Save",
+    "saved": "Saved",
+    "addLabel": "Save {{name}} to favourites",
+    "removeLabel": "Remove {{name}} from favourites",
+    "stopLabel": "the stop {{name}}",
+    "lineLabel": "line {{id}}",
+    "tripLabel": "the trip {{from}} → {{to}}",
+    "title": "My favourites",
+    "empty": "Tap the star on a stop, line or \"Get there\" trip to keep it here.",
+    "trips": "Trips",
+    "lines": "Lines",
+    "stops": "Stops"
   }
 }

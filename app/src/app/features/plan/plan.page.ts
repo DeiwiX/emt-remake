@@ -4,6 +4,7 @@ import {
   ElementRef,
   computed,
   inject,
+  input,
   linkedSignal,
   signal,
   viewChild,
@@ -24,6 +25,7 @@ import {
 
 import { NetworkRepository, ShapeRepository } from '../../core/data/repositories';
 import { ZonesStore } from '../../core/data/zones-store.service';
+import { resolvePlace, toPlaceRef } from '../../core/favorites/favorites';
 import { LineColorsService } from '../../core/map/line-colors.service';
 import { sliceBetween, toMapStops } from '../../core/map/map-features';
 import { MapRoute } from '../../core/map/map-provider';
@@ -48,6 +50,7 @@ import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-
 import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component';
 import { MapViewComponent } from '../../shared/map-view/map-view.component';
 import { PlacePickerComponent } from '../../shared/place-picker/place-picker.component';
+import { FavoriteButtonComponent } from '../../shared/favorite-button/favorite-button.component';
 
 /** "Salir ahora", "Salir a las…" o "Llegar a las…". */
 type TimeChoice = 'now' | TimeMode;
@@ -88,6 +91,7 @@ interface Row {
     LineBadgeComponent,
     MapViewComponent,
     PlacePickerComponent,
+    FavoriteButtonComponent,
     IonBackButton,
     IonButton,
     IonButtons,
@@ -108,10 +112,25 @@ export class PlanPage {
   private readonly schedule = inject(ScheduleClockService);
   private readonly colors = inject(LineColorsService);
 
-  protected readonly origin = signal<Place | null>(null);
-  protected readonly destination = signal<Place | null>(null);
   private readonly zonesStore = inject(ZonesStore);
   protected readonly zones = this.zonesStore.zones;
+
+  /** Origen y destino al abrir (/plan?from=stop:152&to=neighbourhood:b12), p. ej. desde un favorito. */
+  readonly from = input<string>();
+  readonly to = input<string>();
+  protected readonly origin = linkedSignal<Place | null>(() => this.placeFromParam(this.from()));
+  protected readonly destination = linkedSignal<Place | null>(() => this.placeFromParam(this.to()));
+  /** El trayecto elegido, para guardarlo en favoritos. */
+  protected readonly tripFavorite = computed(() => {
+    const origin = this.origin();
+    const destination = this.destination();
+    if (!origin || !destination || this.samePlace()) return null;
+    return {
+      kind: 'trip' as const,
+      origin: toPlaceRef(origin),
+      destination: toPlaceRef(destination),
+    };
+  });
   private readonly geometries = signal<ReadonlyMap<string, readonly LatLon[]>>(new Map());
 
   protected readonly timeChoice = signal<TimeChoice>('now');
@@ -256,6 +275,12 @@ export class PlanPage {
       .getShapes('detail')
       .then((shapes) => this.geometries.set(shapes))
       .catch((error: unknown) => console.warn('No se pudieron cargar los trazados', error));
+  }
+
+  /** Se resuelve de nuevo cuando llegan las paradas o las zonas (se leen para depender de ellas). */
+  private placeFromParam(param: string | undefined): Place | null {
+    this.network.stops();
+    return resolvePlace(param, (id) => this.network.getStop(id), this.zones());
   }
 
   protected swap(): void {

@@ -39,6 +39,18 @@
         [zones]="zones()"
         (placeChange)="destination.set($event)"
       />
+      @if (tripFavorite(); as trip) {
+        <div class="save-trip">
+          <app-favorite-button
+            [favorite]="trip"
+            [label]="
+              'favorites.tripLabel'
+                | transloco: { from: trip.origin.name, to: trip.destination.name }
+            "
+            [showText]="true"
+          />
+        </div>
+      }
 
       <!-- Hora: salir ahora, salir a una hora o llegar antes de una hora (hoy). -->
       <div class="time-choice" role="group" [attr.aria-label]="'plan.when' | transloco">

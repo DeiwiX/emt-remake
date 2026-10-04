@@ -39,6 +39,12 @@
               {{ line.name }}
             </h1>
           </div>
+          <app-favorite-button
+            class="favorite"
+            [favorite]="{ kind: 'line', lineId: line.id }"
+            [label]="'favorites.lineLabel' | transloco: { id: line.id }"
+            [showText]="true"
+          />
           @if (line.notes) {
             <p>
               <ion-note>{{ 'lineDetail.notes' | transloco: { notes: line.notes } }}</ion-note>

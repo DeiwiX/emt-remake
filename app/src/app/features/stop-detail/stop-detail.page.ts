@@ -25,6 +25,7 @@ import { SimpleModeService } from '../../core/settings/simple-mode.service';
 import { LatLon, Line } from '../../core/models/network.model';
 import { MapViewComponent } from '../../shared/map-view/map-view.component';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
+import { FavoriteButtonComponent } from '../../shared/favorite-button/favorite-button.component';
 import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component';
 import { NextBusComponent } from '../../shared/next-bus/next-bus.component';
 
@@ -35,6 +36,7 @@ import { NextBusComponent } from '../../shared/next-bus/next-bus.component';
     RouterLink,
     TranslocoPipe,
     DataStatusBannerComponent,
+    FavoriteButtonComponent,
     LineBadgeComponent,
     MapViewComponent,
     NextBusComponent,
@@ -88,6 +90,11 @@ import { NextBusComponent } from '../../shared/next-bus/next-bus.component';
             <div class="ion-padding-horizontal">
               <h1>{{ stop.name }}</h1>
               <p>{{ 'stops.code' | transloco: { id: stop.id } }}</p>
+              <app-favorite-button
+                [favorite]="{ kind: 'stop', stopId: stop.id }"
+                [label]="'favorites.stopLabel' | transloco: { name: stop.name }"
+                [showText]="true"
+              />
               @if (stop.address) {
                 <p>{{ 'stopDetail.address' | transloco: { address: stop.address } }}</p>
               }

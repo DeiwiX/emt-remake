@@ -34,6 +34,7 @@ import { SimpleModeService } from '../../core/settings/simple-mode.service';
 import { LatLon } from '../../core/models/network.model';
 import { MapViewComponent } from '../../shared/map-view/map-view.component';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
+import { FavoriteButtonComponent } from '../../shared/favorite-button/favorite-button.component';
 import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component';
 
 /** Detalle de línea (RF-03): mapa ancho con el recorrido y panel con sentidos y paradas en orden. */
@@ -43,6 +44,7 @@ import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component
     RouterLink,
     TranslocoPipe,
     DataStatusBannerComponent,
+    FavoriteButtonComponent,
     LineBadgeComponent,
     MapViewComponent,
     IonBackButton,
