@@ -31,6 +31,8 @@ export interface ManifestFile {
     timetables?: FileEntry;
     /** Calles del callejero con sus portales. Opcional, como zones. */
     streets?: FileEntry;
+    /** Cortes de tráfico e incidencias (se actualiza cada hora). Opcional. */
+    traffic?: FileEntry;
   };
   license: { id: string; url: string; attribution: string };
 }
@@ -145,6 +147,51 @@ export function parseStreets(value: unknown): StreetsFile {
   return { schemaVersion: SUPPORTED_SCHEMA_VERSION, streets };
 }
 
+export interface PublishedTrafficItem {
+  id: string;
+  source: 'ayto' | 'dgt';
+  kind: string;
+  effect: string;
+  description: string;
+  address: string;
+  from: string | null;
+  to: string | null;
+  points: string;
+}
+
+export interface TrafficFile {
+  schemaVersion: number;
+  items: PublishedTrafficItem[];
+}
+
+function optionalString(value: unknown, where: string): string | null {
+  return value === null || value === undefined ? null : string(value, where);
+}
+
+export function parseTraffic(value: unknown): TrafficFile {
+  const t = record(value, 'traffic');
+  schema(t['schemaVersion'], 'traffic');
+  const items = array(t['items'], 'traffic.items').map((raw, i): PublishedTrafficItem => {
+    const where = `traffic[${i}]`;
+    const item = record(raw, where);
+    const source = item['source'];
+    if (source !== 'ayto' && source !== 'dgt')
+      throw new DataFormatError(`${where}.source: valor no válido`);
+    return {
+      id: nonEmpty(item['id'], `${where}.id`),
+      source,
+      kind: string(item['kind'], `${where}.kind`),
+      effect: string(item['effect'], `${where}.effect`),
+      description: string(item['description'], `${where}.description`),
+      address: string(item['address'], `${where}.address`),
+      from: optionalString(item['from'], `${where}.from`),
+      to: optionalString(item['to'], `${where}.to`),
+      points: string(item['points'], `${where}.points`),
+    };
+  });
+  return { schemaVersion: SUPPORTED_SCHEMA_VERSION, items };
+}
+
 export interface TimetablesFile {
   schemaVersion: number;
   services: Record<string, string[]>;
@@ -246,6 +293,9 @@ export function parseManifest(value: unknown): ManifestFile {
       ...(files['streets'] === undefined
         ? {}
         : { streets: fileEntry(files['streets'], 'streets') }),
+      ...(files['traffic'] === undefined
+        ? {}
+        : { traffic: fileEntry(files['traffic'], 'traffic') }),
     },
     license: {
       id: string(license['id'], 'license.id'),

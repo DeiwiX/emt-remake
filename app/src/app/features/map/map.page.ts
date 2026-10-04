@@ -32,6 +32,10 @@ import { NetworkRepository, ShapeRepository } from '../../core/data/repositories
 import { ZonesStore } from '../../core/data/zones-store.service';
 import { StreetsStore } from '../../core/data/streets-store.service';
 import { RealtimeService } from '../../core/realtime/realtime.service';
+import { TrafficRepository } from '../../core/data/repositories';
+import { TrafficItem } from '../../core/models/network.model';
+import { ScheduleClockService } from '../../core/schedule/schedule-clock.service';
+import { addDays } from '../../core/schedule/schedule';
 import { ageMinutes } from '../../core/realtime/realtime';
 import { placeForStreet, portalPoint } from '../../core/location/street-place';
 import { SimpleModeService } from '../../core/settings/simple-mode.service';
@@ -71,6 +75,16 @@ interface Area {
   readonly polygons: readonly Polygon[] | null;
   /** Puntos que encuadra el mapa. */
   readonly points: readonly LatLon[];
+}
+
+/** Cortes que se muestran: los activos y los que empiezan en estos días. */
+const TRAFFIC_DAYS_AHEAD = 7;
+
+/** "20261004" y minutos -> "2026-10-04T08:05". */
+function localStamp(dateKey: string, minutes: number): string {
+  const h = String(Math.floor(minutes / 60)).padStart(2, '0');
+  const m = String(Math.floor(minutes % 60)).padStart(2, '0');
+  return `${dateKey.slice(0, 4)}-${dateKey.slice(4, 6)}-${dateKey.slice(6, 8)}T${h}:${m}`;
 }
 
 /** A partir de este zoom se cargan los trazados detallados (RNF-02: geometrías según zoom). */
@@ -220,6 +234,34 @@ export class MapPage {
 
   /** Autobuses en tiempo real (solo en la app del móvil): los de las líneas a la vista. */
   private readonly realtime = inject(RealtimeService);
+
+  /** Cortes de tráfico (Ayuntamiento y DGT): los activos y los de los próximos 7 días. */
+  private readonly trafficItems = signal<readonly TrafficItem[]>([]);
+  protected readonly showTraffic = signal(true);
+  protected readonly selectedTrafficId = signal<string | null>(null);
+  private readonly clock = inject(ScheduleClockService).clock;
+  /** "AAAA-MM-DDTHH:mm" en hora de Madrid, como las fechas de los cortes. */
+  private readonly nowLocal = computed(() =>
+    localStamp(this.clock().dateKey, this.clock().minutes),
+  );
+  protected readonly traffic = computed(() => {
+    const now = this.nowLocal();
+    const horizon = localStamp(addDays(this.clock().dateKey, TRAFFIC_DAYS_AHEAD), 0);
+    return this.trafficItems()
+      .filter((item) => (!item.to || item.to >= now) && (!item.from || item.from <= horizon))
+      .map((item) => ({ item, active: !item.from || item.from <= now }));
+  });
+  protected readonly activeTraffic = computed(() => this.traffic().filter((t) => t.active).length);
+  protected readonly mapTraffic = computed(() =>
+    this.showTraffic()
+      ? this.traffic().flatMap(({ item, active }) =>
+          item.points[0] ? [{ id: item.id, point: item.points[0], active }] : [],
+        )
+      : [],
+  );
+  protected readonly selectedTraffic = computed(() =>
+    this.traffic().find((t) => t.item.id === this.selectedTrafficId()),
+  );
   protected readonly vehicles = computed(() => {
     const visible = this.visibleLines();
     const highlighted = this.highlightedLines();
@@ -303,6 +345,8 @@ export class MapPage {
 
   /** El mapa encuadra la última línea resaltada o la última parada elegida. */
   protected readonly fitPoints = computed<LatLon[]>(() => {
+    const cut = this.selectedTraffic();
+    if (cut) return [...cut.item.points];
     const focus = this.focus();
     if (focus?.kind === 'zone' || focus?.kind === 'street') {
       // La calle encuadra también sus paradas cercanas (una dirección es un solo punto).
@@ -322,6 +366,13 @@ export class MapPage {
 
   constructor() {
     this.realtime.watch();
+    inject(TrafficRepository)
+      .getTraffic()
+      .then((items) => this.trafficItems.set(items))
+      // Sin cortes el mapa funciona igual.
+      .catch((error: unknown) =>
+        console.warn('No se pudieron cargar los cortes de tráfico', error),
+      );
     void this.loadShapes('overview');
     void this.zonesStore.load();
     // Si las zonas no se pudieron cargar al abrir, se reintenta al buscar. Las calles
@@ -333,6 +384,20 @@ export class MapPage {
       }
     });
     if (this.street()) void this.streetsStore.load();
+  }
+
+  /** Marca un corte de tráfico: ficha arriba del panel y mapa centrado en él. */
+  protected selectTraffic(id: string | null): void {
+    this.selectedTrafficId.set(id);
+    if (id) this.scrollPanelToTop();
+  }
+
+  /** "2026-10-06T15:30" -> "6/10 15:30". */
+  protected formatStamp(stamp: string | null): string {
+    if (!stamp) return '';
+    const [date, time] = stamp.split('T');
+    const [, month, day] = (date ?? '').split('-');
+    return `${Number(day)}/${Number(month)} ${time ?? ''}`.trim();
   }
 
   protected isVisible(lineId: string): boolean {

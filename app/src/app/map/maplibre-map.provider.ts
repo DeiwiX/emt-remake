@@ -18,6 +18,7 @@ import {
   MapViewEvents,
   MapViewOptions,
   MapVehicle,
+  MapTrafficItem,
 } from '../core/map/map-provider';
 import { ColorScheme } from '../core/theme/color-scheme.service';
 
@@ -73,6 +74,8 @@ const LAYER = {
   user: 'user',
   vehicles: 'vehicles',
   vehicleLabels: 'vehicle-labels',
+  traffic: 'traffic',
+  trafficLabels: 'traffic-labels',
 } as const;
 const SOURCE = {
   routes: 'routes',
@@ -81,6 +84,7 @@ const SOURCE = {
   area: 'area',
   user: 'user',
   vehicles: 'vehicles',
+  traffic: 'traffic',
 } as const;
 
 /**
@@ -147,6 +151,7 @@ class MapLibreView implements MapView {
   private userLocation: LatLon | null = null;
   private userAccuracy = 0;
   private vehicles: readonly MapVehicle[] = [];
+  private traffic: readonly MapTrafficItem[] = [];
   private area: readonly Polygon[] | null = null;
   private scheme: ColorScheme;
   private baseLayer: MapBaseLayer = 'streets';
@@ -167,6 +172,13 @@ class MapLibreView implements MapView {
         [x - TAP_TOLERANCE_PX, y - TAP_TOLERANCE_PX],
         [x + TAP_TOLERANCE_PX, y + TAP_TOLERANCE_PX],
       ];
+      const cut = map.getLayer(LAYER.traffic)
+        ? map.queryRenderedFeatures(box, { layers: [LAYER.traffic] })[0]
+        : undefined;
+      if (cut && events.trafficSelected) {
+        events.trafficSelected(String(cut.properties['id']));
+        return;
+      }
       const stop = map.queryRenderedFeatures(box, { layers: [LAYER.selectedStop, LAYER.stops] })[0];
       if (stop) {
         events.stopSelected(String(stop.properties['id']));
@@ -201,6 +213,11 @@ class MapLibreView implements MapView {
   setHighlightedStop(stop: MapStop | null): void {
     this.highlightedStop = stop;
     this.source(SOURCE.selectedStop)?.setData(this.selectedStopGeoJson());
+  }
+
+  setTraffic(items: readonly MapTrafficItem[]): void {
+    this.traffic = items;
+    this.source(SOURCE.traffic)?.setData(this.trafficGeoJson());
   }
 
   setVehicles(vehicles: readonly MapVehicle[]): void {
@@ -400,6 +417,32 @@ class MapLibreView implements MapView {
         'circle-stroke-width': 3,
       },
     });
+    // Cortes de tráfico: aviso naranja (gris si aún no ha empezado) con "!".
+    map.addSource(SOURCE.traffic, { type: 'geojson', data: this.trafficGeoJson() });
+    map.addLayer({
+      id: LAYER.traffic,
+      type: 'circle',
+      source: SOURCE.traffic,
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 6, 16, 11],
+        'circle-color': ['case', ['get', 'active'], '#E8590C', '#868E96'],
+        'circle-stroke-color': '#FFFFFF',
+        'circle-stroke-width': 2,
+      },
+    });
+    map.addLayer({
+      id: LAYER.trafficLabels,
+      type: 'symbol',
+      source: SOURCE.traffic,
+      minzoom: 12,
+      layout: {
+        'text-field': '!',
+        'text-font': ['Noto Sans Bold'],
+        'text-size': 12,
+        'text-allow-overlap': true,
+      },
+      paint: { 'text-color': '#FFFFFF' },
+    });
     // Autobuses en tiempo real: punto grande del color de la línea con su número.
     map.addSource(SOURCE.vehicles, { type: 'geojson', data: this.vehiclesGeoJson() });
     map.addLayer({
@@ -561,6 +604,17 @@ class MapLibreView implements MapView {
             },
           ]
         : [],
+    };
+  }
+
+  private trafficGeoJson(): FeatureCollection {
+    return {
+      type: 'FeatureCollection',
+      features: this.traffic.map((item) => ({
+        type: 'Feature',
+        properties: { id: item.id, active: item.active },
+        geometry: { type: 'Point', coordinates: [item.point[1], item.point[0]] },
+      })),
     };
   }
 

@@ -242,5 +242,22 @@
     "then": "next one in ~{{minutes}} min",
     "estimated": "real-time estimate · data from {{age}} min ago",
     "onMap": "{{count}} buses on the map in real time · data from {{age}} min ago"
+  },
+  "traffic": {
+    "show": "Show traffic closures",
+    "hide": "Hide traffic closures",
+    "title": "Traffic closures",
+    "summary": "{{active}} active now and {{upcoming}} in the next 7 days",
+    "active": "Active",
+    "upcoming": "Upcoming",
+    "when": "From {{from}} to {{to}}",
+    "since": "From {{from}}",
+    "until": "Until {{to}}",
+    "source": {
+      "ayto": "Málaga City Council",
+      "dgt": "DGT"
+    },
+    "close": "Close",
+    "none": "No active or upcoming traffic closures."
   }
 }

@@ -92,11 +92,16 @@
           }
           <ion-list [attr.aria-label]="'lineDetail.stopsInOrder' | transloco">
             @for (stop of stops(); track $index) {
-              <ion-item [routerLink]="['/stops', stop.id]" detail>
-                <ion-label class="ion-text-wrap">
-                  {{ $index + 1 }}. {{ stop.name }}
-                  <p>{{ 'stops.code' | transloco: { id: stop.id } }}</p>
-                </ion-label>
+              <ion-item>
+                <a class="stop-link" [routerLink]="['/stops', stop.id]">
+                  <span>{{ $index + 1 }}. {{ stop.name }}</span>
+                  <span class="stop-meta">{{ 'stops.code' | transloco: { id: stop.id } }}</span>
+                </a>
+                <app-favorite-button
+                  slot="end"
+                  [favorite]="{ kind: 'stop', stopId: stop.id }"
+                  [label]="'favorites.stopLabel' | transloco: { name: stop.name }"
+                />
               </ion-item>
             }
           </ion-list>

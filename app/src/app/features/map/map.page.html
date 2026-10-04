@@ -34,6 +34,8 @@
           (lineSelected)="highlight($event)"
           (stopSelected)="selectStop($event)"
           (zoomChanged)="onZoom($event)"
+          [traffic]="mapTraffic()"
+          (trafficSelected)="selectTraffic($event)"
           [vehicles]="vehicles()"
         />
       </div>
@@ -42,6 +44,30 @@
     <!-- Alternativa en texto de todo lo que muestra el mapa (RNF-01). -->
     <section #panel class="split-panel" [attr.aria-label]="'map.panelLabel' | transloco">
       <app-data-status-banner />
+      <!-- Cortes de tráfico: resumen y botón para mostrarlos u ocultarlos en el mapa. -->
+      <div class="traffic-toggle ion-padding-horizontal">
+        <ion-note>
+          @if (traffic().length > 0) {
+            {{
+              'traffic.summary'
+                | transloco
+                  : { active: activeTraffic(), upcoming: traffic().length - activeTraffic() }
+            }}
+          } @else {
+            {{ 'traffic.none' | transloco }}
+          }
+        </ion-note>
+        @if (traffic().length > 0) {
+          <ion-button
+            size="small"
+            fill="outline"
+            [attr.aria-pressed]="showTraffic()"
+            (click)="showTraffic.set(!showTraffic())"
+          >
+            {{ (showTraffic() ? 'traffic.hide' : 'traffic.show') | transloco }}
+          </ion-button>
+        }
+      </div>
       @if (vehiclesAge() !== null) {
         <p class="live-note ion-padding-horizontal">
           <ion-note>{{
@@ -131,6 +157,45 @@
           </ion-list>
         }
       } @else {
+        <!-- Corte de tráfico tocado en el mapa. -->
+        @if (selectedTraffic(); as cut) {
+          <div class="selected traffic-card" aria-live="polite">
+            <p class="traffic-kind">
+              <span class="traffic-badge" [class.active]="cut.active">{{
+                (cut.active ? 'traffic.active' : 'traffic.upcoming') | transloco
+              }}</span>
+              {{ cut.item.kind }}
+              @if (cut.item.effect) {
+                · {{ cut.item.effect }}
+              }
+            </p>
+            <h2>{{ cut.item.address || cut.item.effect }}</h2>
+            @if (cut.item.description) {
+              <p>{{ cut.item.description }}</p>
+            }
+            <p>
+              @if (cut.item.from && cut.item.to) {
+                {{
+                  'traffic.when'
+                    | transloco: { from: formatStamp(cut.item.from), to: formatStamp(cut.item.to) }
+                }}
+              } @else if (cut.item.from) {
+                {{ 'traffic.since' | transloco: { from: formatStamp(cut.item.from) } }}
+              } @else if (cut.item.to) {
+                {{ 'traffic.until' | transloco: { to: formatStamp(cut.item.to) } }}
+              }
+            </p>
+            <p>
+              <ion-note>{{ 'traffic.source.' + cut.item.source | transloco }}</ion-note>
+            </p>
+            <div class="actions">
+              <ion-button fill="outline" (click)="selectTraffic(null)">{{
+                'traffic.close' | transloco
+              }}</ion-button>
+            </div>
+          </div>
+        }
+
         <!-- La parada elegida va arriba del todo: es lo último que ha pedido el usuario. -->
         @if (selectedStop(); as stop) {
           <app-stop-card [stop]="stop" (closed)="selectStop(null)" />

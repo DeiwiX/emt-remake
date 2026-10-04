@@ -6,6 +6,7 @@ import {
   ScheduleRepository,
   ShapeRepository,
   StreetRepository,
+  TrafficRepository,
   ZoneRepository,
 } from '../core/data/repositories';
 import { DatasetSyncService } from './dataset-sync.service';
@@ -15,6 +16,7 @@ import {
   StaticScheduleRepository,
   StaticShapeRepository,
   StaticStreetRepository,
+  StaticTrafficRepository,
   StaticZoneRepository,
 } from './static-repositories';
 
@@ -30,6 +32,7 @@ export function provideData(): (Provider | EnvironmentProviders)[] {
     { provide: ShapeRepository, useClass: StaticShapeRepository },
     { provide: ZoneRepository, useClass: StaticZoneRepository },
     { provide: StreetRepository, useClass: StaticStreetRepository },
+    { provide: TrafficRepository, useClass: StaticTrafficRepository },
     { provide: ScheduleRepository, useClass: StaticScheduleRepository },
     // No se espera al resultado: la app se pinta mientras se cargan los datos.
     provideAppInitializer(() => {

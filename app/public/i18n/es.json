@@ -242,5 +242,22 @@
     "then": "el siguiente en ~{{minutes}} min",
     "estimated": "estimado en tiempo real · dato de hace {{age}} min",
     "onMap": "{{count}} autobuses en el mapa en tiempo real · dato de hace {{age}} min"
+  },
+  "traffic": {
+    "show": "Mostrar cortes de tráfico",
+    "hide": "Ocultar cortes de tráfico",
+    "title": "Cortes de tráfico",
+    "summary": "{{active}} activos ahora y {{upcoming}} en los próximos 7 días",
+    "active": "Activo",
+    "upcoming": "Próximo",
+    "when": "Del {{from}} al {{to}}",
+    "since": "Desde el {{from}}",
+    "until": "Hasta el {{to}}",
+    "source": {
+      "ayto": "Ayuntamiento de Málaga",
+      "dgt": "DGT"
+    },
+    "close": "Cerrar",
+    "none": "No hay cortes de tráfico activos ni previstos."
   }
 }

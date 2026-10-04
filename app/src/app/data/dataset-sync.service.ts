@@ -15,12 +15,14 @@ import {
   ShapesFile,
   TimetablesFile,
   StreetsFile,
+  TrafficFile,
   ZonesFile,
   parseManifest,
   parseNetwork,
   parseShapes,
   parseTimetables,
   parseStreets,
+  parseTraffic,
   parseZones,
 } from './published-format';
 
@@ -31,7 +33,7 @@ const KEYS = {
 } as const;
 
 /** Ficheros que se descargan bajo demanda (no al arrancar). */
-type AuxFile = 'shapesOverview' | 'shapesDetail' | 'zones' | 'timetables' | 'streets';
+type AuxFile = 'shapesOverview' | 'shapesDetail' | 'zones' | 'timetables' | 'streets' | 'traffic';
 
 interface StoredDataset {
   manifest: unknown;
@@ -97,6 +99,11 @@ export class DatasetSyncService extends DataStatusService {
   /** Calles con sus portales (buscar por calle). Se descarga la primera vez que se busca. */
   getStreetsFile(): Promise<StreetsFile> {
     return this.getAuxFile('streets', parseStreets);
+  }
+
+  /** Cortes de tráfico e incidencias (mapa). */
+  getTrafficFile(): Promise<TrafficFile> {
+    return this.getAuxFile('traffic', parseTraffic);
   }
 
   /** Salidas programadas (próximos buses según horario y "Cómo llegar"). */

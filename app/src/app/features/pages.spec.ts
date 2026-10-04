@@ -234,7 +234,7 @@ describe('Pantallas con datos', () => {
 
   it('el detalle de línea muestra las paradas del sentido pedido en orden', async () => {
     const element = await open('/lines/2?direction=2');
-    const items = [...element.querySelectorAll('ion-item ion-label')].map((l) =>
+    const items = [...element.querySelectorAll('ion-item .stop-link')].map((l) =>
       l.textContent?.replace(/\s+/g, ' ').trim(),
     );
     expect(element.textContent).toContain('Hacia Alameda · 2 paradas');

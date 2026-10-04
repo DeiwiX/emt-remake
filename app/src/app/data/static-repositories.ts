@@ -5,6 +5,7 @@ import {
   ScheduleRepository,
   ShapeRepository,
   StreetRepository,
+  TrafficRepository,
   ZoneRepository,
 } from '../core/data/repositories';
 import { Timetables } from '../core/schedule/schedule';
@@ -15,6 +16,7 @@ import {
   Stop,
   StopService,
   Street,
+  TrafficItem,
   Zone,
 } from '../core/models/network.model';
 import { DatasetSyncService } from './dataset-sync.service';
@@ -96,6 +98,17 @@ export class StaticStreetRepository extends StreetRepository {
       points: decodePolyline(street.points),
       numbers: street.numbers,
     }));
+  }
+}
+
+/** Cortes de tráfico e incidencias: descarga bajo demanda y decodifica las posiciones. */
+@Injectable()
+export class StaticTrafficRepository extends TrafficRepository {
+  private readonly sync = inject(DatasetSyncService);
+
+  async getTraffic(): Promise<readonly TrafficItem[]> {
+    const file = await this.sync.getTrafficFile();
+    return file.items.map((item) => ({ ...item, points: decodePolyline(item.points) }));
   }
 }
 

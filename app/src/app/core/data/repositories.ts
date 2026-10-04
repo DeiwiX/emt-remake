@@ -1,6 +1,14 @@
-import { Signal } from '@angular/core';
+import { Injectable, Signal } from '@angular/core';
 
-import { LatLon, Line, ShapeDetail, Stop, Street, Zone } from '../models/network.model';
+import {
+  LatLon,
+  Line,
+  ShapeDetail,
+  Stop,
+  Street,
+  TrafficItem,
+  Zone,
+} from '../models/network.model';
 import { Timetables } from '../schedule/schedule';
 import { DataStatus } from './data-status';
 
@@ -32,6 +40,15 @@ export abstract class ZoneRepository {
 export abstract class StreetRepository {
   /** Calles del callejero. Se descargan solo cuando se piden (buscar por calle). */
   abstract getStreets(): Promise<readonly Street[]>;
+}
+
+/**
+ * Cortes de tráfico e incidencias. Se descargan al abrir el mapa. Sin
+ * configurar (pruebas), no hay ninguno.
+ */
+@Injectable({ providedIn: 'root', useFactory: () => ({ getTraffic: () => Promise.resolve([]) }) })
+export abstract class TrafficRepository {
+  abstract getTraffic(): Promise<readonly TrafficItem[]>;
 }
 
 export abstract class ScheduleRepository {

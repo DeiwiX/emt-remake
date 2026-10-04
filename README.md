@@ -142,9 +142,14 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
 - **Autobuses en el mapa:** en Mapa (los de las líneas visibles) y en el detalle de línea (los de ese sentido), con el color y el número de su línea.
 - Solo en la app nativa: el servidor no permite CORS, así que en la web se usa solo el horario (ADR 0008).
 
+### Cortes de tráfico
+
+- `traffic.json` (se publica cada hora): cortes del Ayuntamiento ("Cortes de tráfico", CC BY-SA 4.0) e incidencias de la DGT (DATEX II) en la zona de Málaga, sin los ya terminados. Si una fuente falla se publica el resto; no cuenta en `dataVersion`, así que la app no vuelve a bajar la red cada hora.
+- En el Mapa: aviso naranja (activo) o gris (empieza en los próximos 7 días); al tocarlo, ficha con tipo, dirección, descripción, fechas y fuente. Un botón los muestra u oculta.
+
 ### Favoritos
 
-- Estrella en el detalle de parada, en la ficha de parada de Mapa y Paradas, en el detalle de línea y en "Cómo llegar" (trayecto origen → destino).
+- Estrella en las listas de paradas (Paradas, búsqueda del inicio, detalle de línea), en el detalle de parada, en la ficha de parada de Mapa y Paradas, en el detalle de línea y en "Cómo llegar" (trayecto origen → destino).
 - En el inicio, "Mis favoritos" muestra las paradas guardadas como tarjetas pequeñas en dos columnas (nombre, líneas y el próximo bus de cualquiera de ellas); al pulsar una se despliega a lo ancho con los próximos buses de cada línea y el acceso al detalle. También los trayectos (abren "Cómo llegar" ya rellenado: `/plan?from=stop:152&to=neighbourhood:...`) y las líneas.
 - Las paradas guardadas admiten un nombre propio ("Casa", "Trabajo"; botón "Ponerle nombre" en la tarjeta desplegada), que se muestra encima del nombre de la parada.
 - Se guardan solo en el dispositivo (`localStorage`), sin cuentas (ADR 0006).

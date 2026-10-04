@@ -60,3 +60,46 @@ app-line-badge {
     border-radius: 8px;
   }
 }
+
+/* Cortes de tráfico. */
+.traffic-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.traffic-card {
+  border-bottom: 1px solid var(--ion-border-color, #ccc);
+
+  h2 {
+    margin: 4px 0;
+    font-size: 1.1rem;
+  }
+
+  p {
+    margin: 4px 0;
+  }
+}
+
+.traffic-kind {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.traffic-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #868e96;
+  color: #fff;
+  font-size: 0.8rem;
+
+  &.active {
+    background: #c4440a;
+  }
+}

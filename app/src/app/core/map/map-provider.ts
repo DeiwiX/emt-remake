@@ -34,6 +34,13 @@ export interface MapVehicle {
   readonly textColor: string;
 }
 
+/** Corte de tráfico en el mapa: aviso en su punto; atenuado si aún no ha empezado. */
+export interface MapTrafficItem {
+  readonly id: string;
+  readonly point: LatLon;
+  readonly active: boolean;
+}
+
 export interface MapStop {
   readonly id: string;
   readonly name: string;
@@ -57,6 +64,8 @@ export interface MapViewEvents {
   /** Se ha tocado un recorrido (lineId) o una zona vacía (null). */
   lineSelected(lineId: string | null): void;
   stopSelected(stopId: string): void;
+  /** Se ha tocado un corte de tráfico. */
+  trafficSelected?(id: string): void;
   zoomChanged(zoom: number): void;
 }
 
@@ -82,6 +91,8 @@ export interface MapView {
    * dibuja alrededor el círculo del margen de error.
    */
   setUserLocation(point: LatLon | null, accuracy?: number): void;
+  /** Cortes de tráfico; lista vacía para quitarlos. */
+  setTraffic(items: readonly MapTrafficItem[]): void;
   /** Autobuses en tiempo real; lista vacía para quitarlos. */
   setVehicles(vehicles: readonly MapVehicle[]): void;
   /** Marca una zona (contorno y relleno suave); null = ninguna. */

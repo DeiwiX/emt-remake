@@ -72,5 +72,21 @@ export interface Street {
   readonly numbers: readonly number[];
 }
 
+/** Corte de tráfico (Ayuntamiento) o incidencia (DGT). */
+export interface TrafficItem {
+  readonly id: string;
+  readonly source: 'ayto' | 'dgt';
+  /** "Obras", "Mudanza"... o la causa de la DGT. */
+  readonly kind: string;
+  /** "Corte", "Ocupación de calzada"... o la carretera (DGT). */
+  readonly effect: string;
+  readonly description: string;
+  readonly address: string;
+  /** Hora de Madrid sin zona ("2026-10-06T15:30"); null si no se sabe. */
+  readonly from: string | null;
+  readonly to: string | null;
+  readonly points: readonly LatLon[];
+}
+
 /** Nivel de detalle de los trazados: vista general o zoom cercano. */
 export type ShapeDetail = 'overview' | 'detail';
