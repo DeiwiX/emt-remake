@@ -15,7 +15,6 @@ import {
   IonContent,
   IonHeader,
   IonItem,
-  IonLabel,
   IonList,
   IonSearchbar,
   IonTitle,
@@ -31,6 +30,7 @@ import { SimpleModeService } from '../../core/settings/simple-mode.service';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
 import { MapViewComponent } from '../../shared/map-view/map-view.component';
 import { StopCardComponent } from '../../shared/stop-card/stop-card.component';
+import { FavoriteButtonComponent } from '../../shared/favorite-button/favorite-button.component';
 
 /**
  * Hay más de 1.000 paradas: se pintan por bloques para que la lista sea fluida
@@ -53,13 +53,13 @@ const MAX_FIT_RESULTS = 200;
     DataStatusBannerComponent,
     MapViewComponent,
     StopCardComponent,
+    FavoriteButtonComponent,
     IonBackButton,
     IonButton,
     IonButtons,
     IonContent,
     IonHeader,
     IonItem,
-    IonLabel,
     IonList,
     IonSearchbar,
     IonTitle,
@@ -113,20 +113,26 @@ const MAX_FIT_RESULTS = 200;
             </p>
             <ion-list [attr.aria-label]="'stops.title' | transloco">
               @for (stop of visible(); track stop.id) {
-                <ion-item
-                  button
-                  [detail]="false"
-                  [class.is-selected]="stop.id === selectedId()"
-                  [attr.aria-current]="stop.id === selectedId() ? 'true' : null"
-                  (click)="selectStop(stop.id)"
-                >
-                  <ion-label class="ion-text-wrap">
-                    {{ stop.name }}
-                    <p>
+                <!-- Dos botones por fila (elegir la parada y guardarla): el ion-item no es
+                     pulsable entero para no anidar un botón dentro de otro. -->
+                <ion-item [class.is-selected]="stop.id === selectedId()">
+                  <button
+                    type="button"
+                    class="select-stop"
+                    [attr.aria-current]="stop.id === selectedId() ? 'true' : null"
+                    (click)="selectStop(stop.id)"
+                  >
+                    <span class="stop-name">{{ stop.name }}</span>
+                    <span class="stop-meta">
                       {{ 'stops.code' | transloco: { id: stop.id } }} ·
                       {{ 'stops.servedBy' | transloco: { lines: lineCodes(stop) } }}
-                    </p>
-                  </ion-label>
+                    </span>
+                  </button>
+                  <app-favorite-button
+                    slot="end"
+                    [favorite]="{ kind: 'stop', stopId: stop.id }"
+                    [label]="'favorites.stopLabel' | transloco: { name: stop.name }"
+                  />
                 </ion-item>
               }
             </ion-list>
