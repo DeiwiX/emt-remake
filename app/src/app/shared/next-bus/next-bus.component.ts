@@ -2,6 +2,9 @@ import { ChangeDetectionStrategy, Component, computed, inject, input } from '@an
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { IonIcon } from '@ionic/angular';
 
+import { NetworkRepository } from '../../core/data/repositories';
+import { estimateArrivals } from '../../core/realtime/realtime';
+import { RealtimeService } from '../../core/realtime/realtime.service';
 import { ScheduleClockService } from '../../core/schedule/schedule-clock.service';
 import { dateKeyOf, dayOffsetOf, formatClock } from '../../core/schedule/schedule';
 
@@ -73,6 +76,28 @@ interface Passing {
       font-size: 0.8rem;
       white-space: nowrap;
     }
+    /* Tiempo real estimado (solo en la app del móvil): encima del horario. */
+    .live {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
+      color: var(--ion-text-color);
+    }
+    .live-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #1e8e3e;
+      box-shadow: 0 0 0 3px rgba(30, 142, 62, 0.2);
+    }
+    .live strong {
+      font-size: 1.05rem;
+    }
+    .live small {
+      color: var(--ion-color-step-600, var(--ion-text-color-step-400, #666));
+    }
     .source {
       display: flex;
       align-items: center;
@@ -82,6 +107,23 @@ interface Passing {
     }
   `,
   template: `
+    @if (live(); as live) {
+      <p class="live" role="status">
+        <span class="live-dot" aria-hidden="true"></span>
+        <span>
+          {{ 'realtime.arrives' | transloco }}
+          <strong>{{
+            live.first === 0
+              ? ('nextBus.now' | transloco)
+              : ('realtime.inMinutes' | transloco: { minutes: live.first })
+          }}</strong>
+          @if (live.second !== null) {
+            · {{ 'realtime.then' | transloco: { minutes: live.second } }}
+          }
+        </span>
+        <small>{{ 'realtime.estimated' | transloco: { age: live.age } }}</small>
+      </p>
+    }
     @switch (view().kind) {
       @case ('loading') {
         <span class="status">
@@ -113,6 +155,8 @@ interface Passing {
 export class NextBusComponent {
   private readonly schedule = inject(ScheduleClockService);
   private readonly transloco = inject(TranslocoService);
+  private readonly network = inject(NetworkRepository);
+  private readonly realtime = inject(RealtimeService);
 
   readonly lineId = input.required<string>();
   readonly directionId = input.required<number>();
@@ -120,7 +164,26 @@ export class NextBusComponent {
 
   constructor() {
     void this.schedule.load();
+    this.realtime.watch();
   }
+
+  /** Llegada estimada con la posición real de los autobuses (null si no hay dato útil). */
+  protected readonly live = computed(() => {
+    const direction = this.network
+      .getLine(this.lineId())
+      ?.directions.find((d) => d.id === this.directionId());
+    if (!direction) return null;
+    const arrivals = estimateArrivals(
+      this.realtime.vehicles(),
+      this.lineId(),
+      direction,
+      direction.stopIds.indexOf(this.stopId()),
+      this.realtime.now(),
+    );
+    const [first, second] = arrivals;
+    if (!first) return null;
+    return { first: first.minutes, second: second?.minutes ?? null, age: first.ageMinutes };
+  });
 
   protected readonly view = computed(() => {
     const result = this.schedule.nextBuses(this.lineId(), this.directionId(), this.stopId(), COUNT);

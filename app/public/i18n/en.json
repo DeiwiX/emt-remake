@@ -235,5 +235,11 @@
     "rough": "Approximate location (±{{accuracy}} m).",
     "distance": "{{metres}} m · {{minutes}} min walk",
     "privacy": "Your location is only used on this device and is never stored or sent anywhere."
+  },
+  "realtime": {
+    "arrives": "Arrives",
+    "inMinutes": "in ~{{minutes}} min",
+    "then": "next one in ~{{minutes}} min",
+    "estimated": "real-time estimate · data from {{age}} min ago"
   }
 }

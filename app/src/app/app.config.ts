@@ -12,6 +12,8 @@ import { MapProvider } from './core/map/map-provider';
 import { MapLibreMapProvider } from './map/maplibre-map.provider';
 import { LocationService } from './core/location/location.service';
 import { CapacitorLocationService } from './location/capacitor-location.service';
+import { RealtimeSource } from './core/realtime/realtime.service';
+import { CapacitorRealtimeSource } from './realtime/capacitor-realtime.source';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -27,5 +29,6 @@ export const appConfig: ApplicationConfig = {
     // Proveedor de mapas intercambiable (ADR 0003).
     { provide: MapProvider, useClass: MapLibreMapProvider },
     { provide: LocationService, useClass: CapacitorLocationService },
+    { provide: RealtimeSource, useClass: CapacitorRealtimeSource },
   ],
 };
