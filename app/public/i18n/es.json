@@ -56,7 +56,8 @@
     "notFound": "No existe la parada {{id}}.",
     "mapLabel": "Mapa de la parada {{name}}",
     "nextBusSoon": "Próximo bus: tiempo real próximamente",
-    "nextBusNote": "Horas según el horario programado de la EMT. El tiempo real llegará en una próxima versión."
+    "nextBusNote": "Horas según el horario programado de la EMT. En la app del móvil, encima, la llegada estimada en tiempo real.",
+    "openLine": "Ver la línea {{id}}"
   },
   "map": {
     "title": "Mapa",
@@ -106,7 +107,14 @@
     "highContrastHint": "Aumenta el contraste de textos y controles. Funciona con el tema claro y con el oscuro.",
     "simpleMode": "Modo sencillo",
     "simpleModeHint": "Solo listas y texto, sin mapa. Ocupa menos datos y es más fácil de usar.",
-    "simpleModeForced": "Este dispositivo no puede mostrar el mapa, así que la app funciona siempre en modo sencillo."
+    "simpleModeForced": "Este dispositivo no puede mostrar el mapa, así que la app funciona siempre en modo sencillo.",
+    "busSize": "Tamaño de los autobuses en el mapa",
+    "busSizes": {
+      "small": "Pequeño",
+      "normal": "Normal",
+      "large": "Grande"
+    },
+    "busSizeHint": "Los autobuses en tiempo real solo se ven en la app del móvil."
   },
   "about": {
     "title": "Acerca de",
@@ -259,5 +267,25 @@
     },
     "close": "Cerrar",
     "none": "No hay cortes de tráfico activos ni previstos."
+  },
+  "vehicle": {
+    "towards": "Hacia {{headsign}}",
+    "nextStop": "Próxima parada: {{stop}} ({{code}})",
+    "estimated": "Posición estimada a partir de un dato de hace {{age}} min",
+    "reported": "Posición publicada hace {{age}} min",
+    "follow": "Seguir",
+    "unfollow": "Dejar de seguir"
+  },
+  "alert": {
+    "notifyMe": "Avísame",
+    "choose": "Avísame cuando falten (min):",
+    "option": "Avisar cuando falten {{minutes}} minutos",
+    "close": "Cancelar",
+    "active": "Te aviso cuando falten {{minutes}} min",
+    "cancel": "Quitar aviso",
+    "denied": "Sin permiso para notificaciones: actívalo en los ajustes del móvil.",
+    "title": "Línea {{line}}",
+    "body": "Llega a {{stop}} en unos {{minutes}} min",
+    "bodyNow": "Está llegando a {{stop}}"
   }
 }

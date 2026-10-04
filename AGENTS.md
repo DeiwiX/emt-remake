@@ -26,7 +26,7 @@ desarrollador.
 
 | Aspecto | Estado |
 | --- | --- |
-| Lenguajes y frameworks | TypeScript estricto; Angular 22, Ionic 9, Capacitor 8 (proyectos `app/android` y `app/ios`, plugin `@capacitor/app`; identificador `io.github.deiwix.emtremake`), Transloco para idiomas, MapLibre GL JS 6 + OpenFreeMap para el mapa. Mínimos: Android 8+, iOS 16+ |
+| Lenguajes y frameworks | TypeScript estricto; Angular 22, Ionic 9, Capacitor 8 (proyectos `app/android` y `app/ios`, plugins `@capacitor/app`, `@capacitor/geolocation` y `@capacitor/local-notifications`; identificador `io.github.deiwix.emtremake`), Transloco para idiomas, MapLibre GL JS 6 + OpenFreeMap para el mapa. Mínimos: Android 8+, iOS 16+ |
 | Estructura de carpetas | `app/` (aplicación Ionic/Angular), `pipeline/` (script de preprocesado de datos, Node 24 + TypeScript, dependencia `fflate`), `docs/adr/` |
 | Gestor de paquetes | npm (dentro de `app/`) |
 | Comando de pruebas | `npm test -- --watch=false` en `app/` (Vitest vía `ng test`); `npm test` en `pipeline/` (node:test) |

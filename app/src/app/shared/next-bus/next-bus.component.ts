@@ -1,8 +1,10 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
-import { IonIcon } from '@ionic/angular';
+import { IonButton, IonIcon } from '@ionic/angular';
 
 import { NetworkRepository } from '../../core/data/repositories';
+import { alertOptions } from '../../core/realtime/arrival-alert';
+import { ArrivalAlertService } from '../../core/realtime/arrival-alert.service';
 import { estimateArrivals } from '../../core/realtime/realtime';
 import { RealtimeService } from '../../core/realtime/realtime.service';
 import { ScheduleClockService } from '../../core/schedule/schedule-clock.service';
@@ -29,7 +31,7 @@ interface Passing {
  */
 @Component({
   selector: 'app-next-bus',
-  imports: [TranslocoPipe, IonIcon],
+  imports: [TranslocoPipe, IonIcon, IonButton],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
     :host {
@@ -98,6 +100,17 @@ interface Passing {
     .live small {
       color: var(--ion-color-step-600, var(--ion-text-color-step-400, #666));
     }
+    .alert {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 4px;
+      margin: -2px 0 6px;
+      color: var(--ion-text-color);
+    }
+    .alert ion-button {
+      margin: 0;
+    }
     .source {
       display: flex;
       align-items: center;
@@ -123,6 +136,42 @@ interface Passing {
         </span>
         <small>{{ 'realtime.estimated' | transloco: { age: live.age } }}</small>
       </p>
+      <!-- "Avísame cuando falten X min" (solo en la app del móvil). -->
+      @if (alerts.available) {
+        <div class="alert">
+          @if (activeAlert(); as alert) {
+            <ion-icon name="notifications" aria-hidden="true" />
+            <span role="status">{{ 'alert.active' | transloco: { minutes: alert.minutes } }}</span>
+            <ion-button size="small" fill="clear" (click)="alerts.cancel()">{{
+              'alert.cancel' | transloco
+            }}</ion-button>
+          } @else if (choosing()) {
+            <span id="alert-label-{{ stopId() }}-{{ lineId() }}">{{
+              'alert.choose' | transloco
+            }}</span>
+            @for (minutes of options(); track minutes) {
+              <ion-button
+                size="small"
+                fill="outline"
+                [attr.aria-label]="'alert.option' | transloco: { minutes }"
+                (click)="startAlert(minutes, live.vehicleId)"
+                >{{ minutes }}</ion-button
+              >
+            }
+            <ion-button size="small" fill="clear" (click)="choosing.set(false)">{{
+              'alert.close' | transloco
+            }}</ion-button>
+          } @else if (options().length > 0) {
+            <ion-button size="small" fill="clear" (click)="choosing.set(true)">
+              <ion-icon slot="start" name="notifications-outline" aria-hidden="true" />
+              {{ 'alert.notifyMe' | transloco }}
+            </ion-button>
+          }
+          @if (denied()) {
+            <small role="alert">{{ 'alert.denied' | transloco }}</small>
+          }
+        </div>
+      }
     }
     @switch (view().kind) {
       @case ('loading') {
@@ -182,8 +231,41 @@ export class NextBusComponent {
     );
     const [first, second] = arrivals;
     if (!first) return null;
-    return { first: first.minutes, second: second?.minutes ?? null, age: first.ageMinutes };
+    return {
+      first: first.minutes,
+      second: second?.minutes ?? null,
+      age: first.ageMinutes,
+      vehicleId: first.vehicleId,
+    };
   });
+
+  protected readonly alerts = inject(ArrivalAlertService);
+  protected readonly choosing = signal(false);
+  protected readonly denied = signal(false);
+  /** Minutos que se pueden pedir con el próximo autobús (menos de lo que falta). */
+  protected readonly options = computed(() => alertOptions(this.live()?.first ?? 0));
+  /** El aviso activo, si es de esta línea, sentido y parada. */
+  protected readonly activeAlert = computed(() => {
+    const alert = this.alerts.alert();
+    return alert &&
+      alert.stopId === this.stopId() &&
+      alert.lineId === this.lineId() &&
+      alert.directionId === this.directionId()
+      ? alert
+      : null;
+  });
+
+  protected async startAlert(minutes: number, vehicleId: string): Promise<void> {
+    const started = await this.alerts.start({
+      stopId: this.stopId(),
+      lineId: this.lineId(),
+      directionId: this.directionId(),
+      vehicleId,
+      minutes,
+    });
+    this.denied.set(!started);
+    this.choosing.set(false);
+  }
 
   protected readonly view = computed(() => {
     const result = this.schedule.nextBuses(this.lineId(), this.directionId(), this.stopId(), COUNT);

@@ -3,7 +3,9 @@ import { Router, RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import {
   IonBackButton,
+  IonButton,
   IonButtons,
+  IonIcon,
   IonContent,
   IonHeader,
   IonItem,
@@ -41,7 +43,9 @@ import { NextBusComponent } from '../../shared/next-bus/next-bus.component';
     MapViewComponent,
     NextBusComponent,
     IonBackButton,
+    IonButton,
     IonButtons,
+    IonIcon,
     IonContent,
     IonHeader,
     IonItem,
@@ -106,11 +110,8 @@ import { NextBusComponent } from '../../shared/next-bus/next-bus.component';
             <h2 class="ion-padding-horizontal">{{ 'stopDetail.lines' | transloco }}</h2>
             <ion-list [attr.aria-label]="'stopDetail.lines' | transloco">
               @for (service of services(); track service.lineId + '-' + service.directionId) {
-                <ion-item
-                  [routerLink]="['/lines', service.lineId]"
-                  [queryParams]="{ direction: service.directionId }"
-                  detail
-                >
+                <!-- El enlace a la línea va aparte: dentro de la fila están los botones del aviso. -->
+                <ion-item>
                   <app-line-badge slot="start" [code]="service.lineId" />
                   <ion-label class="ion-text-wrap">
                     <span class="visually-hidden"
@@ -123,6 +124,15 @@ import { NextBusComponent } from '../../shared/next-bus/next-bus.component';
                       [stopId]="stop.id"
                     />
                   </ion-label>
+                  <ion-button
+                    slot="end"
+                    fill="clear"
+                    [routerLink]="['/lines', service.lineId]"
+                    [queryParams]="{ direction: service.directionId }"
+                    [attr.aria-label]="'stopDetail.openLine' | transloco: { id: service.lineId }"
+                  >
+                    <ion-icon slot="icon-only" name="chevron-forward" aria-hidden="true" />
+                  </ion-button>
                 </ion-item>
               }
             </ion-list>

@@ -3,6 +3,8 @@ import { Injectable, signal } from '@angular/core';
 import { AVAILABLE_LANGS, AppLang, DEFAULT_LANG } from '../i18n/i18n.config';
 
 export type ThemePreference = 'system' | 'light' | 'dark';
+/** Tamaño de los autobuses en tiempo real en el mapa. */
+export type BusSize = 'small' | 'normal' | 'large';
 /** Aspecto de los mapas: 'auto' sigue el tema de la app. */
 export type MapStylePreference = 'auto' | 'light' | 'dark' | 'satellite';
 
@@ -13,11 +15,13 @@ export interface AppSettings {
   /** Modo sencillo (RF-07): solo listas, sin mapa. Se aplica en el incremento 8. */
   readonly simpleMode: boolean;
   readonly mapStyle: MapStylePreference;
+  readonly busSize: BusSize;
 }
 
 const STORAGE_KEY = 'emt-remake.settings.v1';
 const THEMES: readonly ThemePreference[] = ['system', 'light', 'dark'];
 const MAP_STYLES: readonly MapStylePreference[] = ['auto', 'light', 'dark', 'satellite'];
+const BUS_SIZES: readonly BusSize[] = ['small', 'normal', 'large'];
 
 /**
  * Ajustes del usuario (RF-10), guardados solo en este dispositivo. Son unos
@@ -47,6 +51,7 @@ function defaultSettings(): AppSettings {
     highContrast: false,
     simpleMode: false,
     mapStyle: 'auto',
+    busSize: 'normal',
   };
 }
 
@@ -63,6 +68,7 @@ export function loadSettings(): AppSettings {
   const language = stored['language'];
   const theme = stored['theme'];
   const mapStyle = stored['mapStyle'];
+  const busSize = stored['busSize'];
   return {
     language: (AVAILABLE_LANGS as readonly unknown[]).includes(language)
       ? (language as AppLang)
@@ -77,5 +83,8 @@ export function loadSettings(): AppSettings {
     mapStyle: (MAP_STYLES as readonly unknown[]).includes(mapStyle)
       ? (mapStyle as MapStylePreference)
       : defaults.mapStyle,
+    busSize: (BUS_SIZES as readonly unknown[]).includes(busSize)
+      ? (busSize as BusSize)
+      : defaults.busSize,
   };
 }

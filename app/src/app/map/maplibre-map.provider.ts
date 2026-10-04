@@ -94,6 +94,57 @@ const SOURCE = {
 const MANY_STOPS = 200;
 const MANY_STOPS_MIN_ZOOM = 13;
 
+/** Los dibujos de bus se hacen al doble de resolución para que se vean nítidos. */
+const BUS_PIXEL_RATIO = 2;
+
+function busImageName(color: string): string {
+  return `bus-${color.replace('#', '').toLowerCase()}`;
+}
+
+/**
+ * Autobús visto desde arriba, mirando al norte (la capa lo gira según su rumbo):
+ * carrocería del color de la línea con borde blanco, parabrisas delante, luna
+ * trasera y ventanillas. null si el entorno no tiene canvas (pruebas).
+ */
+function drawBus(color: string): ImageData | null {
+  const width = 22 * BUS_PIXEL_RATIO;
+  const height = 48 * BUS_PIXEL_RATIO;
+  const canvas = typeof document === 'undefined' ? null : document.createElement('canvas');
+  const ctx = canvas?.getContext('2d');
+  if (!canvas || !ctx) return null;
+  canvas.width = width;
+  canvas.height = height;
+  const r = BUS_PIXEL_RATIO;
+  const rounded = (x: number, y: number, w: number, h: number, radius: number) => {
+    ctx.beginPath();
+    ctx.roundRect(x * r, y * r, w * r, h * r, radius * r);
+  };
+  // Sombra suave y carrocería con borde blanco.
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+  rounded(2, 3, 18, 44, 5);
+  ctx.fill();
+  ctx.fillStyle = color;
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineWidth = 2 * r;
+  rounded(2, 1, 18, 44, 5);
+  ctx.fill();
+  ctx.stroke();
+  // Parabrisas (delante, arriba), luna trasera y ventanillas laterales.
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+  rounded(4.5, 3.5, 13, 6, 2.5);
+  ctx.fill();
+  rounded(5.5, 39, 11, 3.5, 1.5);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+  for (let y = 13; y < 37; y += 6) {
+    rounded(3.5, y, 2, 4, 1);
+    ctx.fill();
+    rounded(16.5, y, 2, 4, 1);
+    ctx.fill();
+  }
+  return ctx.getImageData(0, 0, width, height);
+}
+
 /** Margen en píxeles alrededor del toque para acertar con líneas finas. */
 const TAP_TOLERANCE_PX = 10;
 
@@ -151,6 +202,9 @@ class MapLibreView implements MapView {
   private userLocation: LatLon | null = null;
   private userAccuracy = 0;
   private vehicles: readonly MapVehicle[] = [];
+  private vehicleScale = 1;
+  /** Dibujos de bus ya añadidos al estilo (uno por color de línea). */
+  private readonly busImages = new Set<string>();
   private traffic: readonly MapTrafficItem[] = [];
   private area: readonly Polygon[] | null = null;
   private scheme: ColorScheme;
@@ -172,6 +226,13 @@ class MapLibreView implements MapView {
         [x - TAP_TOLERANCE_PX, y - TAP_TOLERANCE_PX],
         [x + TAP_TOLERANCE_PX, y + TAP_TOLERANCE_PX],
       ];
+      const bus = map.getLayer(LAYER.vehicles)
+        ? map.queryRenderedFeatures(box, { layers: [LAYER.vehicles] })[0]
+        : undefined;
+      if (bus && events.vehicleSelected) {
+        events.vehicleSelected(String(bus.properties['id']));
+        return;
+      }
       const cut = map.getLayer(LAYER.traffic)
         ? map.queryRenderedFeatures(box, { layers: [LAYER.traffic] })[0]
         : undefined;
@@ -222,7 +283,48 @@ class MapLibreView implements MapView {
 
   setVehicles(vehicles: readonly MapVehicle[]): void {
     this.vehicles = vehicles;
+    this.ensureBusImages();
     this.source(SOURCE.vehicles)?.setData(this.vehiclesGeoJson());
+  }
+
+  setVehicleScale(scale: number): void {
+    this.vehicleScale = scale;
+    if (!this.map.getLayer(LAYER.vehicles)) return;
+    this.map.setLayoutProperty(LAYER.vehicles, 'icon-size', this.busIconSize());
+    this.map.setLayoutProperty(LAYER.vehicleLabels, 'text-size', Math.round(11 * scale));
+  }
+
+  centerOn(point: LatLon): void {
+    this.map.easeTo({
+      center: [point[1], point[0]],
+      duration: this.options.reduceMotion ? 0 : 800,
+    });
+  }
+
+  /** Tamaño del icono según el zoom y el ajuste del usuario; el seguido, algo mayor. */
+  private busIconSize(): ExpressionSpecification {
+    const s = this.vehicleScale;
+    return [
+      'interpolate',
+      ['linear'],
+      ['zoom'],
+      11,
+      ['*', 0.55 * s, ['case', ['get', 'selected'], 1.25, 1]],
+      16,
+      ['*', 1.1 * s, ['case', ['get', 'selected'], 1.25, 1]],
+    ];
+  }
+
+  /** Añade al estilo el dibujo de bus de cada color que falte. */
+  private ensureBusImages(): void {
+    for (const vehicle of this.vehicles) {
+      const name = busImageName(vehicle.color);
+      if (this.busImages.has(name) && this.map.hasImage(name)) continue;
+      const image = drawBus(vehicle.color);
+      if (!image) return;
+      if (!this.map.hasImage(name)) this.map.addImage(name, image, { pixelRatio: BUS_PIXEL_RATIO });
+      this.busImages.add(name);
+    }
   }
 
   setUserLocation(point: LatLon | null, accuracy = 0): void {
@@ -445,29 +547,42 @@ class MapLibreView implements MapView {
     });
     // Autobuses en tiempo real: punto grande del color de la línea con su número.
     map.addSource(SOURCE.vehicles, { type: 'geojson', data: this.vehiclesGeoJson() });
+    // El estilo nuevo no trae los dibujos de bus: se vuelven a añadir.
+    this.busImages.clear();
+    this.ensureBusImages();
     map.addLayer({
       id: LAYER.vehicles,
-      type: 'circle',
+      type: 'symbol',
       source: SOURCE.vehicles,
-      paint: {
-        'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 7, 16, 13],
-        'circle-color': ['get', 'color'],
-        'circle-stroke-color': '#FFFFFF',
-        'circle-stroke-width': 2,
+      layout: {
+        'icon-image': ['get', 'icon'],
+        'icon-size': this.busIconSize(),
+        'icon-rotate': ['get', 'bearing'],
+        'icon-rotation-alignment': 'map',
+        'icon-allow-overlap': true,
+        'icon-ignore-placement': true,
+        'symbol-sort-key': ['case', ['get', 'selected'], 1, 0],
       },
     });
+    // Número de la línea sobre el bus, siempre derecho para leerlo.
     map.addLayer({
       id: LAYER.vehicleLabels,
       type: 'symbol',
       source: SOURCE.vehicles,
-      minzoom: 13,
+      minzoom: 12,
       layout: {
         'text-field': ['get', 'lineId'],
         'text-font': ['Noto Sans Bold'],
-        'text-size': 11,
+        'text-size': Math.round(11 * this.vehicleScale),
         'text-allow-overlap': true,
+        'text-ignore-placement': true,
+        'text-rotation-alignment': 'viewport',
       },
-      paint: { 'text-color': ['get', 'textColor'] },
+      paint: {
+        'text-color': ['get', 'textColor'],
+        'text-halo-color': ['get', 'color'],
+        'text-halo-width': 2,
+      },
     });
     // Posición del usuario: punto azul con halo, encima de todo.
     map.addSource(SOURCE.user, { type: 'geojson', data: this.userGeoJson() });
@@ -628,6 +743,9 @@ class MapLibreView implements MapView {
           lineId: vehicle.lineId,
           color: vehicle.color,
           textColor: vehicle.textColor,
+          icon: busImageName(vehicle.color),
+          bearing: vehicle.bearing ?? 0,
+          selected: vehicle.selected ?? false,
         },
         geometry: { type: 'Point', coordinates: [vehicle.lon, vehicle.lat] },
       })),

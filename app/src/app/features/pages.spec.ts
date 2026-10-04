@@ -277,7 +277,7 @@ describe('Pantallas con datos', () => {
     expect(text).toContain('Hacia Centro');
   });
 
-  it('los ajustes muestran idiomas y temas y guardan la elección', async () => {
+  it('los ajustes muestran idiomas, temas y tamaño de los autobuses', async () => {
     const element = await open('/settings');
     const radios = [...element.querySelectorAll('ion-radio')];
     expect(radios.map((r) => r.getAttribute('aria-label') ?? r.textContent?.trim())).toEqual([
@@ -286,6 +286,9 @@ describe('Pantallas con datos', () => {
       'Según el sistema',
       'Claro',
       'Oscuro',
+      'Pequeño',
+      'Normal',
+      'Grande',
     ]);
   });
 

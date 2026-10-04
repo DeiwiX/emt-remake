@@ -35,6 +35,9 @@ const INITIAL_ZOOM = 12;
 
 type MapState = 'loading' | 'ready' | 'unsupported' | 'error';
 
+/** Tamaño de los autobuses en el mapa según Ajustes. */
+const BUS_SCALES = { small: 0.75, normal: 1, large: 1.35 } as const;
+
 /** Capas que se pueden elegir. La foto aérea es la del PNOA (IGN), ADR 0004. */
 const LAYER_CHOICES: readonly Exclude<MapStylePreference, 'auto'>[] = [
   'light',
@@ -168,6 +171,9 @@ export class MapViewComponent {
   readonly trafficSelected = output<string>();
   /** Autobuses en tiempo real (solo en la app del móvil). */
   readonly vehicles = input<readonly MapVehicle[]>([]);
+  readonly vehicleSelected = output<string>();
+  /** Punto en el que mantener centrado el mapa (seguir a un autobús); null = libre. */
+  readonly followPoint = input<LatLon | null>(null);
   /** Margen de error de la posición del usuario, en metros (círculo alrededor del punto). */
   readonly userAccuracy = input(0);
   /**
@@ -210,6 +216,15 @@ export class MapViewComponent {
     effect(() => this.view()?.setHighlightedArea(this.highlightedArea()));
     effect(() => this.view()?.setUserLocation(this.userLocation(), this.userAccuracy()));
     effect(() => this.view()?.setVehicles(this.vehicles()));
+    effect(() => {
+      const scale = BUS_SCALES[this.settings.settings().busSize];
+      this.view()?.setVehicleScale(scale);
+    });
+    effect(() => {
+      const view = this.view();
+      const point = this.followPoint();
+      if (view && point) view.centerOn(point);
+    });
     effect(() => this.view()?.setTraffic(this.traffic()));
     effect(() => {
       const label = this.label();
@@ -262,6 +277,7 @@ export class MapViewComponent {
           lineSelected: (lineId) => this.lineSelected.emit(lineId),
           stopSelected: (stopId) => this.stopSelected.emit(stopId),
           trafficSelected: (id) => this.trafficSelected.emit(id),
+          vehicleSelected: (id) => this.vehicleSelected.emit(id),
           zoomChanged: (zoom) => this.zoomChanged.emit(zoom),
         },
       );

@@ -20,12 +20,13 @@ import {
 } from '@ionic/angular';
 
 import { AVAILABLE_LANGS, AppLang } from '../../core/i18n/i18n.config';
-import { SettingsService, ThemePreference } from '../../core/settings/settings.service';
+import { BusSize, SettingsService, ThemePreference } from '../../core/settings/settings.service';
 import { SimpleModeService } from '../../core/settings/simple-mode.service';
 
 /** Nombre de cada idioma en su propio idioma, para que se reconozca aunque no se entienda el actual. */
 const LANGUAGE_NAMES: Record<AppLang, string> = { es: 'Español', en: 'English' };
 const THEMES: readonly ThemePreference[] = ['system', 'light', 'dark'];
+const BUS_SIZES: readonly BusSize[] = ['small', 'normal', 'large'];
 
 /** Ajustes (RF-10): idioma, tema, alto contraste y modo sencillo. Se aplican al momento. */
 @Component({
@@ -134,6 +135,30 @@ const THEMES: readonly ThemePreference[] = ['system', 'light', 'dark'];
         </ion-item>
       </ion-list>
 
+      <!-- Tamaño de los autobuses en tiempo real (solo en la app del móvil). -->
+      <ion-radio-group
+        aria-labelledby="bus-size-label"
+        [value]="settings().busSize"
+        (ionChange)="setBusSize($event.detail.value)"
+      >
+        <ion-list role="none">
+          <ion-list-header>
+            <ion-label id="bus-size-label">{{ 'settings.busSize' | transloco }}</ion-label>
+          </ion-list-header>
+          @if (busSizeLabels(); as labels) {
+            @for (size of busSizes; track size) {
+              <ion-item>
+                <ion-label aria-hidden="true">{{ labels[size] }}</ion-label>
+                <ion-radio slot="end" [value]="size" [attr.aria-label]="labels[size]" />
+              </ion-item>
+            }
+          }
+          <ion-item lines="none">
+            <ion-note>{{ 'settings.busSizeHint' | transloco }}</ion-note>
+          </ion-item>
+        </ion-list>
+      </ion-radio-group>
+
       <ion-list>
         <ion-item routerLink="/about" detail>
           <ion-label>{{ 'about.title' | transloco }}</ion-label>
@@ -155,6 +180,17 @@ export class SettingsPage {
       'settings.themes',
     ),
   );
+
+  protected readonly busSizes = BUS_SIZES;
+  protected readonly busSizeLabels = toSignal(
+    inject(TranslocoService).selectTranslateObject<Record<BusSize, string>>('settings.busSizes'),
+  );
+
+  protected setBusSize(value: unknown): void {
+    if ((BUS_SIZES as readonly unknown[]).includes(value)) {
+      this.service.update({ busSize: value as BusSize });
+    }
+  }
 
   protected setLanguage(value: unknown): void {
     if ((AVAILABLE_LANGS as readonly unknown[]).includes(value)) {

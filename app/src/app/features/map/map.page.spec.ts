@@ -54,6 +54,8 @@ class FakeMapView implements MapView {
   setUserLocation = vi.fn();
   setVehicles = vi.fn();
   setTraffic = vi.fn();
+  setVehicleScale = vi.fn();
+  centerOn = vi.fn();
   area: readonly unknown[] | null = null;
   setHighlightedArea(polygons: readonly unknown[] | null) {
     this.area = polygons;

@@ -37,6 +37,8 @@
           [traffic]="mapTraffic()"
           (trafficSelected)="selectTraffic($event)"
           [vehicles]="vehicles()"
+          [followPoint]="followPoint()"
+          (vehicleSelected)="selectVehicle($event)"
         />
       </div>
     }
@@ -157,6 +159,37 @@
           </ion-list>
         }
       } @else {
+        <!-- Autobús tocado en el mapa: ficha y "Seguir". -->
+        @if (selectedVehicle(); as bus) {
+          <div class="selected vehicle-card" aria-live="polite">
+            <div class="selected-title">
+              <app-line-badge [code]="bus.lineId" />
+              <h2>{{ 'vehicle.towards' | transloco: { headsign: bus.headsign } }}</h2>
+            </div>
+            @if (bus.nextStop; as stop) {
+              <p>{{ 'vehicle.nextStop' | transloco: { stop: stop.name, code: stop.id } }}</p>
+            }
+            <p>
+              <ion-note>{{
+                (bus.estimated ? 'vehicle.estimated' : 'vehicle.reported')
+                  | transloco: { age: bus.age }
+              }}</ion-note>
+            </p>
+            <div class="actions">
+              <ion-button
+                [fill]="following() ? 'solid' : 'outline'"
+                [attr.aria-pressed]="following()"
+                (click)="following.set(!following())"
+              >
+                {{ (following() ? 'vehicle.unfollow' : 'vehicle.follow') | transloco }}
+              </ion-button>
+              <ion-button fill="outline" (click)="selectVehicle(null)">{{
+                'traffic.close' | transloco
+              }}</ion-button>
+            </div>
+          </div>
+        }
+
         <!-- Corte de tráfico tocado en el mapa. -->
         @if (selectedTraffic(); as cut) {
           <div class="selected traffic-card" aria-live="polite">

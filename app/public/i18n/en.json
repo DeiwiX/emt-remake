@@ -56,7 +56,8 @@
     "notFound": "Stop {{id}} does not exist.",
     "mapLabel": "Map of stop {{name}}",
     "nextBusSoon": "Next bus: real time coming soon",
-    "nextBusNote": "Times from EMT's published timetable. Real time will come in a future version."
+    "nextBusNote": "Times from the EMT published timetable. In the mobile app, the real-time estimate is shown above them.",
+    "openLine": "Open line {{id}}"
   },
   "map": {
     "title": "Map",
@@ -106,7 +107,14 @@
     "highContrastHint": "Increases the contrast of text and controls. Works with both the light and the dark theme.",
     "simpleMode": "Simple mode",
     "simpleModeHint": "Lists and text only, no map. Uses less data and is easier to use.",
-    "simpleModeForced": "This device cannot show the map, so the app always works in simple mode."
+    "simpleModeForced": "This device cannot show the map, so the app always works in simple mode.",
+    "busSize": "Size of buses on the map",
+    "busSizes": {
+      "small": "Small",
+      "normal": "Normal",
+      "large": "Large"
+    },
+    "busSizeHint": "Real-time buses are only shown in the mobile app."
   },
   "about": {
     "title": "About",
@@ -259,5 +267,25 @@
     },
     "close": "Close",
     "none": "No active or upcoming traffic closures."
+  },
+  "vehicle": {
+    "towards": "Towards {{headsign}}",
+    "nextStop": "Next stop: {{stop}} ({{code}})",
+    "estimated": "Estimated position from data {{age}} min old",
+    "reported": "Position reported {{age}} min ago",
+    "follow": "Follow",
+    "unfollow": "Stop following"
+  },
+  "alert": {
+    "notifyMe": "Notify me",
+    "choose": "Notify me when it is (min) away:",
+    "option": "Notify when {{minutes}} minutes away",
+    "close": "Cancel",
+    "active": "I will notify you {{minutes}} min before",
+    "cancel": "Remove alert",
+    "denied": "Notifications are not allowed: enable them in the phone settings.",
+    "title": "Line {{line}}",
+    "body": "Arrives at {{stop}} in about {{minutes}} min",
+    "bodyNow": "Arriving at {{stop}} now"
   }
 }

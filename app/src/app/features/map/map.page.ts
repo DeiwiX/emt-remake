@@ -32,6 +32,7 @@ import { NetworkRepository, ShapeRepository } from '../../core/data/repositories
 import { ZonesStore } from '../../core/data/zones-store.service';
 import { StreetsStore } from '../../core/data/streets-store.service';
 import { RealtimeService } from '../../core/realtime/realtime.service';
+import { VehicleTrackerService } from '../../core/realtime/vehicle-tracker.service';
 import { TrafficRepository } from '../../core/data/repositories';
 import { TrafficItem } from '../../core/models/network.model';
 import { ScheduleClockService } from '../../core/schedule/schedule-clock.service';
@@ -262,33 +263,54 @@ export class MapPage {
   protected readonly selectedTraffic = computed(() =>
     this.traffic().find((t) => t.item.id === this.selectedTrafficId()),
   );
+  /** Autobuses con su posición estimada (se mueven cada segundo). */
+  private readonly tracker = inject(VehicleTrackerService);
+  protected readonly selectedVehicleId = signal<string | null>(null);
+  protected readonly following = signal(false);
   protected readonly vehicles = computed(() => {
     const visible = this.visibleLines();
     const highlighted = this.highlightedLines();
-    const now = this.realtime.now();
-    return (
-      this.realtime
-        .vehicles()
-        .filter(
-          (v) =>
-            (visible === null || visible.has(v.lineId)) &&
-            (!highlighted || highlighted.has(v.lineId)),
-        )
-        // Solo líneas de la red publicada (la fuente trae algunas que no están, p. ej. 71).
-        .filter((v) => ageMinutes(v, now) !== null && !!this.network.getLine(v.lineId))
-        .map((v) => {
-          const color = this.colors.colorFor(v.lineId);
-          return {
-            id: v.id,
-            lineId: v.lineId,
-            lat: v.lat,
-            lon: v.lon,
-            color: color.line,
-            textColor: color.text,
-          };
-        })
-    );
+    const selected = this.selectedVehicleId();
+    return this.tracker
+      .vehicles()
+      .filter(
+        (v) =>
+          v.id === selected ||
+          ((visible === null || visible.has(v.lineId)) &&
+            (!highlighted || highlighted.has(v.lineId))),
+      )
+      .map((v) => {
+        const color = this.colors.colorFor(v.lineId);
+        return {
+          id: v.id,
+          lineId: v.lineId,
+          lat: v.point[0],
+          lon: v.point[1],
+          bearing: v.bearing,
+          color: color.line,
+          textColor: color.text,
+          selected: v.id === selected,
+        };
+      });
   });
+  /** Autobús tocado: su línea, sentido, próxima parada y antigüedad del dato. */
+  protected readonly selectedVehicle = computed(() => {
+    const vehicle = this.tracker.vehicles().find((v) => v.id === this.selectedVehicleId());
+    if (!vehicle) return null;
+    const direction = this.network
+      .getLine(vehicle.lineId)
+      ?.directions.find((d) => d.id === vehicle.directionId);
+    return {
+      ...vehicle,
+      headsign: direction?.headsign ?? '',
+      nextStop: vehicle.nextStopId ? this.network.getStop(vehicle.nextStopId) : undefined,
+      age: Math.round(vehicle.ageMinutes),
+    };
+  });
+  /** Siguiendo un autobús: el mapa lo mantiene en el centro. */
+  protected readonly followPoint = computed(() =>
+    this.following() ? (this.selectedVehicle()?.point ?? null) : null,
+  );
   /** Antigüedad del dato más reciente, para el aviso del panel. */
   protected readonly vehiclesAge = computed(() => {
     const now = this.realtime.now();
@@ -365,7 +387,7 @@ export class MapPage {
   });
 
   constructor() {
-    this.realtime.watch();
+    this.tracker.watch();
     inject(TrafficRepository)
       .getTraffic()
       .then((items) => this.trafficItems.set(items))
@@ -384,6 +406,13 @@ export class MapPage {
       }
     });
     if (this.street()) void this.streetsStore.load();
+  }
+
+  /** Toca un autobús: su ficha arriba del panel (sin seguirlo todavía). */
+  protected selectVehicle(id: string | null): void {
+    this.selectedVehicleId.set(id);
+    this.following.set(false);
+    if (id) this.scrollPanelToTop();
   }
 
   /** Marca un corte de tráfico: ficha arriba del panel y mapa centrado en él. */

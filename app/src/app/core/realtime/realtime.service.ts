@@ -50,7 +50,7 @@ export class RealtimeService {
    * Empieza a recibir posiciones mientras viva quien llama (componente o
    * servicio con DestroyRef). Varias pantallas comparten la misma descarga.
    */
-  watch(destroyRef = inject(DestroyRef)): void {
+  watch(destroyRef: Pick<DestroyRef, 'onDestroy'> = inject(DestroyRef)): void {
     if (!this.available) return;
     this.watchers++;
     if (this.watchers === 1) {

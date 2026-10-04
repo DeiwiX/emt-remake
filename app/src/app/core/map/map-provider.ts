@@ -24,7 +24,7 @@ export interface MapRoute {
   readonly label?: string;
 }
 
-/** Autobús en el mapa (tiempo real): punto del color de su línea con el número. */
+/** Autobús en el mapa (tiempo real): dibujo de un bus del color de su línea con el número. */
 export interface MapVehicle {
   readonly id: string;
   readonly lineId: string;
@@ -32,6 +32,10 @@ export interface MapVehicle {
   readonly lon: number;
   readonly color: string;
   readonly textColor: string;
+  /** Rumbo en grados (0 = norte): el bus se dibuja mirando hacia donde va. */
+  readonly bearing?: number;
+  /** El que se está siguiendo: se dibuja algo mayor y con borde. */
+  readonly selected?: boolean;
 }
 
 /** Corte de tráfico en el mapa: aviso en su punto; atenuado si aún no ha empezado. */
@@ -66,6 +70,8 @@ export interface MapViewEvents {
   stopSelected(stopId: string): void;
   /** Se ha tocado un corte de tráfico. */
   trafficSelected?(id: string): void;
+  /** Se ha tocado un autobús en tiempo real. */
+  vehicleSelected?(id: string): void;
   zoomChanged(zoom: number): void;
 }
 
@@ -95,6 +101,10 @@ export interface MapView {
   setTraffic(items: readonly MapTrafficItem[]): void;
   /** Autobuses en tiempo real; lista vacía para quitarlos. */
   setVehicles(vehicles: readonly MapVehicle[]): void;
+  /** Tamaño de los autobuses (1 = normal), según Ajustes. */
+  setVehicleScale(scale: number): void;
+  /** Centra el mapa en un punto sin cambiar el zoom (seguir a un autobús). */
+  centerOn(point: LatLon): void;
   /** Marca una zona (contorno y relleno suave); null = ninguna. */
   setHighlightedArea(polygons: readonly Polygon[] | null): void;
   destroy(): void;

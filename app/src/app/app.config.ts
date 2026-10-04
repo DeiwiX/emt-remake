@@ -14,6 +14,8 @@ import { LocationService } from './core/location/location.service';
 import { CapacitorLocationService } from './location/capacitor-location.service';
 import { RealtimeSource } from './core/realtime/realtime.service';
 import { CapacitorRealtimeSource } from './realtime/capacitor-realtime.source';
+import { ArrivalNotifier } from './core/realtime/arrival-notifier';
+import { CapacitorArrivalNotifier } from './realtime/capacitor-arrival.notifier';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -30,5 +32,6 @@ export const appConfig: ApplicationConfig = {
     { provide: MapProvider, useClass: MapLibreMapProvider },
     { provide: LocationService, useClass: CapacitorLocationService },
     { provide: RealtimeSource, useClass: CapacitorRealtimeSource },
+    { provide: ArrivalNotifier, useClass: CapacitorArrivalNotifier },
   ],
 };

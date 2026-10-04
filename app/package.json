@@ -25,6 +25,7 @@
     "@capacitor/core": "8.5.2",
     "@capacitor/geolocation": "8.2.3",
     "@capacitor/ios": "8.5.2",
+    "@capacitor/local-notifications": "8.3.1",
     "@ionic/angular": "^9.0.6",
     "@jsverse/transloco": "^8.4.0",
     "ionicons": "^8.1.0",

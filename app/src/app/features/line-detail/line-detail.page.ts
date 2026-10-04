@@ -30,8 +30,7 @@ import {
 import { LineColorsService } from '../../core/map/line-colors.service';
 import { toMapRoutes, toMapStops } from '../../core/map/map-features';
 import { SimpleModeService } from '../../core/settings/simple-mode.service';
-import { RealtimeService } from '../../core/realtime/realtime.service';
-import { ageMinutes } from '../../core/realtime/realtime';
+import { VehicleTrackerService } from '../../core/realtime/vehicle-tracker.service';
 import { LatLon } from '../../core/models/network.model';
 import { MapViewComponent } from '../../shared/map-view/map-view.component';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
@@ -112,31 +111,26 @@ export class LineDetailPage {
   );
   protected readonly fitPoints = computed(() => this.mapRoutes()[0]?.points ?? []);
 
-  /** Autobuses de la línea en el sentido elegido (tiempo real, solo en la app del móvil). */
-  private readonly realtime = inject(RealtimeService);
+  /** Autobuses de la línea en el sentido elegido, con su posición estimada (solo en la app del móvil). */
+  private readonly tracker = inject(VehicleTrackerService);
   protected readonly vehicles = computed(() => {
-    const now = this.realtime.now();
     const color = this.colors.colorFor(this.lineId());
-    return this.realtime
+    return this.tracker
       .vehicles()
-      .filter(
-        (v) =>
-          v.lineId === this.lineId() &&
-          v.directionId === this.selectedDirection()?.id &&
-          ageMinutes(v, now) !== null,
-      )
+      .filter((v) => v.lineId === this.lineId() && v.directionId === this.selectedDirection()?.id)
       .map((v) => ({
         id: v.id,
         lineId: v.lineId,
-        lat: v.lat,
-        lon: v.lon,
+        lat: v.point[0],
+        lon: v.point[1],
+        bearing: v.bearing,
         color: color.line,
         textColor: color.text,
       }));
   });
 
   constructor() {
-    this.realtime.watch();
+    this.tracker.watch();
     inject(ShapeRepository)
       .getShapes('detail')
       .then((shapes) => this.geometries.set(shapes))
