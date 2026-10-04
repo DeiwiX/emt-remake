@@ -1,1 +1,3 @@
 * text=auto eol=lf
+# Los scripts de Windows (gradlew.bat) necesitan finales de línea CRLF.
+*.bat text eol=crlf
