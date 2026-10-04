@@ -78,6 +78,10 @@ export class NearPage {
     const state = this.state();
     return state.status === 'ready' ? state.point : null;
   });
+  protected readonly accuracy = computed(() => {
+    const state = this.state();
+    return state.status === 'ready' ? state.accuracy : 0;
+  });
   protected readonly rough = computed(() => {
     const state = this.state();
     return state.status === 'ready' && state.accuracy > ROUGH_ACCURACY_M

@@ -156,6 +156,8 @@ export class MapViewComponent {
   readonly highlightedArea = input<readonly Polygon[] | null>(null);
   /** Posición del usuario; null = no se muestra. */
   readonly userLocation = input<LatLon | null>(null);
+  /** Margen de error de la posición del usuario, en metros (círculo alrededor del punto). */
+  readonly userAccuracy = input(0);
   /**
    * Nombre accesible del mapa. Se pone en el lienzo, que MapLibre ya marca como
    * región: así no hay dos regiones con el mismo nombre.
@@ -194,7 +196,7 @@ export class MapViewComponent {
     effect(() => this.view()?.setHighlightedLines(this.highlightedLines()));
     effect(() => this.view()?.setHighlightedStop(this.highlightedStop()));
     effect(() => this.view()?.setHighlightedArea(this.highlightedArea()));
-    effect(() => this.view()?.setUserLocation(this.userLocation()));
+    effect(() => this.view()?.setUserLocation(this.userLocation(), this.userAccuracy()));
     effect(() => {
       const label = this.label();
       if (label) this.view()?.setLabel(label);

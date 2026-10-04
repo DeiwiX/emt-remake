@@ -27,6 +27,7 @@
           [stops]="mapStops()"
           [highlightedStop]="selectedMarker()"
           [userLocation]="point()"
+          [userAccuracy]="accuracy()"
           [fitPoints]="fitPoints()"
           (stopSelected)="selectStop($event)"
         />

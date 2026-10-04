@@ -268,6 +268,10 @@ export class PlanPage {
     const state = this.locationState();
     return this.origin()?.kind === 'location' && state.status === 'ready' ? state.point : null;
   });
+  protected readonly userAccuracy = computed(() => {
+    const state = this.locationState();
+    return state.status === 'ready' ? state.accuracy : 0;
+  });
   protected readonly fitPoints = computed(() => {
     const points = this.mapRoutes().flatMap((r) => r.points);
     const user = this.userPoint();

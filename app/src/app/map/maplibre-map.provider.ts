@@ -140,6 +140,7 @@ class MapLibreView implements MapView {
   private highlighted: ReadonlySet<string> | null = null;
   private highlightedStop: MapStop | null = null;
   private userLocation: LatLon | null = null;
+  private userAccuracy = 0;
   private area: readonly Polygon[] | null = null;
   private scheme: ColorScheme;
   private baseLayer: MapBaseLayer = 'streets';
@@ -196,9 +197,31 @@ class MapLibreView implements MapView {
     this.source(SOURCE.selectedStop)?.setData(this.selectedStopGeoJson());
   }
 
-  setUserLocation(point: LatLon | null): void {
+  setUserLocation(point: LatLon | null, accuracy = 0): void {
     this.userLocation = point;
+    this.userAccuracy = accuracy;
     this.source(SOURCE.user)?.setData(this.userGeoJson());
+    this.applyUserAccuracy();
+  }
+
+  /**
+   * El halo mide lo mismo que el margen de error en el suelo: metros a píxeles
+   * según el zoom (en Web Mercator, un píxel mide 156 543 m × cos(lat) / 2^zoom).
+   */
+  private applyUserAccuracy(): void {
+    if (!this.map.getLayer(LAYER.userHalo)) return;
+    const lat = this.userLocation?.[0] ?? 36.72;
+    const metresPerPixelAtZoom0 = 156_543.03 * Math.cos((lat * Math.PI) / 180);
+    const radius = Math.max(this.userAccuracy, 0);
+    this.map.setPaintProperty(LAYER.userHalo, 'circle-radius', [
+      'interpolate',
+      ['exponential', 2],
+      ['zoom'],
+      0,
+      Math.max(radius / metresPerPixelAtZoom0, 0),
+      22,
+      (radius / metresPerPixelAtZoom0) * 2 ** 22,
+    ]);
   }
 
   setHighlightedArea(polygons: readonly Polygon[] | null): void {
@@ -342,7 +365,14 @@ class MapLibreView implements MapView {
       id: LAYER.userHalo,
       type: 'circle',
       source: SOURCE.user,
-      paint: { 'circle-radius': 18, 'circle-color': '#1A73E8', 'circle-opacity': 0.2 },
+      paint: {
+        'circle-radius': 0,
+        'circle-color': '#1A73E8',
+        'circle-opacity': 0.15,
+        'circle-stroke-color': '#1A73E8',
+        'circle-stroke-width': 1,
+        'circle-stroke-opacity': 0.5,
+      },
     });
     map.addLayer({
       id: LAYER.user,
@@ -355,6 +385,7 @@ class MapLibreView implements MapView {
         'circle-stroke-width': 3,
       },
     });
+    this.applyUserAccuracy();
     this.applyFiltersAndHighlight();
     this.applyStopsZoomRange();
   }
