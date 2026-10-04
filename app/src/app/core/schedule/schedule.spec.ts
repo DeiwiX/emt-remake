@@ -111,9 +111,15 @@ describe('scheduleJourney', () => {
     minutes: 5,
     estimated: false,
   });
-  const direct: JourneyOption = { legs: [leg('1', 'b', 'c')], totalMinutes: 5, walkMinutes: 0 };
+  const direct: JourneyOption = {
+    legs: [leg('1', 'b', 'c')],
+    accessMinutes: 0,
+    totalMinutes: 5,
+    walkMinutes: 0,
+  };
   const transfer: JourneyOption = {
     legs: [leg('1', 'a', 'c'), leg('2', 'c', 'd')],
+    accessMinutes: 0,
     totalMinutes: 26,
     walkMinutes: 0,
   };
@@ -182,16 +188,31 @@ describe('scheduleJourney', () => {
   });
 
   it('sin horario para una línea devuelve null', () => {
-    const noTimes: JourneyOption = { legs: [leg('9', 'a', 'b')], totalMinutes: 3, walkMinutes: 0 };
+    const noTimes: JourneyOption = {
+      legs: [leg('9', 'a', 'b')],
+      accessMinutes: 0,
+      totalMinutes: 3,
+      walkMinutes: 0,
+    };
     expect(
       scheduleJourney(noTimes, LINES, TIMETABLES, { dateKey: MONDAY, minutes: 0 }, 'depart'),
     ).toBeNull();
   });
 
   it('recomienda la que llega antes al salir y la que sale más tarde al llegar', () => {
-    const a = { option: direct, legs: [], departure: 400, arrival: 430 };
-    const b = { option: direct, legs: [], departure: 410, arrival: 420 };
+    const a = { option: direct, legs: [], leaveAt: 400, departure: 400, arrival: 430 };
+    const b = { option: direct, legs: [], leaveAt: 410, departure: 410, arrival: 420 };
     expect([a, b].sort(compareTimed('depart'))[0]).toBe(b);
     expect([a, b].sort(compareTimed('arrive'))[0]).toBe(b);
+  });
+
+  it('desde "Mi ubicación" el bus se coge después de llegar andando a la parada', () => {
+    const walking: JourneyOption = { ...direct, accessMinutes: 10, totalMinutes: 15 };
+    const clock = { dateKey: MONDAY, minutes: 7 * 60 };
+    const plain = scheduleJourney(direct, LINES, TIMETABLES, clock, 'depart')!;
+    const walked = scheduleJourney(walking, LINES, TIMETABLES, clock, 'depart')!;
+    expect(walked.departure).toBeGreaterThanOrEqual(clock.minutes + 10);
+    expect(walked.departure).toBeGreaterThanOrEqual(plain.departure);
+    expect(walked.leaveAt).toBe(walked.departure - 10);
   });
 });

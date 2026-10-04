@@ -18,6 +18,7 @@
     >
       <app-place-picker
         [label]="'plan.origin' | transloco"
+        [allowLocation]="true"
         [place]="origin()"
         [zones]="zones()"
         (placeChange)="origin.set($event)"
@@ -91,9 +92,6 @@
           </p>
         }
       }
-      <p class="hint">
-        <ion-note>{{ 'plan.locationSoon' | transloco }}</ion-note>
-      </p>
     </section>
 
     @if (showMap()) {
@@ -106,6 +104,7 @@
             [routes]="mapRoutes()"
             [stops]="mapStops()"
             [fitPoints]="fitPoints()"
+            [userLocation]="userPoint()"
           />
         } @placeholder {
           <div class="plan-map"></div>
@@ -144,7 +143,7 @@
                   </span>
                   <span class="option-time">
                     @if (row.timed; as timed) {
-                      <strong>{{ time(timed.departure) }} → {{ time(timed.arrival) }}</strong>
+                      <strong>{{ time(timed.leaveAt) }} → {{ time(timed.arrival) }}</strong>
                       <span>{{ 'plan.minutes' | transloco: { minutes: duration(row) } }}</span>
                     } @else {
                       <strong>{{ 'plan.minutes' | transloco: { minutes: duration(row) } }}</strong>
@@ -153,12 +152,33 @@
                   </span>
                 </div>
                 @if (waitMinutes(row); as wait) {
-                  <p class="wait">{{ 'plan.leavesIn' | transloco: { minutes: wait } }}</p>
+                  <p class="wait">
+                    {{
+                      (row.option.accessMinutes > 0 ? 'plan.leaveIn' : 'plan.leavesIn')
+                        | transloco: { minutes: wait }
+                    }}
+                  </p>
                 } @else if (waitMinutes(row) === 0) {
-                  <p class="wait">{{ 'plan.leavesNow' | transloco }}</p>
+                  <p class="wait">
+                    {{
+                      (row.option.accessMinutes > 0 ? 'plan.leaveNow' : 'plan.leavesNow')
+                        | transloco
+                    }}
+                  </p>
                 }
 
                 <ol class="legs">
+                  <!-- Desde "Mi ubicación": el tramo andando hasta la parada de subida. -->
+                  @if (row.option.accessMinutes > 0) {
+                    <li class="transfer">
+                      {{ 'plan.walkTo' | transloco: { minutes: row.option.accessMinutes } }}
+                      <a class="stop-chip" [routerLink]="['/stops', row.option.legs[0]!.fromStopId]"
+                        ><ion-icon name="location-outline" aria-hidden="true" />{{
+                          stopLabel(row.option.legs[0]!.fromStopId)
+                        }}</a
+                      >
+                    </li>
+                  }
                   @for (leg of row.option.legs; track $index; let i = $index; let first = $first) {
                     @if (!first) {
                       <!-- Las paradas del transbordo enlazan a su ficha; al volver se conserva el recorrido. -->

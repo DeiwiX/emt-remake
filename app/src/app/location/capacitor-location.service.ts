@@ -24,18 +24,23 @@ export class CapacitorLocationService extends LocationService {
         import('@capacitor/core'),
         import('@capacitor/geolocation'),
       ]);
+      // En Android el usuario puede conceder solo la ubicación aproximada: también vale.
+      let precise = true;
       if (Capacitor.isNativePlatform()) {
         let permission = await Geolocation.checkPermissions();
-        if (permission.location !== 'granted') {
-          permission = await Geolocation.requestPermissions({ permissions: ['location'] });
+        if (permission.location !== 'granted' && permission.coarseLocation !== 'granted') {
+          permission = await Geolocation.requestPermissions({
+            permissions: ['location', 'coarseLocation'],
+          });
         }
-        if (permission.location !== 'granted') {
+        if (permission.location !== 'granted' && permission.coarseLocation !== 'granted') {
           this.stateSignal.set({ status: 'denied' });
           return;
         }
+        precise = permission.location === 'granted';
       }
       const position = await Geolocation.getCurrentPosition({
-        enableHighAccuracy: true,
+        enableHighAccuracy: precise,
         timeout: TIMEOUT_MS,
         maximumAge: MAX_AGE_MS,
       });

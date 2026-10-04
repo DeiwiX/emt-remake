@@ -75,6 +75,10 @@ describe('Pantallas con datos', () => {
         },
         { provide: MapProvider, useValue: { isSupported: () => false } },
         {
+          provide: LocationService,
+          useValue: { state: signal({ status: 'idle' }), locate: () => Promise.resolve() },
+        },
+        {
           provide: NetworkRepository,
           useValue: {
             lines: signal(index.lines),

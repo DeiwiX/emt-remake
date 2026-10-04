@@ -82,9 +82,12 @@ export function parseFavorites(raw: string | null): Favorite[] {
   return favorites;
 }
 
-/** Lugar guardado -> referencia: lo que se guarda de un origen o destino. */
-export function toPlaceRef(place: Place): PlaceRef {
-  return { kind: place.kind, id: place.id, name: place.name };
+/**
+ * Lugar -> referencia: lo que se guarda de un origen o destino. "Mi ubicación"
+ * no se guarda (cambia cada vez y no debe quedar registrada): devuelve null.
+ */
+export function toPlaceRef(place: Place): PlaceRef | null {
+  return place.kind === 'location' ? null : { kind: place.kind, id: place.id, name: place.name };
 }
 
 /** "stop:152" o "neighbourhood:b12": así viajan los lugares en la URL de "Cómo llegar". */

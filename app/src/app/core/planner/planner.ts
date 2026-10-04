@@ -11,12 +11,17 @@ import { WALK_DETOUR, WALK_METRES_PER_MINUTE, metresBetween } from '../location/
  * real (Fase 3).
  */
 
-/** Origen o destino: una parada o una zona (barrio, distrito) con sus paradas. */
+/**
+ * Origen o destino: una parada, una zona (barrio, distrito) con sus paradas o la
+ * ubicación del usuario con las paradas cercanas.
+ */
 export interface Place {
-  readonly kind: 'stop' | 'neighbourhood' | 'district';
+  readonly kind: 'stop' | 'neighbourhood' | 'district' | 'location';
   readonly id: string;
   readonly name: string;
   readonly stopIds: readonly string[];
+  /** Minutos andando desde el lugar hasta cada parada (solo "Mi ubicación"). */
+  readonly accessMinutes?: ReadonlyMap<string, number>;
 }
 
 export interface Leg {
@@ -34,7 +39,9 @@ export interface Leg {
 
 export interface JourneyOption {
   readonly legs: readonly Leg[];
-  /** Minutos en el autobús, a pie entre paradas y el margen de cada transbordo. */
+  /** Minutos andando hasta la primera parada (solo desde "Mi ubicación"; si no, 0). */
+  readonly accessMinutes: number;
+  /** Minutos andando hasta la primera parada, en el autobús, a pie entre paradas y el margen de cada transbordo. */
   readonly totalMinutes: number;
   /** Minutos andando entre la parada de bajada y la de subida del transbordo (0 si es la misma). */
   readonly walkMinutes: number;
@@ -82,11 +89,17 @@ export function planJourneys(
   const from = new Set(origin.stopIds);
   const to = new Set(destination.stopIds);
   if (from.size === 0 || to.size === 0) return [];
+  /** Minutos andando hasta una parada de origen (0 salvo desde "Mi ubicación"). */
+  const access = (stopId: string) => origin.accessMinutes?.get(stopId) ?? 0;
 
   const directions = lines.flatMap((line) => line.directions.map((d) => ({ line, d })));
   const direct = directions.flatMap(({ line, d }) => {
-    const leg = bestLeg(line, d, from, to);
-    return leg ? [{ legs: [leg], totalMinutes: leg.minutes, walkMinutes: 0 }] : [];
+    const leg = bestLeg(line, d, from, to, access);
+    if (!leg) return [];
+    const accessMinutes = access(leg.fromStopId);
+    return [
+      { legs: [leg], accessMinutes, totalMinutes: accessMinutes + leg.minutes, walkMinutes: 0 },
+    ];
   });
 
   // Mejor primer tramo hasta cada posible parada de transbordo.
@@ -99,7 +112,12 @@ export function planJourneys(
     for (let k = first + 1; k < d.stopIds.length; k++) {
       const stopId = d.stopIds[k]!;
       if (to.has(stopId) || from.has(stopId)) continue;
-      const board = boardings.filter((b) => b < k).at(-1)!;
+      // La parada de subida que antes deja aquí, contando lo que se tarda en llegar a ella.
+      const board = boardings
+        .filter((b) => b < k)
+        .reduce((best, b) =>
+          access(d.stopIds[b]!) - times[b]! < access(d.stopIds[best]!) - times[best]! ? b : best,
+        );
       const leg = makeLeg(line, d, board, k, times);
       const list = firstLegs.get(stopId) ?? [];
       list.push(leg);
@@ -128,11 +146,18 @@ export function planJourneys(
       for (const { first, metres } of candidates) {
         if (first.lineId === line.id) continue;
         const walkMinutes = Math.ceil((metres * WALK_DETOUR) / WALK_METRES_PER_MINUTE);
-        const total = first.minutes + walkMinutes + transferMinutes + second.minutes;
+        const accessMinutes = access(first.fromStopId);
+        const total =
+          accessMinutes + first.minutes + walkMinutes + transferMinutes + second.minutes;
         const key = `${first.lineId}>${line.id}`;
         const current = transfers.get(key);
         if (!current || total < current.totalMinutes) {
-          transfers.set(key, { legs: [first, second], totalMinutes: total, walkMinutes });
+          transfers.set(key, {
+            legs: [first, second],
+            accessMinutes,
+            totalMinutes: total,
+            walkMinutes,
+          });
         }
       }
     }
@@ -162,20 +187,29 @@ export function planJourneys(
   );
 }
 
-/** El tramo más corto de una línea entre alguna parada de origen y otra posterior de destino. */
+/**
+ * El tramo más corto de una línea entre alguna parada de origen y otra posterior
+ * de destino, contando lo que se tarda andando hasta la parada de subida.
+ */
 function bestLeg(
   line: Line,
   d: Direction,
   from: ReadonlySet<string>,
   to: ReadonlySet<string>,
+  access: (stopId: string) => number,
 ): Leg | null {
   const times = minutesOf(d);
   let best: Leg | null = null;
+  let bestCost = Infinity;
   for (const i of indicesOf(d, from)) {
     const j = indicesOf(d, to).find((index) => index > i);
     if (j === undefined) continue;
     const leg = makeLeg(line, d, i, j, times);
-    if (!best || leg.minutes < best.minutes) best = leg;
+    const cost = access(leg.fromStopId) + leg.minutes;
+    if (cost < bestCost) {
+      best = leg;
+      bestCost = cost;
+    }
   }
   return best;
 }

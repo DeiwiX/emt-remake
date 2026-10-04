@@ -121,7 +121,7 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
 - **Horario oficial:** el GTFS del portal municipal es el horario programado de la EMT. El script publica `timetables.json`: las salidas de cada línea y sentido por día de servicio, con los días de cada servicio (unos 17 KB comprimidos). La hora de paso por una parada se calcula como la salida más los minutos del sentido hasta esa parada, así que es aproximada. No es tiempo real (Fase 3).
 - **Próximo bus:** en el detalle de parada y en la ficha de parada de Mapa y Paradas, cada línea muestra los tres próximos pasos según horario (hora de Málaga) en cápsulas: lo que falta ("8 min") y la hora; a más de una hora, la hora y el tiempo que falta; si hoy no hay más, el día. El primero va destacado.
 - **Cómo llegar:**
-  - Origen y destino: parada, barrio o distrito.
+  - Origen y destino: parada, barrio o distrito. Como origen también "Usar mi ubicación": las paradas a menos de 500 m (o 1 km) con los minutos andando hasta cada una; el planificador los suma, elige la parada de subida que antes te deja en destino y muestra "Sal en N min" y el tramo a pie. Los trayectos desde "Mi ubicación" no se guardan en favoritos.
   - Modos "Salir ahora", "Salir a las…" o "Llegar a las…", hoy u otro día dentro del horario publicado.
   - Propone líneas directas y combinaciones con un transbordo, en la misma parada o andando hasta otra a menos de 250 m.
   - Cada opción se encaja en el horario: qué bus coger, cuánto falta para que salga y a qué hora se llega.
@@ -129,7 +129,7 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
   - En pantallas anchas el mapa ocupa la columna derecha; en el móvil va entre el formulario y las opciones.
   - Las paradas de transbordo son botones que llevan a su ficha; al volver atrás se conserva el recorrido.
   - Las líneas sin horario (91–93) se estiman por distancia y se indica.
-- Más adelante: usar la ubicación como origen (Fase 2), tiempo real (Fase 3) y buscar comercios o direcciones.
+- Más adelante: tiempo real (Fase 3) y buscar comercios o direcciones.
 
 ### Favoritos
 

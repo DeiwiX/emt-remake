@@ -137,10 +137,10 @@
     "change": "Change",
     "swap": "Swap",
     "kind": {
-      "stop": "Stop"
+      "stop": "Stop",
+      "location": "Your location"
     },
     "placesLabel": "From and to",
-    "locationSoon": "Using your location as the starting point will come with “Near me”.",
     "resultsLabel": "Ways to get there",
     "samePlace": "The start and the destination are the same place.",
     "noOptions": "No lines go from the start to the destination, either direct or with one change.",
@@ -177,7 +177,13 @@
     "scheduleUntil": "The published timetable runs until {{date}}.",
     "transferAtLabel": "Change at",
     "transferWalkFrom": "Change: get off at",
-    "transferWalkTo": "and walk ~{{minutes}} min to"
+    "transferWalkTo": "and walk ~{{minutes}} min to",
+    "useMyLocation": "Use my location",
+    "myLocation": "My location",
+    "noStopsNearYou": "There are no stops within 1 km of your location.",
+    "leaveIn": "Leave in {{minutes}} min",
+    "leaveNow": "Leave now",
+    "walkTo": "Walk ~{{minutes}} min to"
   },
   "nextBus": {
     "loading": "Loading timetable…",

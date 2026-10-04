@@ -123,6 +123,25 @@ describe('planJourneys', () => {
     expect(options[0]).toEqual(expect.objectContaining({ walkMinutes: 2, totalMinutes: 17 }));
   });
 
+  it('desde "Mi ubicación" cuenta el tiempo andando y elige la parada que antes deja en destino', () => {
+    // La línea pasa por p1 (a 1 min andando) y por p2 (a 9 min); de p1 a p2 hay 3 min en bus.
+    const lines = [line('7', ['p1', 'p2', 'd'], [0, 3, 10])];
+    const here: Place = {
+      kind: 'location',
+      id: 'me',
+      name: 'Mi ubicación',
+      stopIds: ['p1', 'p2'],
+      accessMinutes: new Map([
+        ['p1', 1],
+        ['p2', 9],
+      ]),
+    };
+    const [option] = planJourneys(lines, here, stop('d'));
+    expect(option!.legs[0]!.fromStopId).toBe('p1');
+    expect(option!.accessMinutes).toBe(1);
+    expect(option!.totalMinutes).toBe(11);
+  });
+
   it('buildNearbyStops encuentra solo las paradas a menos de la distancia máxima', () => {
     const s = (id: string, lon: number): Stop => ({
       id,

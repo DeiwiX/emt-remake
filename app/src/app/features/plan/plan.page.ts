@@ -26,6 +26,7 @@ import {
 import { NetworkRepository, ShapeRepository } from '../../core/data/repositories';
 import { ZonesStore } from '../../core/data/zones-store.service';
 import { resolvePlace, toPlaceRef } from '../../core/favorites/favorites';
+import { LocationService } from '../../core/location/location.service';
 import { LineColorsService } from '../../core/map/line-colors.service';
 import { sliceBetween, toMapStops } from '../../core/map/map-features';
 import { MapRoute } from '../../core/map/map-provider';
@@ -125,11 +126,9 @@ export class PlanPage {
     const origin = this.origin();
     const destination = this.destination();
     if (!origin || !destination || this.samePlace()) return null;
-    return {
-      kind: 'trip' as const,
-      origin: toPlaceRef(origin),
-      destination: toPlaceRef(destination),
-    };
+    const from = toPlaceRef(origin);
+    const to = toPlaceRef(destination);
+    return from && to ? { kind: 'trip' as const, origin: from, destination: to } : null;
   });
   private readonly geometries = signal<ReadonlyMap<string, readonly LatLon[]>>(new Map());
 
@@ -263,7 +262,17 @@ export class PlanPage {
       ]),
     ),
   );
-  protected readonly fitPoints = computed(() => this.mapRoutes().flatMap((r) => r.points));
+  /** Tu posición en el mapa cuando el origen es "Mi ubicación". */
+  private readonly locationState = inject(LocationService).state;
+  protected readonly userPoint = computed<LatLon | null>(() => {
+    const state = this.locationState();
+    return this.origin()?.kind === 'location' && state.status === 'ready' ? state.point : null;
+  });
+  protected readonly fitPoints = computed(() => {
+    const points = this.mapRoutes().flatMap((r) => r.points);
+    const user = this.userPoint();
+    return user ? [user, ...points] : points;
+  });
 
   private readonly mapSection = viewChild<ElementRef<HTMLElement>>('mapSection');
 
@@ -330,13 +339,11 @@ export class PlanPage {
   /** Minutos que faltan para el primer bus (solo en "salir ahora"). */
   protected waitMinutes(row: Row): number | null {
     if (!row.timed || this.timeChoice() !== 'now') return null;
-    return Math.max(0, Math.round(row.timed.departure - this.schedule.clock().minutes));
+    return Math.max(0, Math.round(row.timed.leaveAt - this.schedule.clock().minutes));
   }
 
   protected duration(row: Row): number {
-    return row.timed
-      ? Math.round(row.timed.arrival - row.timed.departure)
-      : row.option.totalMinutes;
+    return row.timed ? Math.round(row.timed.arrival - row.timed.leaveAt) : row.option.totalMinutes;
   }
 
   protected timedLeg(row: Row, index: number) {

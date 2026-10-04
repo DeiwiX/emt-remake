@@ -25,6 +25,8 @@ export interface TimedLeg {
 export interface TimedJourney {
   readonly option: JourneyOption;
   readonly legs: readonly TimedLeg[];
+  /** Hora a la que hay que salir: la del primer bus menos lo que se tarda en llegar a la parada. */
+  readonly leaveAt: number;
   readonly departure: number;
   readonly arrival: number;
 }
@@ -45,12 +47,13 @@ export function scheduleJourney(
   if (plans.some((p) => p === null)) return null;
   const legPlans = plans as LegPlan[];
 
-  if (mode === 'depart') return ride(option, legPlans, clock.minutes);
+  // Desde "Mi ubicación" no se puede coger un bus antes de llegar andando a la parada.
+  if (mode === 'depart') return ride(option, legPlans, clock.minutes + option.accessMinutes);
 
   // "Llegar a las": el último primer bus con el que se llega a tiempo.
   const earliest = clock.minutes - MAX_ARRIVE_BY_WINDOW_MINUTES;
   const candidates = legPlans[0]!.times
-    .filter((t) => t <= clock.minutes && t >= earliest)
+    .filter((t) => t <= clock.minutes && t - option.accessMinutes >= earliest)
     .reverse();
   for (const departure of candidates.slice(0, MAX_ARRIVE_BY_CANDIDATES)) {
     const journey = ride(option, legPlans, departure);
@@ -64,7 +67,7 @@ export function compareTimed(mode: TimeMode) {
   return (a: TimedJourney, b: TimedJourney) =>
     mode === 'depart'
       ? a.arrival - b.arrival || a.option.legs.length - b.option.legs.length
-      : b.departure - a.departure || a.arrival - b.arrival;
+      : b.leaveAt - a.leaveAt || a.arrival - b.arrival;
 }
 
 interface LegPlan {
@@ -105,5 +108,12 @@ function ride(option: JourneyOption, plans: LegPlan[], from: number): TimedJourn
     const isLast = i === plans.length - 1;
     ready = arrival + (isLast ? 0 : option.walkMinutes + TRANSFER_BUFFER_MINUTES);
   }
-  return { option, legs, departure: legs[0]!.departure, arrival: legs.at(-1)!.arrival };
+  const departure = legs[0]!.departure;
+  return {
+    option,
+    legs,
+    leaveAt: departure - option.accessMinutes,
+    departure,
+    arrival: legs.at(-1)!.arrival,
+  };
 }

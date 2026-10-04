@@ -14,6 +14,7 @@ import {
   ZoneRepository,
   ScheduleRepository,
 } from './core/data/repositories';
+import { LocationService } from './core/location/location.service';
 import { MapProvider } from './core/map/map-provider';
 import es from '../../public/i18n/es.json';
 import { HomePage } from './features/home/home.page';
@@ -24,6 +25,7 @@ import { StopDetailPage } from './features/stop-detail/stop-detail.page';
 import { MapPage } from './features/map/map.page';
 import { SettingsPage } from './features/settings/settings.page';
 import { PlanPage } from './features/plan/plan.page';
+import { NearPage } from './features/near/near.page';
 import { AboutPage } from './features/about/about.page';
 
 describe('Rutas de la app', () => {
@@ -52,6 +54,10 @@ describe('Rutas de la app', () => {
         { provide: ZoneRepository, useValue: { getZones: () => Promise.resolve([]) } },
         { provide: MapProvider, useValue: { isSupported: () => false } },
         {
+          provide: LocationService,
+          useValue: { state: signal({ status: 'idle' }), locate: () => Promise.resolve() },
+        },
+        {
           provide: NetworkRepository,
           useValue: {
             lines: signal([]),
@@ -72,6 +78,7 @@ describe('Rutas de la app', () => {
     ['/stops/152', StopDetailPage],
     ['/map', MapPage],
     ['/plan', PlanPage],
+    ['/near', NearPage],
     ['/settings', SettingsPage],
     ['/about', AboutPage],
   ];

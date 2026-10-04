@@ -137,10 +137,10 @@
     "change": "Cambiar",
     "swap": "Intercambiar",
     "kind": {
-      "stop": "Parada"
+      "stop": "Parada",
+      "location": "Tu ubicación"
     },
     "placesLabel": "Origen y destino",
-    "locationSoon": "Usar tu ubicación como origen llegará con «Cerca de mí».",
     "resultsLabel": "Opciones para llegar",
     "samePlace": "El origen y el destino son el mismo lugar.",
     "noOptions": "No hay líneas que lleven del origen al destino, ni directas ni con un transbordo.",
@@ -177,7 +177,13 @@
     "scheduleUntil": "El horario publicado llega hasta el {{date}}.",
     "transferAtLabel": "Transbordo en",
     "transferWalkFrom": "Transbordo: baja en",
-    "transferWalkTo": "y camina ~{{minutes}} min hasta"
+    "transferWalkTo": "y camina ~{{minutes}} min hasta",
+    "useMyLocation": "Usar mi ubicación",
+    "myLocation": "Mi ubicación",
+    "noStopsNearYou": "No hay paradas a menos de 1 km de tu ubicación.",
+    "leaveIn": "Sal en {{minutes}} min",
+    "leaveNow": "Sal ya",
+    "walkTo": "Camina ~{{minutes}} min hasta"
   },
   "nextBus": {
     "loading": "Cargando horario…",
