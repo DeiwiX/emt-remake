@@ -22,6 +22,7 @@ import {
   IonItem,
   IonLabel,
   IonList,
+  IonNote,
   IonSearchbar,
   IonTitle,
   IonToolbar,
@@ -30,6 +31,8 @@ import {
 import { NetworkRepository, ShapeRepository } from '../../core/data/repositories';
 import { ZonesStore } from '../../core/data/zones-store.service';
 import { StreetsStore } from '../../core/data/streets-store.service';
+import { RealtimeService } from '../../core/realtime/realtime.service';
+import { ageMinutes } from '../../core/realtime/realtime';
 import { placeForStreet, portalPoint } from '../../core/location/street-place';
 import { SimpleModeService } from '../../core/settings/simple-mode.service';
 import { LineColorsService } from '../../core/map/line-colors.service';
@@ -95,6 +98,7 @@ const DETAIL_ZOOM = 14;
     IonItem,
     IonLabel,
     IonList,
+    IonNote,
     IonSearchbar,
     IonTitle,
     IonToolbar,
@@ -213,6 +217,45 @@ export class MapPage {
   });
 
   private readonly geometries = signal<ReadonlyMap<string, readonly LatLon[]>>(new Map());
+
+  /** Autobuses en tiempo real (solo en la app del móvil): los de las líneas a la vista. */
+  private readonly realtime = inject(RealtimeService);
+  protected readonly vehicles = computed(() => {
+    const visible = this.visibleLines();
+    const highlighted = this.highlightedLines();
+    const now = this.realtime.now();
+    return (
+      this.realtime
+        .vehicles()
+        .filter(
+          (v) =>
+            (visible === null || visible.has(v.lineId)) &&
+            (!highlighted || highlighted.has(v.lineId)),
+        )
+        // Solo líneas de la red publicada (la fuente trae algunas que no están, p. ej. 71).
+        .filter((v) => ageMinutes(v, now) !== null && !!this.network.getLine(v.lineId))
+        .map((v) => {
+          const color = this.colors.colorFor(v.lineId);
+          return {
+            id: v.id,
+            lineId: v.lineId,
+            lat: v.lat,
+            lon: v.lon,
+            color: color.line,
+            textColor: color.text,
+          };
+        })
+    );
+  });
+  /** Antigüedad del dato más reciente, para el aviso del panel. */
+  protected readonly vehiclesAge = computed(() => {
+    const now = this.realtime.now();
+    const ages = this.realtime
+      .vehicles()
+      .map((v) => ageMinutes(v, now))
+      .filter((a): a is number => a !== null);
+    return ages.length > 0 ? Math.round(Math.min(...ages)) : null;
+  });
   private detailLoaded = false;
   private readonly loadingShapes = new Set<ShapeDetail>();
 
@@ -278,6 +321,7 @@ export class MapPage {
   });
 
   constructor() {
+    this.realtime.watch();
     void this.loadShapes('overview');
     void this.zonesStore.load();
     // Si las zonas no se pudieron cargar al abrir, se reintenta al buscar. Las calles

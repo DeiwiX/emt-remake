@@ -17,7 +17,7 @@ import { firstValueFrom } from 'rxjs';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { IonButton } from '@ionic/angular';
 
-import { MapProvider, MapRoute, MapStop, MapView } from '../../core/map/map-provider';
+import { MapProvider, MapRoute, MapStop, MapVehicle, MapView } from '../../core/map/map-provider';
 import { LatLon, Polygon } from '../../core/models/network.model';
 import { MapStylePreference, SettingsService } from '../../core/settings/settings.service';
 import { ColorSchemeService, prefersReducedMotion } from '../../core/theme/color-scheme.service';
@@ -156,6 +156,8 @@ export class MapViewComponent {
   readonly highlightedArea = input<readonly Polygon[] | null>(null);
   /** Posición del usuario; null = no se muestra. */
   readonly userLocation = input<LatLon | null>(null);
+  /** Autobuses en tiempo real (solo en la app del móvil). */
+  readonly vehicles = input<readonly MapVehicle[]>([]);
   /** Margen de error de la posición del usuario, en metros (círculo alrededor del punto). */
   readonly userAccuracy = input(0);
   /**
@@ -197,6 +199,7 @@ export class MapViewComponent {
     effect(() => this.view()?.setHighlightedStop(this.highlightedStop()));
     effect(() => this.view()?.setHighlightedArea(this.highlightedArea()));
     effect(() => this.view()?.setUserLocation(this.userLocation(), this.userAccuracy()));
+    effect(() => this.view()?.setVehicles(this.vehicles()));
     effect(() => {
       const label = this.label();
       if (label) this.view()?.setLabel(label);

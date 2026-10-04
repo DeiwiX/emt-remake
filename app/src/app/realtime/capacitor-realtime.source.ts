@@ -1,5 +1,4 @@
 import { Injectable } from '@angular/core';
-import { Capacitor, CapacitorHttp } from '@capacitor/core';
 
 import { RealtimeSource } from '../core/realtime/realtime.service';
 
@@ -14,9 +13,17 @@ const VEHICLES_URL =
  */
 @Injectable()
 export class CapacitorRealtimeSource extends RealtimeSource {
-  readonly available = Capacitor.isNativePlatform();
+  /**
+   * En la app nativa, Capacitor deja su objeto global antes de que arranque la web:
+   * se consulta ahí para no cargar @capacitor/core en el paquete inicial.
+   */
+  readonly available =
+    (
+      globalThis as { Capacitor?: { isNativePlatform?: () => boolean } }
+    ).Capacitor?.isNativePlatform?.() ?? false;
 
   async fetchVehicles(): Promise<unknown> {
+    const { CapacitorHttp } = await import('@capacitor/core');
     const response = await CapacitorHttp.get({ url: VEHICLES_URL, responseType: 'text' });
     if (response.status !== 200) throw new Error(`HTTP ${response.status}`);
     // El servidor responde con Content-Type text/html: se interpreta aquí.

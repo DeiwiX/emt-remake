@@ -34,6 +34,7 @@
           (lineSelected)="highlight($event)"
           (stopSelected)="selectStop($event)"
           (zoomChanged)="onZoom($event)"
+          [vehicles]="vehicles()"
         />
       </div>
     }
@@ -41,6 +42,13 @@
     <!-- Alternativa en texto de todo lo que muestra el mapa (RNF-01). -->
     <section #panel class="split-panel" [attr.aria-label]="'map.panelLabel' | transloco">
       <app-data-status-banner />
+      @if (vehiclesAge() !== null) {
+        <p class="live-note ion-padding-horizontal">
+          <ion-note>{{
+            'realtime.onMap' | transloco: { count: vehicles().length, age: vehiclesAge() }
+          }}</ion-note>
+        </p>
+      }
 
       @if (searching()) {
         <!-- Resultados de búsqueda: elegir uno lo muestra en el mapa sin salir de él. -->

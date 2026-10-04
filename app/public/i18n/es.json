@@ -240,6 +240,7 @@
     "arrives": "Llega",
     "inMinutes": "en ~{{minutes}} min",
     "then": "el siguiente en ~{{minutes}} min",
-    "estimated": "estimado en tiempo real · dato de hace {{age}} min"
+    "estimated": "estimado en tiempo real · dato de hace {{age}} min",
+    "onMap": "{{count}} autobuses en el mapa en tiempo real · dato de hace {{age}} min"
   }
 }

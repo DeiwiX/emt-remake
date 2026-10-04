@@ -17,6 +17,7 @@ import {
   MapView,
   MapViewEvents,
   MapViewOptions,
+  MapVehicle,
 } from '../core/map/map-provider';
 import { ColorScheme } from '../core/theme/color-scheme.service';
 
@@ -70,6 +71,8 @@ const LAYER = {
   areaOutline: 'area-outline',
   userHalo: 'user-halo',
   user: 'user',
+  vehicles: 'vehicles',
+  vehicleLabels: 'vehicle-labels',
 } as const;
 const SOURCE = {
   routes: 'routes',
@@ -77,6 +80,7 @@ const SOURCE = {
   selectedStop: 'selected-stop',
   area: 'area',
   user: 'user',
+  vehicles: 'vehicles',
 } as const;
 
 /**
@@ -142,6 +146,7 @@ class MapLibreView implements MapView {
   private highlightedStop: MapStop | null = null;
   private userLocation: LatLon | null = null;
   private userAccuracy = 0;
+  private vehicles: readonly MapVehicle[] = [];
   private area: readonly Polygon[] | null = null;
   private scheme: ColorScheme;
   private baseLayer: MapBaseLayer = 'streets';
@@ -196,6 +201,11 @@ class MapLibreView implements MapView {
   setHighlightedStop(stop: MapStop | null): void {
     this.highlightedStop = stop;
     this.source(SOURCE.selectedStop)?.setData(this.selectedStopGeoJson());
+  }
+
+  setVehicles(vehicles: readonly MapVehicle[]): void {
+    this.vehicles = vehicles;
+    this.source(SOURCE.vehicles)?.setData(this.vehiclesGeoJson());
   }
 
   setUserLocation(point: LatLon | null, accuracy = 0): void {
@@ -390,6 +400,32 @@ class MapLibreView implements MapView {
         'circle-stroke-width': 3,
       },
     });
+    // Autobuses en tiempo real: punto grande del color de la línea con su número.
+    map.addSource(SOURCE.vehicles, { type: 'geojson', data: this.vehiclesGeoJson() });
+    map.addLayer({
+      id: LAYER.vehicles,
+      type: 'circle',
+      source: SOURCE.vehicles,
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 7, 16, 13],
+        'circle-color': ['get', 'color'],
+        'circle-stroke-color': '#FFFFFF',
+        'circle-stroke-width': 2,
+      },
+    });
+    map.addLayer({
+      id: LAYER.vehicleLabels,
+      type: 'symbol',
+      source: SOURCE.vehicles,
+      minzoom: 13,
+      layout: {
+        'text-field': ['get', 'lineId'],
+        'text-font': ['Noto Sans Bold'],
+        'text-size': 11,
+        'text-allow-overlap': true,
+      },
+      paint: { 'text-color': ['get', 'textColor'] },
+    });
     // Posición del usuario: punto azul con halo, encima de todo.
     map.addSource(SOURCE.user, { type: 'geojson', data: this.userGeoJson() });
     map.addLayer({
@@ -525,6 +561,22 @@ class MapLibreView implements MapView {
             },
           ]
         : [],
+    };
+  }
+
+  private vehiclesGeoJson(): FeatureCollection {
+    return {
+      type: 'FeatureCollection',
+      features: this.vehicles.map((vehicle) => ({
+        type: 'Feature',
+        properties: {
+          id: vehicle.id,
+          lineId: vehicle.lineId,
+          color: vehicle.color,
+          textColor: vehicle.textColor,
+        },
+        geometry: { type: 'Point', coordinates: [vehicle.lon, vehicle.lat] },
+      })),
     };
   }
 

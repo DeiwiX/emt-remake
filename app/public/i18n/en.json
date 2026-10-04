@@ -240,6 +240,7 @@
     "arrives": "Arrives",
     "inMinutes": "in ~{{minutes}} min",
     "then": "next one in ~{{minutes}} min",
-    "estimated": "real-time estimate · data from {{age}} min ago"
+    "estimated": "real-time estimate · data from {{age}} min ago",
+    "onMap": "{{count}} buses on the map in real time · data from {{age}} min ago"
   }
 }

@@ -24,6 +24,16 @@ export interface MapRoute {
   readonly label?: string;
 }
 
+/** Autobús en el mapa (tiempo real): punto del color de su línea con el número. */
+export interface MapVehicle {
+  readonly id: string;
+  readonly lineId: string;
+  readonly lat: number;
+  readonly lon: number;
+  readonly color: string;
+  readonly textColor: string;
+}
+
 export interface MapStop {
   readonly id: string;
   readonly name: string;
@@ -72,6 +82,8 @@ export interface MapView {
    * dibuja alrededor el círculo del margen de error.
    */
   setUserLocation(point: LatLon | null, accuracy?: number): void;
+  /** Autobuses en tiempo real; lista vacía para quitarlos. */
+  setVehicles(vehicles: readonly MapVehicle[]): void;
   /** Marca una zona (contorno y relleno suave); null = ninguna. */
   setHighlightedArea(polygons: readonly Polygon[] | null): void;
   destroy(): void;

@@ -135,6 +135,13 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
   - Las líneas sin horario (91–93) se estiman por distancia y se indica.
 - Más adelante: tiempo real (Fase 3) y buscar comercios o direcciones.
 
+### Tiempo real (Fase 3)
+
+- **Horario exacto:** `timetables.json` incluye el paso de cada viaje por cada parada (perfiles compartidos entre viajes), así que el próximo bus y "Cómo llegar" usan la hora real de cada viaje y no un tiempo medio.
+- **Llegada estimada:** en la app del móvil, cada línea de una parada muestra "Llega en ~X min" calculado con la posición de los autobuses que publica el Ayuntamiento (última parada por la que pasó + tiempo programado − antigüedad del dato), marcado como estimación y con la antigüedad del dato. La fuente se actualiza cada ~5 min y la app la consulta cada minuto mientras alguna pantalla la usa.
+- **Autobuses en el mapa:** en Mapa (los de las líneas visibles) y en el detalle de línea (los de ese sentido), con el color y el número de su línea.
+- Solo en la app nativa: el servidor no permite CORS, así que en la web se usa solo el horario (ADR 0008).
+
 ### Favoritos
 
 - Estrella en el detalle de parada, en la ficha de parada de Mapa y Paradas, en el detalle de línea y en "Cómo llegar" (trayecto origen → destino).
