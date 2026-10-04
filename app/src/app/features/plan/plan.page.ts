@@ -25,7 +25,8 @@ import {
 
 import { NetworkRepository, ShapeRepository } from '../../core/data/repositories';
 import { ZonesStore } from '../../core/data/zones-store.service';
-import { resolvePlace, toPlaceRef } from '../../core/favorites/favorites';
+import { needsStreets, resolvePlace, toPlaceRef } from '../../core/favorites/favorites';
+import { StreetsStore } from '../../core/data/streets-store.service';
 import { LocationService } from '../../core/location/location.service';
 import { LineColorsService } from '../../core/map/line-colors.service';
 import { sliceBetween, toMapStops } from '../../core/map/map-features';
@@ -64,6 +65,9 @@ type TimeChoice = 'now' | TimeMode;
 function isNightLine(lineId: string): boolean {
   return /^N\d+$/.test(lineId);
 }
+
+/** Gris de los tramos a pie en el mapa (contraste ≥ 3:1 sobre el callejero claro y el oscuro). */
+const WALK_COLOR = '#5F6368';
 
 /** "20261005" -> "2026-10-05" (formato de los campos de fecha HTML). */
 function toInputDate(dateKey: string): string {
@@ -114,6 +118,7 @@ export class PlanPage {
   private readonly colors = inject(LineColorsService);
 
   private readonly zonesStore = inject(ZonesStore);
+  private readonly streetsStore = inject(StreetsStore);
   protected readonly zones = this.zonesStore.zones;
 
   /** Origen y destino al abrir (/plan?from=stop:152&to=neighbourhood:b12), p. ej. desde un favorito. */
@@ -234,7 +239,22 @@ export class PlanPage {
   protected readonly mapRoutes = computed<MapRoute[]>(() => {
     const row = this.selected();
     if (!row) return [];
-    return row.option.legs.flatMap((leg, i) => {
+    const legs = row.option.legs;
+    const walks = [
+      this.walkRoute(
+        'walk-in',
+        this.origin()?.accessPoints?.get(legs[0]!.fromStopId),
+        legs[0]!.fromStopId,
+        row.option.accessMinutes,
+      ),
+      this.walkRoute(
+        'walk-out',
+        this.destination()?.accessPoints?.get(legs.at(-1)!.toStopId),
+        legs.at(-1)!.toStopId,
+        row.option.egressMinutes,
+      ),
+    ].filter((route): route is MapRoute => route !== null);
+    const rides = row.option.legs.flatMap((leg, i) => {
       const line = this.network.getLine(leg.lineId);
       const direction = line?.directions.find((d) => d.id === leg.directionId);
       const points = direction ? this.geometries().get(direction.shapeId) : undefined;
@@ -253,7 +273,32 @@ export class PlanPage {
         },
       ];
     });
+    return [...walks, ...rides];
   });
+
+  /**
+   * Tramo a pie entre el lugar (calle, dirección o tu ubicación) y una parada: línea
+   * discontinua gris con los minutos. Es en línea recta: el camino real por las
+   * calles queda para más adelante (decisión del desarrollador, opción 2B).
+   */
+  private walkRoute(
+    id: string,
+    point: LatLon | undefined,
+    stopId: string,
+    minutes: number,
+  ): MapRoute | null {
+    const stop = this.network.getStop(stopId);
+    if (!point || !stop || minutes <= 0) return null;
+    return {
+      id,
+      lineId: id,
+      label: this.transloco.translate('plan.walkLabel', { minutes }),
+      color: WALK_COLOR,
+      textColor: '#FFFFFF',
+      approximate: true,
+      points: id === 'walk-in' ? [point, [stop.lat, stop.lon]] : [[stop.lat, stop.lon], point],
+    };
+  }
   protected readonly mapStops = computed(() =>
     toMapStops(
       (this.selected()?.option.legs ?? []).flatMap((leg) => [
@@ -290,10 +335,15 @@ export class PlanPage {
       .catch((error: unknown) => console.warn('No se pudieron cargar los trazados', error));
   }
 
-  /** Se resuelve de nuevo cuando llegan las paradas o las zonas (se leen para depender de ellas). */
+  /** Se resuelve de nuevo cuando llegan las paradas, las zonas o las calles (se leen para depender de ellas). */
   private placeFromParam(param: string | undefined): Place | null {
-    this.network.stops();
-    return resolvePlace(param, (id) => this.network.getStop(id), this.zones());
+    if (needsStreets(param)) void this.streetsStore.load();
+    return resolvePlace(param, {
+      stops: this.network.stops(),
+      getStop: (id) => this.network.getStop(id),
+      zones: this.zones(),
+      streets: this.streetsStore.streets(),
+    });
   }
 
   protected swap(): void {

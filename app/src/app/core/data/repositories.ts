@@ -1,6 +1,6 @@
 import { Signal } from '@angular/core';
 
-import { LatLon, Line, ShapeDetail, Stop, Zone } from '../models/network.model';
+import { LatLon, Line, ShapeDetail, Stop, Street, Zone } from '../models/network.model';
 import { Timetables } from '../schedule/schedule';
 import { DataStatus } from './data-status';
 
@@ -27,6 +27,11 @@ export abstract class ShapeRepository {
 export abstract class ZoneRepository {
   /** Barrios y distritos. Se descargan solo cuando se piden (búsqueda en el mapa). */
   abstract getZones(): Promise<readonly Zone[]>;
+}
+
+export abstract class StreetRepository {
+  /** Calles del callejero. Se descargan solo cuando se piden (buscar por calle). */
+  abstract getStreets(): Promise<readonly Street[]>;
 }
 
 export abstract class ScheduleRepository {

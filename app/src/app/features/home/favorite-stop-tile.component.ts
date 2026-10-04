@@ -1,9 +1,19 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { IonButton, IonIcon } from '@ionic/angular';
 
 import { NetworkRepository } from '../../core/data/repositories';
+import { MAX_ALIAS_LENGTH } from '../../core/favorites/favorites';
+import { FavoritesService } from '../../core/favorites/favorites.service';
 import { Stop } from '../../core/models/network.model';
 import { dayOffsetOf, formatClock } from '../../core/schedule/schedule';
 import { ScheduleClockService } from '../../core/schedule/schedule-clock.service';
@@ -70,6 +80,40 @@ const COUNTDOWN_MINUTES = 60;
     :host(.expanded) .chevron {
       transform: rotate(180deg);
     }
+    .name-text {
+      display: flex;
+      flex-direction: column;
+    }
+    .alias {
+      font-size: 1.1rem;
+    }
+    .stop-name {
+      font-size: 0.85rem;
+      font-weight: 400;
+      color: var(--muted);
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .rename label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-top: 8px;
+      font-size: 0.9rem;
+    }
+    .rename input {
+      min-height: 44px;
+      padding: 0 10px;
+      border: 1px solid var(--ion-color-step-300, #b5b5b5);
+      border-radius: 8px;
+      background: var(--ion-background-color);
+      color: var(--ion-text-color);
+      font: inherit;
+    }
     .badges {
       display: flex;
       flex-wrap: wrap;
@@ -125,8 +169,16 @@ const COUNTDOWN_MINUTES = 60;
       [attr.aria-controls]="'fav-stop-' + stop().id"
       (click)="toggled.emit()"
     >
+      <!-- Con nombre propio ("Casa"), este va primero y el de la parada debajo: siempre se ve. -->
       <span class="name">
-        {{ stop().name }}
+        <span class="name-text">
+          @if (alias(); as alias) {
+            <span class="alias">{{ alias }}</span>
+            <span class="stop-name">{{ stop().name }}</span>
+          } @else {
+            {{ stop().name }}
+          }
+        </span>
         <ion-icon class="chevron" name="chevron-down" aria-hidden="true" />
       </span>
       <span class="badges">
@@ -177,9 +229,39 @@ const COUNTDOWN_MINUTES = 60;
             </span>
           </div>
         }
-        <ion-button size="small" [routerLink]="['/stops', stop().id]">
-          {{ 'map.openStopDetail' | transloco }}
-        </ion-button>
+        @if (editing()) {
+          <form class="rename" (submit)="$event.preventDefault(); saveAlias(aliasInput.value)">
+            <label>
+              {{ 'favorites.aliasLabel' | transloco }}
+              <input
+                #aliasInput
+                type="text"
+                [value]="alias() ?? ''"
+                [attr.maxlength]="maxAlias"
+                [placeholder]="'favorites.aliasPlaceholder' | transloco"
+                autocomplete="off"
+              />
+            </label>
+            <div class="actions">
+              <ion-button size="small" type="submit">{{
+                'favorites.saveAlias' | transloco
+              }}</ion-button>
+              <ion-button size="small" fill="outline" (click)="editing.set(false)">{{
+                'common.cancel' | transloco
+              }}</ion-button>
+            </div>
+          </form>
+        } @else {
+          <div class="actions">
+            <ion-button size="small" [routerLink]="['/stops', stop().id]">
+              {{ 'map.openStopDetail' | transloco }}
+            </ion-button>
+            <ion-button size="small" fill="outline" (click)="editing.set(true)">
+              <ion-icon slot="start" name="create-outline" aria-hidden="true" />
+              {{ (alias() ? 'favorites.renameAlias' : 'favorites.addAlias') | transloco }}
+            </ion-button>
+          </div>
+        }
       </div>
     }
   `,
@@ -187,6 +269,15 @@ const COUNTDOWN_MINUTES = 60;
 export class FavoriteStopTileComponent {
   private readonly network = inject(NetworkRepository);
   private readonly schedule = inject(ScheduleClockService);
+  private readonly favorites = inject(FavoritesService);
+
+  protected readonly maxAlias = MAX_ALIAS_LENGTH;
+  /** Nombre propio que le ha puesto el usuario ("Casa", "Trabajo"). */
+  protected readonly alias = computed(() => {
+    this.favorites.favorites();
+    return this.favorites.aliasOf(this.stop().id);
+  });
+  protected readonly editing = signal(false);
 
   readonly stop = input.required<Stop>();
   readonly expanded = input(false);
@@ -194,6 +285,12 @@ export class FavoriteStopTileComponent {
 
   constructor() {
     void this.schedule.load();
+  }
+
+  /** Guarda el nombre propio (vacío lo quita). */
+  protected saveAlias(value: string): void {
+    this.favorites.rename(this.stop().id, value);
+    this.editing.set(false);
   }
 
   protected readonly lineIds = computed(() => [

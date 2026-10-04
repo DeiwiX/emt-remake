@@ -142,6 +142,25 @@ describe('planJourneys', () => {
     expect(option!.totalMinutes).toBe(11);
   });
 
+  it('hasta una calle suma lo que se anda desde la parada de bajada y elige la mejor', () => {
+    // Bajar en d1 (a 8 min andando del destino) o seguir 2 min hasta d2 (a 1 min).
+    const lines = [line('7', ['o', 'd1', 'd2'], [0, 5, 7])];
+    const street: Place = {
+      kind: 'street',
+      id: 's',
+      name: 'Calle X',
+      stopIds: ['d1', 'd2'],
+      accessMinutes: new Map([
+        ['d1', 8],
+        ['d2', 1],
+      ]),
+    };
+    const [option] = planJourneys(lines, stop('o'), street);
+    expect(option!.legs[0]!.toStopId).toBe('d2');
+    expect(option!.egressMinutes).toBe(1);
+    expect(option!.totalMinutes).toBe(8);
+  });
+
   it('buildNearbyStops encuentra solo las paradas a menos de la distancia máxima', () => {
     const s = (id: string, lon: number): Stop => ({
       id,

@@ -29,7 +29,7 @@
           [visibleLines]="visibleLines()"
           [highlightedLines]="highlightedLines()"
           [highlightedStop]="selectedStopMarker()"
-          [highlightedArea]="selectedZone()?.polygons ?? null"
+          [highlightedArea]="selectedArea()?.polygons ?? null"
           [fitPoints]="fitPoints()"
           (lineSelected)="highlight($event)"
           (stopSelected)="selectStop($event)"
@@ -60,6 +60,28 @@
                   <p>
                     {{ zoneKindKey(zone.kind) | transloco }} ·
                     {{ 'home.stopCount' | transloco: { count: zone.stopIds.length } }}
+                  </p>
+                </ion-label>
+              </ion-item>
+            }
+          </ion-list>
+        }
+        @if (streetResults().length > 0) {
+          <h2 class="ion-padding-horizontal">{{ 'home.streetResults' | transloco }}</h2>
+          <ion-list [attr.aria-label]="'home.streetResults' | transloco">
+            @for (result of streetResults(); track result.street.id) {
+              <ion-item
+                button
+                [detail]="false"
+                (click)="chooseStreet(result.street.id, result.number)"
+              >
+                <ion-label class="ion-text-wrap">
+                  {{ result.street.name }}{{ result.number === null ? '' : ' ' + result.number }}
+                  <p>
+                    {{
+                      (result.number === null ? 'plan.kind.street' : 'plan.kind.address')
+                        | transloco
+                    }}
                   </p>
                 </ion-label>
               </ion-item>
@@ -106,11 +128,11 @@
           <app-stop-card [stop]="stop" (closed)="selectStop(null)" />
         }
 
-        @if (selectedZone(); as zone) {
+        @if (selectedArea(); as zone) {
           <div class="selected" aria-live="polite">
             <h2>{{ zone.name }}</h2>
             <p>
-              {{ zoneKindKey(zone.kind) | transloco }} ·
+              {{ zone.kindKey | transloco }} ·
               {{
                 'map.zoneSummary'
                   | transloco: { stops: zoneStops().length, lines: zoneLines().length }

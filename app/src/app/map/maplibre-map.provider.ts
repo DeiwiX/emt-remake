@@ -325,7 +325,7 @@ class MapLibreView implements MapView {
       layout: {
         'symbol-placement': 'line',
         'symbol-spacing': 300,
-        'text-field': ['get', 'lineId'],
+        'text-field': ['get', 'label'],
         'text-font': ['Noto Sans Bold'],
         'text-size': 13,
         'text-rotation-alignment': 'viewport',
@@ -488,6 +488,7 @@ class MapLibreView implements MapView {
         type: 'Feature',
         properties: {
           lineId: route.lineId,
+          label: route.label ?? route.lineId,
           color: route.color,
           textColor: route.textColor,
           approximate: route.approximate,

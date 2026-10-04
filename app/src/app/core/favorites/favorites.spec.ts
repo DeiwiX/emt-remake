@@ -44,22 +44,23 @@ describe('Favoritos', () => {
 
   describe('resolvePlace', () => {
     const getStop = (id: string) => (id === '152' ? stop : undefined);
+    const data = { stops: [stop], getStop, zones: [zone], streets: [] };
 
     it('convierte la referencia de la URL en un lugar con sus paradas', () => {
-      expect(resolvePlace('stop:152', getStop, [zone])).toEqual({
+      expect(resolvePlace('stop:152', data)).toEqual({
         kind: 'stop',
         id: '152',
         name: 'Postas',
         stopIds: ['152'],
       });
-      expect(resolvePlace(placeParam(zone), getStop, [zone])?.stopIds).toEqual(['152', '153']);
+      expect(resolvePlace(placeParam(zone), data)?.stopIds).toEqual(['152', '153']);
     });
 
     it('devuelve null si el texto no vale o el lugar ya no existe', () => {
-      expect(resolvePlace(undefined, getStop, [zone])).toBeNull();
-      expect(resolvePlace('152', getStop, [zone])).toBeNull();
-      expect(resolvePlace('stop:999', getStop, [zone])).toBeNull();
-      expect(resolvePlace('district:b1', getStop, [zone])).toBeNull();
+      expect(resolvePlace(undefined, data)).toBeNull();
+      expect(resolvePlace('152', data)).toBeNull();
+      expect(resolvePlace('stop:999', data)).toBeNull();
+      expect(resolvePlace('district:b1', data)).toBeNull();
     });
   });
 
@@ -83,5 +84,17 @@ describe('Favoritos', () => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify([{ kind: 'line', lineId: 'C1' }]));
       expect(TestBed.inject(FavoritesService).lines()).toEqual(['C1']);
     });
+  });
+
+  it('guarda el nombre propio de una parada y lo quita con un texto vacío', () => {
+    const service = TestBed.inject(FavoritesService);
+    service.toggle({ kind: 'stop', stopId: '152' });
+    service.rename('152', '  Casa  ');
+    expect(service.aliasOf('152')).toBe('Casa');
+    expect(parseFavorites(localStorage.getItem(STORAGE_KEY))).toEqual([
+      { kind: 'stop', stopId: '152', alias: 'Casa' },
+    ]);
+    service.rename('152', '   ');
+    expect(service.aliasOf('152')).toBeUndefined();
   });
 });

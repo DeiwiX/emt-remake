@@ -5,10 +5,11 @@
   },
   "common": {
     "back": "Atrás",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "cancel": "Cancelar"
   },
   "home": {
-    "searchPlaceholder": "Buscar línea, parada o barrio",
+    "searchPlaceholder": "Buscar línea, parada, barrio o calle",
     "resultCount": "Encontradas: {{lines}} líneas y {{stops}} paradas",
     "lineResults": "Líneas",
     "stopResults": "Paradas",
@@ -18,9 +19,10 @@
     "lineCount": "{{count}} líneas",
     "stopCount": "{{count}} paradas",
     "planDescription": "Opciones y tiempo aproximado",
-    "resultCountWithZones": "Encontradas: {{zones}} zonas, {{lines}} líneas y {{stops}} paradas",
+    "resultCountWithZones": "Encontradas: {{zones}} zonas, {{streets}} calles, {{lines}} líneas y {{stops}} paradas",
     "question": "¿A dónde vas?",
-    "linesTile": "Líneas"
+    "linesTile": "Líneas",
+    "streetResults": "Calles"
   },
   "lines": {
     "title": "Todas las líneas",
@@ -71,7 +73,7 @@
     "hideAll": "Ocultar todas",
     "showLine": "Mostrar la línea {{id}} en el mapa",
     "highlight": "Resaltar",
-    "searchPlaceholder": "Buscar línea, parada o barrio",
+    "searchPlaceholder": "Buscar línea, parada, barrio o calle",
     "openStopDetail": "Ver detalle de la parada",
     "clearStop": "Quitar parada",
     "layer": "Capa del mapa",
@@ -133,12 +135,14 @@
     "title": "Cómo llegar",
     "origin": "Origen",
     "destination": "Destino",
-    "searchPlaceholder": "parada, barrio o distrito",
+    "searchPlaceholder": "calle, parada, barrio o distrito",
     "change": "Cambiar",
     "swap": "Intercambiar",
     "kind": {
       "stop": "Parada",
-      "location": "Tu ubicación"
+      "location": "Tu ubicación",
+      "street": "Calle",
+      "address": "Dirección"
     },
     "placesLabel": "Origen y destino",
     "resultsLabel": "Opciones para llegar",
@@ -183,7 +187,9 @@
     "noStopsNearYou": "No hay paradas a menos de 1 km de tu ubicación.",
     "leaveIn": "Sal en {{minutes}} min",
     "leaveNow": "Sal ya",
-    "walkTo": "Camina ~{{minutes}} min hasta"
+    "walkTo": "Camina ~{{minutes}} min hasta",
+    "walkLabel": "{{minutes}} min a pie",
+    "walkFrom": "Camina ~{{minutes}} min hasta {{place}}"
   },
   "nextBus": {
     "loading": "Cargando horario…",
@@ -209,7 +215,12 @@
     "trips": "Trayectos",
     "lines": "Líneas",
     "stops": "Paradas",
-    "nextLine": "Línea {{id}}"
+    "nextLine": "Línea {{id}}",
+    "aliasLabel": "Nombre para esta parada",
+    "aliasPlaceholder": "Casa, Trabajo…",
+    "saveAlias": "Guardar nombre",
+    "addAlias": "Ponerle nombre",
+    "renameAlias": "Cambiar nombre"
   },
   "near": {
     "title": "Cerca de mí",

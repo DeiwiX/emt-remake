@@ -20,6 +20,8 @@ export interface MapRoute {
   /** Recorrido dibujado uniendo paradas: se pinta discontinuo. */
   readonly approximate: boolean;
   readonly points: readonly LatLon[];
+  /** Texto sobre el recorrido; por defecto, el número de línea (p. ej. "6 min a pie"). */
+  readonly label?: string;
 }
 
 export interface MapStop {

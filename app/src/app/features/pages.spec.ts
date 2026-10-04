@@ -11,6 +11,7 @@ import {
   DataStatusService,
   NetworkRepository,
   ShapeRepository,
+  StreetRepository,
   ZoneRepository,
   ScheduleRepository,
 } from '../core/data/repositories';
@@ -74,6 +75,7 @@ describe('Pantallas con datos', () => {
           },
         },
         { provide: MapProvider, useValue: { isSupported: () => false } },
+        { provide: StreetRepository, useValue: { getStreets: () => Promise.resolve([]) } },
         {
           provide: LocationService,
           useValue: { state: signal({ status: 'idle' }), locate: () => Promise.resolve() },
@@ -106,7 +108,7 @@ describe('Pantallas con datos', () => {
     harness.detectChanges();
     const text = (harness.routeNativeElement as HTMLElement).textContent ?? '';
 
-    expect(text).toContain('Encontradas: 0 zonas, 1 líneas y 1 paradas');
+    expect(text).toContain('Encontradas: 0 zonas, 0 calles, 1 líneas y 1 paradas');
     expect(text).toContain('Alameda - Universidad');
   });
 

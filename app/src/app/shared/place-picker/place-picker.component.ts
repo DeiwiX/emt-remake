@@ -11,18 +11,30 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { IonButton, IonIcon, IonItem, IonLabel, IonList, IonSearchbar } from '@ionic/angular';
 
 import { NetworkRepository } from '../../core/data/repositories';
+import { StreetsStore } from '../../core/data/streets-store.service';
+import { placeForStreet } from '../../core/location/street-place';
 import { stopsNear } from '../../core/location/geo';
 import { LocationService } from '../../core/location/location.service';
 import { Zone } from '../../core/models/network.model';
 import { Place } from '../../core/planner/planner';
-import { searchStops, searchZones } from '../../core/search/search';
+import { searchStops, searchStreets, searchZones } from '../../core/search/search';
 
 const MAX_RESULTS = 6;
 
+/** Una opción de la lista de resultados; el lugar se calcula solo al elegirla. */
+interface Option {
+  readonly key: string;
+  readonly name: string;
+  readonly kindKey: string;
+  /** Segunda línea: código de parada o número de paradas de la zona. */
+  readonly detail: { readonly key: string; readonly params: Record<string, unknown> } | null;
+  readonly toPlace: () => Place;
+}
+
 /**
- * Selector de origen o destino para "Cómo llegar": busca paradas (por nombre o
- * código) y barrios o distritos, y, como origen, "Mi ubicación" (las paradas
- * cercanas con lo que se tarda en llegar andando a cada una).
+ * Selector de origen o destino para "Cómo llegar": busca barrios o distritos,
+ * calles (también "calle + número") y paradas (por nombre o código), y, como
+ * origen, "Mi ubicación" (las paradas cercanas con lo que se tarda andando).
  */
 @Component({
   selector: 'app-place-picker',
@@ -78,20 +90,18 @@ const MAX_RESULTS = 6;
         [placeholder]="label() + ': ' + ('plan.searchPlaceholder' | transloco)"
         [attr.aria-label]="label()"
         [debounce]="150"
-        (ionInput)="query.set($event.detail.value ?? '')"
+        (ionInput)="setQuery($event.detail.value ?? '')"
       />
       @if (results().length > 0) {
         <ion-list [attr.aria-label]="label()">
-          @for (result of results(); track result.kind + result.id) {
-            <ion-item button [detail]="false" (click)="choose(result)">
+          @for (result of results(); track result.key) {
+            <ion-item button [detail]="false" (click)="choose(result.toPlace())">
               <ion-label class="ion-text-wrap">
                 {{ result.name }}
                 <p>
-                  {{ kindKey(result) | transloco }} ·
-                  @if (result.kind === 'stop') {
-                    {{ 'stops.code' | transloco: { id: result.id } }}
-                  } @else {
-                    {{ 'home.stopCount' | transloco: { count: result.stopIds.length } }}
+                  {{ result.kindKey | transloco }}
+                  @if (result.detail; as detail) {
+                    · {{ detail.key | transloco: detail.params }}
                   }
                 </p>
               </ion-label>
@@ -119,32 +129,57 @@ export class PlacePickerComponent {
 
   protected readonly query = signal('');
   /** Primero las zonas (lo más útil como destino) y después las paradas. */
-  protected readonly results = computed<Place[]>(() => {
+  private readonly streetsStore = inject(StreetsStore);
+
+  /** Primero las zonas y las calles (lo más útil como destino) y después las paradas. */
+  protected readonly results = computed<Option[]>(() => {
     const query = this.query();
-    const zones = searchZones(this.zones(), query, MAX_RESULTS).map((zone): Place => ({
-      kind: zone.kind,
-      id: zone.id,
+    const zones = searchZones(this.zones(), query, MAX_RESULTS).map((zone): Option => ({
+      key: `${zone.kind}:${zone.id}`,
       name: zone.name,
-      stopIds: zone.stopIds,
+      kindKey: `map.zoneKind.${zone.kind}`,
+      detail: { key: 'home.stopCount', params: { count: zone.stopIds.length } },
+      toPlace: () => ({ kind: zone.kind, id: zone.id, name: zone.name, stopIds: zone.stopIds }),
     }));
-    const stops = searchStops(this.network.stops(), query, MAX_RESULTS).map((stop): Place => ({
-      kind: 'stop',
-      id: stop.id,
+    const streets = searchStreets(this.streetsStore.streets(), query, MAX_RESULTS).map(
+      ({ street, number }): Option => ({
+        key: `street:${street.id}#${number ?? ''}`,
+        name: number === null ? street.name : `${street.name} ${number}`,
+        kindKey: number === null ? 'plan.kind.street' : 'plan.kind.address',
+        detail: null,
+        toPlace: () => placeForStreet(street, number, this.network.stops()),
+      }),
+    );
+    const stops = searchStops(this.network.stops(), query, MAX_RESULTS).map((stop): Option => ({
+      key: `stop:${stop.id}`,
       name: stop.name,
-      stopIds: [stop.id],
+      kindKey: 'plan.kind.stop',
+      detail: { key: 'stops.code', params: { id: stop.id } },
+      toPlace: () => ({ kind: 'stop', id: stop.id, name: stop.name, stopIds: [stop.id] }),
     }));
-    return [...zones, ...stops];
+    return [...zones, ...streets, ...stops];
   });
+
+  /** Las calles se descargan al empezar a escribir, no al abrir "Cómo llegar". */
+  protected setQuery(value: string): void {
+    this.query.set(value);
+    if (value.trim()) void this.streetsStore.load();
+  }
 
   protected choose(place: Place): void {
     this.query.set('');
     this.placeChange.emit(place);
   }
 
-  /** Texto del tipo de lugar: parada, barrio, distrito o tu ubicación. */
+  /** Texto del tipo de lugar: parada, barrio, distrito, calle, dirección o tu ubicación. */
   protected kindKey(place: Place): string {
-    if (place.kind === 'location') return 'plan.kind.location';
-    return place.kind === 'stop' ? 'plan.kind.stop' : `map.zoneKind.${place.kind}`;
+    switch (place.kind) {
+      case 'neighbourhood':
+      case 'district':
+        return `map.zoneKind.${place.kind}`;
+      default:
+        return `plan.kind.${place.kind}`;
+    }
   }
 
   /** Pide la ubicación y propone como origen las paradas cercanas (500 m, o 1 km). */
@@ -169,6 +204,7 @@ export class PlacePickerComponent {
       name: this.transloco.translate('plan.myLocation'),
       stopIds: near.stops.map((s) => s.stop.id),
       accessMinutes: new Map(near.stops.map((s) => [s.stop.id, s.minutes])),
+      accessPoints: new Map(near.stops.map((s) => [s.stop.id, state.point])),
     });
   }
 }

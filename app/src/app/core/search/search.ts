@@ -1,4 +1,4 @@
-import { Line, Stop, Zone } from '../models/network.model';
+import { Line, Stop, Street, Zone } from '../models/network.model';
 
 /**
  * Búsqueda de líneas y paradas (RF-05). Lógica pura, sin Angular, para poder
@@ -69,4 +69,29 @@ export function searchZones(zones: readonly Zone[], rawQuery: string, limit = 10
   if (!query) return [];
   // Las zonas no tienen código: se puntúa solo por nombre.
   return rank(zones, (zone) => scoreText(query, '', zone.name), limit);
+}
+
+/** Calle encontrada y, si se escribió, el número de portal ("larios 5"). */
+export interface StreetResult {
+  readonly street: Street;
+  readonly number: number | null;
+}
+
+/**
+ * Calles por nombre, con número de portal opcional al final: "larios",
+ * "calle larios 5", "av andalucia, 12". Sin tildes ni mayúsculas.
+ */
+export function searchStreets(
+  streets: readonly Street[],
+  rawQuery: string,
+  limit = 8,
+): StreetResult[] {
+  const match = /^(.*?)[\s,]+(\d{1,4})\s*$/.exec(rawQuery.trim());
+  const query = normalize(match ? match[1]! : rawQuery);
+  if (!query) return [];
+  const number = match ? Number(match[2]) : null;
+  return rank(streets, (street) => scoreText(query, '', street.name), limit).map((street) => ({
+    street,
+    number,
+  }));
 }

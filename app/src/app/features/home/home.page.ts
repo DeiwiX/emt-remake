@@ -21,10 +21,11 @@ import {
 
 import { NetworkRepository } from '../../core/data/repositories';
 import { ZonesStore } from '../../core/data/zones-store.service';
+import { StreetsStore } from '../../core/data/streets-store.service';
 import { FavoritesService } from '../../core/favorites/favorites.service';
 import { Zone } from '../../core/models/network.model';
 import { prefersReducedMotion } from '../../core/theme/color-scheme.service';
-import { searchLines, searchStops, searchZones } from '../../core/search/search';
+import { searchLines, searchStops, searchStreets, searchZones } from '../../core/search/search';
 import { SimpleModeService } from '../../core/settings/simple-mode.service';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
 import { LineListComponent } from '../../shared/line-list/line-list.component';
@@ -78,6 +79,12 @@ export class HomePage {
 
   private readonly favorites = inject(FavoritesService).favorites;
   protected readonly hasFavorites = computed(() => this.favorites().length > 0);
+  /** Calles (también "calle + número"): elegir una abre el mapa con sus paradas cercanas. */
+  private readonly streetsStore = inject(StreetsStore);
+  protected readonly streetResults = computed(() =>
+    searchStreets(this.streetsStore.streets(), this.query(), 6),
+  );
+
   protected readonly lineCount = computed(() => this.network.lines().length);
   protected readonly stopCount = computed(() => this.network.stops().length);
 
@@ -86,7 +93,10 @@ export class HomePage {
   constructor() {
     // Las zonas se descargan al empezar a buscar, no al abrir la app.
     effect(() => {
-      if (this.searching()) void this.zonesStore.load();
+      if (this.searching()) {
+        void this.zonesStore.load();
+        void this.streetsStore.load();
+      }
     });
   }
 

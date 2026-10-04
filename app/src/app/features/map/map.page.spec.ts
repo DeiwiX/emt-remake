@@ -11,6 +11,7 @@ import {
   DataStatusService,
   NetworkRepository,
   ShapeRepository,
+  StreetRepository,
   ZoneRepository,
   ScheduleRepository,
 } from '../../core/data/repositories';
@@ -154,6 +155,16 @@ describe('MapPage', () => {
           },
         },
         { provide: ZoneRepository, useValue: { getZones: () => zonesResult() } },
+        {
+          provide: StreetRepository,
+          useValue: {
+            // Una calle con un portal junto a la parada "2" (Alameda, 36.71 -4.43).
+            getStreets: () =>
+              Promise.resolve([
+                { id: 's1', name: 'Calle Larios', points: [[36.7101, -4.4301]], numbers: [5] },
+              ]),
+          },
+        },
         {
           provide: MapProvider,
           useValue: {
@@ -314,6 +325,25 @@ describe('MapPage', () => {
     events.stopSelected('1');
     TestBed.tick();
     expect(view.highlightedStop?.id).toBe('1');
+  });
+
+  it('busca calles y al elegir una marca sus paradas cercanas', async () => {
+    const { harness, page } = await open('/map');
+    const actions = page as unknown as {
+      query: { set(v: string): void };
+      chooseStreet(id: string, n: number | null): void;
+    };
+    actions.query.set('larios 5');
+    await vi.waitFor(() => {
+      harness.detectChanges();
+      expect((harness.routeNativeElement as HTMLElement).textContent).toContain('Calle Larios 5');
+    });
+    actions.chooseStreet('s1', 5);
+    TestBed.tick();
+    harness.detectChanges();
+    const text = (harness.routeNativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Dirección');
+    expect(text).toContain('Alameda');
   });
 
   it('sin WebGL pasa solo al modo sencillo: solo el panel de texto, sin mapa', async () => {

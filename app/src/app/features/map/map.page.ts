@@ -29,11 +29,13 @@ import {
 
 import { NetworkRepository, ShapeRepository } from '../../core/data/repositories';
 import { ZonesStore } from '../../core/data/zones-store.service';
+import { StreetsStore } from '../../core/data/streets-store.service';
+import { placeForStreet, portalPoint } from '../../core/location/street-place';
 import { SimpleModeService } from '../../core/settings/simple-mode.service';
 import { LineColorsService } from '../../core/map/line-colors.service';
 import { toMapRoutes, toMapStops } from '../../core/map/map-features';
-import { LatLon, ShapeDetail, Zone } from '../../core/models/network.model';
-import { searchLines, searchStops, searchZones } from '../../core/search/search';
+import { LatLon, Polygon, ShapeDetail, Zone } from '../../core/models/network.model';
+import { searchLines, searchStops, searchStreets, searchZones } from '../../core/search/search';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
 import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component';
 import { MapViewComponent } from '../../shared/map-view/map-view.component';
@@ -44,7 +46,29 @@ const MAX_STOP_RESULTS = 30;
 
 /** Lo último que ha elegido el usuario: es lo que el mapa encuadra. */
 type MapFocus =
-  { kind: 'line'; id: string } | { kind: 'stop'; id: string } | { kind: 'zone'; id: string };
+  | { kind: 'line'; id: string }
+  | { kind: 'stop'; id: string }
+  | { kind: 'zone'; id: string }
+  | { kind: 'street'; id: string };
+
+/** Calle elegida: su código y, si se escribió, el número de portal. */
+interface StreetChoice {
+  readonly id: string;
+  readonly number: number | null;
+}
+
+/**
+ * Zona marcada en el mapa: un barrio o distrito (con su contorno) o una calle
+ * (con las paradas cercanas a sus portales). Comparten la ficha del panel.
+ */
+interface Area {
+  readonly name: string;
+  readonly kindKey: string;
+  readonly stopIds: readonly string[];
+  readonly polygons: readonly Polygon[] | null;
+  /** Puntos que encuadra el mapa. */
+  readonly points: readonly LatLon[];
+}
 
 /** A partir de este zoom se cargan los trazados detallados (RNF-02: geometrías según zoom). */
 const DETAIL_ZOOM = 14;
@@ -89,6 +113,9 @@ export class MapPage {
   readonly line = input<string>();
   /** Barrio o distrito a marcar al abrir (/map?zone=...). */
   readonly zone = input<string>();
+  /** Calle a marcar al abrir (/map?street=...&n=5), p. ej. desde la búsqueda del inicio. */
+  readonly street = input<string>();
+  readonly n = input<string>();
 
   protected readonly lines = this.network.lines;
   protected readonly hiddenLines = signal<ReadonlySet<string>>(new Set());
@@ -116,13 +143,47 @@ export class MapPage {
   private readonly zonesStore = inject(ZonesStore);
   private readonly zones = this.zonesStore.zones;
   protected readonly zoneResults = computed(() => searchZones(this.zones(), this.query()));
+  private readonly streetsStore = inject(StreetsStore);
+  protected readonly streetResults = computed(() =>
+    searchStreets(this.streetsStore.streets(), this.query()),
+  );
+  protected readonly selectedStreet = linkedSignal<StreetChoice | null>(() => {
+    const id = this.street();
+    if (!id) return null;
+    const number = Number.parseInt(this.n() ?? '', 10);
+    return { id, number: Number.isFinite(number) ? number : null };
+  });
   protected readonly selectedZoneId = linkedSignal(() => this.zone() ?? null);
   protected readonly selectedZone = computed(() =>
     this.zones().find((zone) => zone.id === this.selectedZoneId()),
   );
-  /** Paradas de la zona elegida, en el orden de la lista de paradas (por nombre). */
+  /** La zona o la calle marcada, con lo que se muestra de ella en el mapa y el panel. */
+  protected readonly selectedArea = computed<Area | null>(() => {
+    const zone = this.selectedZone();
+    if (zone) {
+      return {
+        name: zone.name,
+        kindKey: `map.zoneKind.${zone.kind}`,
+        stopIds: zone.stopIds,
+        polygons: zone.polygons,
+        points: zone.polygons.flatMap((polygon) => polygon[0] ?? []),
+      };
+    }
+    const choice = this.selectedStreet();
+    const street = choice && this.streetsStore.streets().find((s) => s.id === choice.id);
+    if (!choice || !street) return null;
+    const place = placeForStreet(street, choice.number, this.network.stops());
+    return {
+      name: place.name,
+      kindKey: choice.number === null ? 'plan.kind.street' : 'plan.kind.address',
+      stopIds: place.stopIds,
+      polygons: null,
+      points: choice.number === null ? street.points : [portalPoint(street, choice.number).point],
+    };
+  });
+  /** Paradas de la zona o calle elegida, en el orden de la lista de paradas (por nombre). */
   protected readonly zoneStops = computed(() => {
-    const ids = new Set(this.selectedZone()?.stopIds ?? []);
+    const ids = new Set(this.selectedArea()?.stopIds ?? []);
     return this.network.stops().filter((stop) => ids.has(stop.id));
   });
   /** Líneas que pasan por alguna parada de la zona elegida. */
@@ -145,6 +206,8 @@ export class MapPage {
   private readonly focus = linkedSignal<MapFocus | null>(() => {
     const zone = this.zone();
     if (zone) return { kind: 'zone', id: zone };
+    const street = this.street();
+    if (street) return { kind: 'street', id: street };
     const line = this.line();
     return line ? { kind: 'line', id: line } : null;
   });
@@ -167,7 +230,7 @@ export class MapPage {
     if (stop && this.focus()?.kind === 'stop') {
       return new Set(stop.services.map((s) => s.lineId));
     }
-    if (this.selectedZone()) return new Set(this.zoneLines().map((l) => l.id));
+    if (this.selectedArea()) return new Set(this.zoneLines().map((l) => l.id));
     const id = this.highlightedId();
     return id ? new Set([id]) : null;
   });
@@ -178,7 +241,7 @@ export class MapPage {
    */
   protected readonly mapStops = computed(() => {
     if (this.searching()) return toMapStops(this.allStopResults());
-    if (this.selectedZone()) return toMapStops(this.zoneStops());
+    if (this.selectedArea()) return toMapStops(this.zoneStops());
     const line = this.highlightedLine();
     if (!line) return toMapStops(this.network.stops());
     const ids = new Set(line.directions.flatMap((d) => d.stopIds));
@@ -198,8 +261,12 @@ export class MapPage {
   /** El mapa encuadra la última línea resaltada o la última parada elegida. */
   protected readonly fitPoints = computed<LatLon[]>(() => {
     const focus = this.focus();
-    if (focus?.kind === 'zone') {
-      return (this.selectedZone()?.polygons ?? []).flatMap((polygon) => polygon[0] ?? []);
+    if (focus?.kind === 'zone' || focus?.kind === 'street') {
+      // La calle encuadra también sus paradas cercanas (una dirección es un solo punto).
+      const area = this.selectedArea();
+      const stops =
+        focus.kind === 'street' ? this.zoneStops().map((s): LatLon => [s.lat, s.lon]) : [];
+      return area ? [...area.points, ...stops] : [];
     }
     if (focus?.kind === 'stop') {
       const stop = this.selectedStop();
@@ -213,10 +280,15 @@ export class MapPage {
   constructor() {
     void this.loadShapes('overview');
     void this.zonesStore.load();
-    // Si las zonas no se pudieron cargar al abrir, se reintenta al buscar.
+    // Si las zonas no se pudieron cargar al abrir, se reintenta al buscar. Las calles
+    // solo se descargan al buscar o si se abre el mapa con una calle.
     effect(() => {
-      if (this.searching()) void this.zonesStore.load();
+      if (this.searching()) {
+        void this.zonesStore.load();
+        void this.streetsStore.load();
+      }
     });
+    if (this.street()) void this.streetsStore.load();
   }
 
   protected isVisible(lineId: string): boolean {
@@ -244,6 +316,7 @@ export class MapPage {
     this.highlightedId.set(lineId);
     if (lineId) {
       this.selectedZoneId.set(null);
+      this.selectedStreet.set(null);
       this.focus.set({ kind: 'line', id: lineId });
       // Una línea resaltada siempre es visible.
       this.setVisible(lineId, true);
@@ -266,6 +339,7 @@ export class MapPage {
 
   /** Marca una zona: su contorno, sus paradas y las líneas que pasan por ellas. */
   protected chooseZone(zoneId: string): void {
+    this.selectedStreet.set(null);
     this.selectedZoneId.set(zoneId);
     this.highlightedId.set(null);
     this.focus.set({ kind: 'zone', id: zoneId });
@@ -276,8 +350,18 @@ export class MapPage {
     return `map.zoneKind.${kind}`;
   }
 
+  /** Marca una calle (o un portal): sus paradas cercanas y las líneas que pasan por ellas. */
+  protected chooseStreet(id: string, number: number | null): void {
+    this.selectedZoneId.set(null);
+    this.selectedStreet.set({ id, number });
+    this.highlightedId.set(null);
+    this.focus.set({ kind: 'street', id });
+    this.query.set('');
+  }
+
   protected clearZone(): void {
     this.selectedZoneId.set(null);
+    this.selectedStreet.set(null);
   }
 
   protected chooseLine(lineId: string): void {

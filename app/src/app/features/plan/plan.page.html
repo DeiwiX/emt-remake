@@ -260,6 +260,19 @@
                       </span>
                     </li>
                   }
+                  <!-- Hasta una calle: el tramo a pie desde la última parada. -->
+                  @if (row.option.egressMinutes > 0) {
+                    <li class="transfer">
+                      {{
+                        'plan.walkFrom'
+                          | transloco
+                            : {
+                                minutes: row.option.egressMinutes,
+                                place: destination()?.name ?? '',
+                              }
+                      }}
+                    </li>
+                  }
                 </ol>
 
                 @if (hasNightLine(row.option)) {

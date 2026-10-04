@@ -29,6 +29,8 @@ export interface ManifestFile {
     zones?: FileEntry;
     /** Salidas programadas. Opcional, como zones. */
     timetables?: FileEntry;
+    /** Calles del callejero con sus portales. Opcional, como zones. */
+    streets?: FileEntry;
   };
   license: { id: string; url: string; attribution: string };
 }
@@ -112,6 +114,37 @@ export function parseZones(value: unknown): ZonesFile {
   return { schemaVersion: SUPPORTED_SCHEMA_VERSION, zones };
 }
 
+export interface PublishedStreet {
+  id: string;
+  name: string;
+  /** Portales publicados (polilínea codificada de puntos sueltos). */
+  points: string;
+  numbers: number[];
+}
+
+export interface StreetsFile {
+  schemaVersion: number;
+  streets: PublishedStreet[];
+}
+
+export function parseStreets(value: unknown): StreetsFile {
+  const s = record(value, 'streets');
+  schema(s['schemaVersion'], 'streets');
+  const streets = array(s['streets'], 'streets.streets').map((raw, i): PublishedStreet => {
+    const where = `streets[${i}]`;
+    const street = record(raw, where);
+    return {
+      id: nonEmpty(street['id'], `${where}.id`),
+      name: nonEmpty(street['name'], `${where}.name`),
+      points: string(street['points'], `${where}.points`),
+      numbers: array(street['numbers'], `${where}.numbers`).map((n, k) =>
+        number(n, `${where}.numbers[${k}]`),
+      ),
+    };
+  });
+  return { schemaVersion: SUPPORTED_SCHEMA_VERSION, streets };
+}
+
 export interface TimetablesFile {
   schemaVersion: number;
   services: Record<string, string[]>;
@@ -169,6 +202,9 @@ export function parseManifest(value: unknown): ManifestFile {
       ...(files['timetables'] === undefined
         ? {}
         : { timetables: fileEntry(files['timetables'], 'timetables') }),
+      ...(files['streets'] === undefined
+        ? {}
+        : { streets: fileEntry(files['streets'], 'streets') }),
     },
     license: {
       id: string(license['id'], 'license.id'),

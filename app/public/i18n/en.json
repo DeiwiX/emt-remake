@@ -5,10 +5,11 @@
   },
   "common": {
     "back": "Back",
-    "retry": "Try again"
+    "retry": "Try again",
+    "cancel": "Cancel"
   },
   "home": {
-    "searchPlaceholder": "Search line, stop or neighbourhood",
+    "searchPlaceholder": "Search line, stop, neighbourhood or street",
     "resultCount": "Found: {{lines}} lines and {{stops}} stops",
     "lineResults": "Lines",
     "stopResults": "Stops",
@@ -18,9 +19,10 @@
     "lineCount": "{{count}} lines",
     "stopCount": "{{count}} stops",
     "planDescription": "Options and approximate time",
-    "resultCountWithZones": "Found: {{zones}} areas, {{lines}} lines and {{stops}} stops",
+    "resultCountWithZones": "Found: {{zones}} areas, {{streets}} streets, {{lines}} lines and {{stops}} stops",
     "question": "Where are you going?",
-    "linesTile": "Lines"
+    "linesTile": "Lines",
+    "streetResults": "Streets"
   },
   "lines": {
     "title": "All lines",
@@ -71,7 +73,7 @@
     "hideAll": "Hide all",
     "showLine": "Show line {{id}} on the map",
     "highlight": "Highlight",
-    "searchPlaceholder": "Search line, stop or neighbourhood",
+    "searchPlaceholder": "Search line, stop, neighbourhood or street",
     "openStopDetail": "View stop details",
     "clearStop": "Clear stop",
     "layer": "Map layer",
@@ -133,12 +135,14 @@
     "title": "Get there",
     "origin": "From",
     "destination": "To",
-    "searchPlaceholder": "stop, neighbourhood or district",
+    "searchPlaceholder": "street, stop, neighbourhood or district",
     "change": "Change",
     "swap": "Swap",
     "kind": {
       "stop": "Stop",
-      "location": "Your location"
+      "location": "Your location",
+      "street": "Street",
+      "address": "Address"
     },
     "placesLabel": "From and to",
     "resultsLabel": "Ways to get there",
@@ -183,7 +187,9 @@
     "noStopsNearYou": "There are no stops within 1 km of your location.",
     "leaveIn": "Leave in {{minutes}} min",
     "leaveNow": "Leave now",
-    "walkTo": "Walk ~{{minutes}} min to"
+    "walkTo": "Walk ~{{minutes}} min to",
+    "walkLabel": "{{minutes}} min walk",
+    "walkFrom": "Walk ~{{minutes}} min to {{place}}"
   },
   "nextBus": {
     "loading": "Loading timetable…",
@@ -209,7 +215,12 @@
     "trips": "Trips",
     "lines": "Lines",
     "stops": "Stops",
-    "nextLine": "Line {{id}}"
+    "nextLine": "Line {{id}}",
+    "aliasLabel": "Name for this stop",
+    "aliasPlaceholder": "Home, Work…",
+    "saveAlias": "Save name",
+    "addAlias": "Give it a name",
+    "renameAlias": "Rename"
   },
   "near": {
     "title": "Near me",

@@ -114,12 +114,14 @@ describe('scheduleJourney', () => {
   const direct: JourneyOption = {
     legs: [leg('1', 'b', 'c')],
     accessMinutes: 0,
+    egressMinutes: 0,
     totalMinutes: 5,
     walkMinutes: 0,
   };
   const transfer: JourneyOption = {
     legs: [leg('1', 'a', 'c'), leg('2', 'c', 'd')],
     accessMinutes: 0,
+    egressMinutes: 0,
     totalMinutes: 26,
     walkMinutes: 0,
   };
@@ -191,6 +193,7 @@ describe('scheduleJourney', () => {
     const noTimes: JourneyOption = {
       legs: [leg('9', 'a', 'b')],
       accessMinutes: 0,
+      egressMinutes: 0,
       totalMinutes: 3,
       walkMinutes: 0,
     };

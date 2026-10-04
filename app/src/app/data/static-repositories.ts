@@ -4,10 +4,19 @@ import {
   NetworkRepository,
   ScheduleRepository,
   ShapeRepository,
+  StreetRepository,
   ZoneRepository,
 } from '../core/data/repositories';
 import { Timetables } from '../core/schedule/schedule';
-import { LatLon, Line, ShapeDetail, Stop, StopService, Zone } from '../core/models/network.model';
+import {
+  LatLon,
+  Line,
+  ShapeDetail,
+  Stop,
+  StopService,
+  Street,
+  Zone,
+} from '../core/models/network.model';
 import { DatasetSyncService } from './dataset-sync.service';
 import { NetworkFile } from './published-format';
 import { decodePolyline } from './polyline';
@@ -70,6 +79,22 @@ export class StaticZoneRepository extends ZoneRepository {
     return file.zones.map((zone) => ({
       ...zone,
       polygons: zone.polygons.map((polygon) => polygon.map(decodePolyline)),
+    }));
+  }
+}
+
+/** Repositorio de calles: descarga bajo demanda y decodifica los portales. */
+@Injectable()
+export class StaticStreetRepository extends StreetRepository {
+  private readonly sync = inject(DatasetSyncService);
+
+  async getStreets(): Promise<readonly Street[]> {
+    const file = await this.sync.getStreetsFile();
+    return file.streets.map((street) => ({
+      id: street.id,
+      name: street.name,
+      points: decodePolyline(street.points),
+      numbers: street.numbers,
     }));
   }
 }

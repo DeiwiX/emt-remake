@@ -14,11 +14,13 @@ import {
   NetworkFile,
   ShapesFile,
   TimetablesFile,
+  StreetsFile,
   ZonesFile,
   parseManifest,
   parseNetwork,
   parseShapes,
   parseTimetables,
+  parseStreets,
   parseZones,
 } from './published-format';
 
@@ -29,7 +31,7 @@ const KEYS = {
 } as const;
 
 /** Ficheros que se descargan bajo demanda (no al arrancar). */
-type AuxFile = 'shapesOverview' | 'shapesDetail' | 'zones' | 'timetables';
+type AuxFile = 'shapesOverview' | 'shapesDetail' | 'zones' | 'timetables' | 'streets';
 
 interface StoredDataset {
   manifest: unknown;
@@ -90,6 +92,11 @@ export class DatasetSyncService extends DataStatusService {
   /** Barrios y distritos con sus paradas (búsqueda por zonas en el mapa). */
   getZonesFile(): Promise<ZonesFile> {
     return this.getAuxFile('zones', parseZones);
+  }
+
+  /** Calles con sus portales (buscar por calle). Se descarga la primera vez que se busca. */
+  getStreetsFile(): Promise<StreetsFile> {
+    return this.getAuxFile('streets', parseStreets);
   }
 
   /** Salidas programadas (próximos buses según horario y "Cómo llegar"). */

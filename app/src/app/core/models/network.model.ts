@@ -61,5 +61,16 @@ export interface Zone {
   readonly stopIds: readonly string[];
 }
 
+/** Calle del callejero municipal con una muestra de sus portales (Fase 2). */
+export interface Street {
+  readonly id: string;
+  /** "Calle Larios", "Avenida Andalucia"... */
+  readonly name: string;
+  /** Posición de cada portal publicado (separados al menos 40 m). */
+  readonly points: readonly LatLon[];
+  /** Número de portal de cada punto, en el mismo orden. */
+  readonly numbers: readonly number[];
+}
+
 /** Nivel de detalle de los trazados: vista general o zoom cercano. */
 export type ShapeDetail = 'overview' | 'detail';

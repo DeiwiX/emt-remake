@@ -1,4 +1,4 @@
-import { Direction, Line, Stop } from '../models/network.model';
+import { Direction, LatLon, Line, Stop } from '../models/network.model';
 import { WALK_DETOUR, WALK_METRES_PER_MINUTE, metresBetween } from '../location/geo';
 
 /**
@@ -12,16 +12,21 @@ import { WALK_DETOUR, WALK_METRES_PER_MINUTE, metresBetween } from '../location/
  */
 
 /**
- * Origen o destino: una parada, una zona (barrio, distrito) con sus paradas o la
- * ubicación del usuario con las paradas cercanas.
+ * Origen o destino: una parada, una zona (barrio, distrito), una calle (con o
+ * sin número de portal) o la ubicación del usuario, con sus paradas.
  */
 export interface Place {
-  readonly kind: 'stop' | 'neighbourhood' | 'district' | 'location';
+  readonly kind: 'stop' | 'neighbourhood' | 'district' | 'street' | 'address' | 'location';
   readonly id: string;
   readonly name: string;
   readonly stopIds: readonly string[];
-  /** Minutos andando desde el lugar hasta cada parada (solo "Mi ubicación"). */
+  /**
+   * Minutos andando entre el lugar y cada parada: hasta la parada si es el
+   * origen, desde ella si es el destino (calles y "Mi ubicación").
+   */
   readonly accessMinutes?: ReadonlyMap<string, number>;
+  /** Punto del lugar desde (o hasta) el que se anda a cada parada, para dibujarlo. */
+  readonly accessPoints?: ReadonlyMap<string, LatLon>;
 }
 
 export interface Leg {
@@ -39,8 +44,10 @@ export interface Leg {
 
 export interface JourneyOption {
   readonly legs: readonly Leg[];
-  /** Minutos andando hasta la primera parada (solo desde "Mi ubicación"; si no, 0). */
+  /** Minutos andando hasta la primera parada (desde una calle o "Mi ubicación"; si no, 0). */
   readonly accessMinutes: number;
+  /** Minutos andando desde la última parada hasta el destino (si es una calle; si no, 0). */
+  readonly egressMinutes: number;
   /** Minutos andando hasta la primera parada, en el autobús, a pie entre paradas y el margen de cada transbordo. */
   readonly totalMinutes: number;
   /** Minutos andando entre la parada de bajada y la de subida del transbordo (0 si es la misma). */
@@ -89,16 +96,24 @@ export function planJourneys(
   const from = new Set(origin.stopIds);
   const to = new Set(destination.stopIds);
   if (from.size === 0 || to.size === 0) return [];
-  /** Minutos andando hasta una parada de origen (0 salvo desde "Mi ubicación"). */
+  /** Minutos andando hasta una parada de origen y desde una de destino (0 si son paradas o zonas). */
   const access = (stopId: string) => origin.accessMinutes?.get(stopId) ?? 0;
+  const egress = (stopId: string) => destination.accessMinutes?.get(stopId) ?? 0;
 
   const directions = lines.flatMap((line) => line.directions.map((d) => ({ line, d })));
   const direct = directions.flatMap(({ line, d }) => {
-    const leg = bestLeg(line, d, from, to, access);
+    const leg = bestLeg(line, d, from, to, access, egress);
     if (!leg) return [];
     const accessMinutes = access(leg.fromStopId);
+    const egressMinutes = egress(leg.toStopId);
     return [
-      { legs: [leg], accessMinutes, totalMinutes: accessMinutes + leg.minutes, walkMinutes: 0 },
+      {
+        legs: [leg],
+        accessMinutes,
+        egressMinutes,
+        totalMinutes: accessMinutes + leg.minutes + egressMinutes,
+        walkMinutes: 0,
+      },
     ];
   });
 
@@ -131,8 +146,12 @@ export function planJourneys(
     const arrivals = indicesOf(d, to);
     if (arrivals.length === 0) continue;
     for (let p = 0; p < d.stopIds.length; p++) {
-      const arrival = arrivals.find((q) => q > p);
-      if (arrival === undefined) continue;
+      // La parada de bajada que antes deja en destino, contando lo que se anda después.
+      const later = arrivals.filter((q) => q > p);
+      if (later.length === 0) continue;
+      const arrival = later.reduce((best, q) =>
+        times[q]! + egress(d.stopIds[q]!) < times[best]! + egress(d.stopIds[best]!) ? q : best,
+      );
       const boardingStop = d.stopIds[p]!;
       // Se puede bajar en la misma parada o en una cercana y caminar hasta esta.
       const candidates = [
@@ -147,14 +166,21 @@ export function planJourneys(
         if (first.lineId === line.id) continue;
         const walkMinutes = Math.ceil((metres * WALK_DETOUR) / WALK_METRES_PER_MINUTE);
         const accessMinutes = access(first.fromStopId);
+        const egressMinutes = egress(second.toStopId);
         const total =
-          accessMinutes + first.minutes + walkMinutes + transferMinutes + second.minutes;
+          accessMinutes +
+          first.minutes +
+          walkMinutes +
+          transferMinutes +
+          second.minutes +
+          egressMinutes;
         const key = `${first.lineId}>${line.id}`;
         const current = transfers.get(key);
         if (!current || total < current.totalMinutes) {
           transfers.set(key, {
             legs: [first, second],
             accessMinutes,
+            egressMinutes,
             totalMinutes: total,
             walkMinutes,
           });
@@ -189,7 +215,7 @@ export function planJourneys(
 
 /**
  * El tramo más corto de una línea entre alguna parada de origen y otra posterior
- * de destino, contando lo que se tarda andando hasta la parada de subida.
+ * de destino, contando lo que se anda hasta la parada de subida y desde la de bajada.
  */
 function bestLeg(
   line: Line,
@@ -197,18 +223,21 @@ function bestLeg(
   from: ReadonlySet<string>,
   to: ReadonlySet<string>,
   access: (stopId: string) => number,
+  egress: (stopId: string) => number,
 ): Leg | null {
   const times = minutesOf(d);
+  const arrivals = indicesOf(d, to);
   let best: Leg | null = null;
   let bestCost = Infinity;
   for (const i of indicesOf(d, from)) {
-    const j = indicesOf(d, to).find((index) => index > i);
-    if (j === undefined) continue;
-    const leg = makeLeg(line, d, i, j, times);
-    const cost = access(leg.fromStopId) + leg.minutes;
-    if (cost < bestCost) {
-      best = leg;
-      bestCost = cost;
+    for (const j of arrivals) {
+      if (j <= i) continue;
+      const leg = makeLeg(line, d, i, j, times);
+      const cost = access(leg.fromStopId) + leg.minutes + egress(leg.toStopId);
+      if (cost < bestCost) {
+        best = leg;
+        bestCost = cost;
+      }
     }
   }
   return best;

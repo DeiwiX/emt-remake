@@ -86,6 +86,7 @@ El workflow `Datos` se ejecuta cada día a las 05:30 UTC y publica en GitHub Pag
 | `network.json` | líneas, sentidos con paradas en orden y destino, y paradas | 34 KB |
 | `shapes-overview.json` | trazados simplificados a 25 m (vista general) | 7 KB |
 | `shapes-detail.json` | trazados simplificados a 4 m (zoom cercano) | 14 KB |
+| `streets.json` | calles del callejero (6.206) con una muestra de sus portales (número y posición, separados al menos 40 m) | ~200 KB comprimido |
 | `zones.json` | barrios (419) y distritos (11): contorno simplificado y paradas de cada zona (dentro o a menos de 100 m del borde) | 58 KB |
 | `report.json` | incidencias: sentidos con recorrido aproximado y paradas en conflicto | 1 KB |
 
@@ -113,6 +114,7 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
   - que dos colores cualesquiera se diferencian con claridad (CIE76 ≥ 10).
 
   Con daltonismo algunos pueden parecerse; el número de línea aparece siempre en las insignias y sobre los recorridos.
+- Los buscadores (inicio, mapa y "Cómo llegar") encuentran también **calles**, con número de portal opcional ("larios", "marqués de larios 5"). Las calles salen del callejero municipal y se descargan la primera vez que se busca. Una calle sin número abarca las paradas a menos de 300 m de sus portales; con número, las paradas cercanas a ese portal (500 m o hasta 1 km). En el inicio, elegir una calle abre el mapa con sus paradas y líneas (`/map?street=...&n=5`).
 - El buscador del inicio y el del mapa también encuentran barrios y distritos. Al elegir uno en el inicio se abre el mapa con la zona marcada (`/map?zone=...`). En el mapa, al elegir uno se marca su contorno, se muestran sus paradas y se resaltan las líneas que pasan por ellas. Los límites proceden del "Sistema de información cartográfica" del Ayuntamiento (mismo portal y licencia).
 - Los detalles de línea y de parada también usan el esquema de mapa ancho y panel (en el móvil, mapa arriba y panel debajo).
 - La sección Paradas tiene el mismo esquema que el mapa: mapa ancho con las paradas (las filtradas, si se filtra) y panel con la lista. Al elegir una, en la lista o en el mapa, se marca, se dibujan sus líneas y aparece su ficha con el próximo bus y el acceso al detalle.
@@ -123,7 +125,7 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
 - **Horario oficial:** el GTFS del portal municipal es el horario programado de la EMT. El script publica `timetables.json`: las salidas de cada línea y sentido por día de servicio, con los días de cada servicio (unos 17 KB comprimidos). La hora de paso por una parada se calcula como la salida más los minutos del sentido hasta esa parada, así que es aproximada. No es tiempo real (Fase 3).
 - **Próximo bus:** en el detalle de parada y en la ficha de parada de Mapa y Paradas, cada línea muestra los tres próximos pasos según horario (hora de Málaga) en cápsulas: lo que falta ("8 min") y la hora; a más de una hora, la hora y el tiempo que falta; si hoy no hay más, el día. El primero va destacado.
 - **Cómo llegar:**
-  - Origen y destino: parada, barrio o distrito. Como origen también "Usar mi ubicación": las paradas a menos de 500 m (o 1 km) con los minutos andando hasta cada una; el planificador los suma, elige la parada de subida que antes te deja en destino y muestra "Sal en N min" y el tramo a pie. Los trayectos desde "Mi ubicación" no se guardan en favoritos.
+  - Origen y destino: parada, barrio, distrito o calle (con número opcional). Desde o hasta una calle se suma el tramo a pie hasta la parada y se dibuja en el mapa como línea discontinua gris con sus minutos (en línea recta; el camino real por las calles queda para más adelante). Como origen también "Usar mi ubicación": las paradas a menos de 500 m (o 1 km) con los minutos andando hasta cada una; el planificador los suma, elige la parada de subida que antes te deja en destino y muestra "Sal en N min" y el tramo a pie. Los trayectos desde "Mi ubicación" no se guardan en favoritos.
   - Modos "Salir ahora", "Salir a las…" o "Llegar a las…", hoy u otro día dentro del horario publicado.
   - Propone líneas directas y combinaciones con un transbordo, en la misma parada o andando hasta otra a menos de 250 m.
   - Cada opción se encaja en el horario: qué bus coger, cuánto falta para que salga y a qué hora se llega.
@@ -137,6 +139,7 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
 
 - Estrella en el detalle de parada, en la ficha de parada de Mapa y Paradas, en el detalle de línea y en "Cómo llegar" (trayecto origen → destino).
 - En el inicio, "Mis favoritos" muestra las paradas guardadas como tarjetas pequeñas en dos columnas (nombre, líneas y el próximo bus de cualquiera de ellas); al pulsar una se despliega a lo ancho con los próximos buses de cada línea y el acceso al detalle. También los trayectos (abren "Cómo llegar" ya rellenado: `/plan?from=stop:152&to=neighbourhood:...`) y las líneas.
+- Las paradas guardadas admiten un nombre propio ("Casa", "Trabajo"; botón "Ponerle nombre" en la tarjeta desplegada), que se muestra encima del nombre de la parada.
 - Se guardan solo en el dispositivo (`localStorage`), sin cuentas (ADR 0006).
 
 ### Cerca de mí

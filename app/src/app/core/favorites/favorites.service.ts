@@ -1,6 +1,6 @@
 import { Injectable, computed, signal } from '@angular/core';
 
-import { Favorite, favoriteKey, parseFavorites } from './favorites';
+import { Favorite, cleanAlias, favoriteKey, parseFavorites } from './favorites';
 
 const STORAGE_KEY = 'emt-remake.favorites.v1';
 
@@ -23,6 +23,27 @@ export class FavoritesService {
     this.favorites().flatMap((f) => (f.kind === 'line' ? [f.lineId] : [])),
   );
   readonly trips = computed(() => this.favorites().flatMap((f) => (f.kind === 'trip' ? [f] : [])));
+
+  /** Nombre propio de una parada guardada ("Casa"), o undefined. */
+  aliasOf(stopId: string): string | undefined {
+    const favorite = this.favorites().find((f) => f.kind === 'stop' && f.stopId === stopId);
+    return favorite?.kind === 'stop' ? favorite.alias : undefined;
+  }
+
+  /** Pone (o quita, con un texto vacío) el nombre propio de una parada guardada. */
+  rename(stopId: string, alias: string): void {
+    const clean = cleanAlias(alias);
+    this.favoritesSignal.update((list) =>
+      list.map((f) =>
+        f.kind === 'stop' && f.stopId === stopId
+          ? clean
+            ? { kind: 'stop', stopId, alias: clean }
+            : { kind: 'stop', stopId }
+          : f,
+      ),
+    );
+    save(this.favoritesSignal());
+  }
 
   has(favorite: Favorite): boolean {
     return this.keys().has(favoriteKey(favorite));

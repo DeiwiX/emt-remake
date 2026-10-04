@@ -11,6 +11,7 @@ import {
   DataStatusService,
   NetworkRepository,
   ShapeRepository,
+  StreetRepository,
   ZoneRepository,
   ScheduleRepository,
 } from './core/data/repositories';
@@ -53,6 +54,7 @@ describe('Rutas de la app', () => {
         },
         { provide: ZoneRepository, useValue: { getZones: () => Promise.resolve([]) } },
         { provide: MapProvider, useValue: { isSupported: () => false } },
+        { provide: StreetRepository, useValue: { getStreets: () => Promise.resolve([]) } },
         {
           provide: LocationService,
           useValue: { state: signal({ status: 'idle' }), locate: () => Promise.resolve() },

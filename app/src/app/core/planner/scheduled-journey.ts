@@ -28,6 +28,7 @@ export interface TimedJourney {
   /** Hora a la que hay que salir: la del primer bus menos lo que se tarda en llegar a la parada. */
   readonly leaveAt: number;
   readonly departure: number;
+  /** Llegada al destino: la del último bus más lo que se anda después (si el destino es una calle). */
   readonly arrival: number;
 }
 
@@ -53,7 +54,9 @@ export function scheduleJourney(
   // "Llegar a las": el último primer bus con el que se llega a tiempo.
   const earliest = clock.minutes - MAX_ARRIVE_BY_WINDOW_MINUTES;
   const candidates = legPlans[0]!.times
-    .filter((t) => t <= clock.minutes && t - option.accessMinutes >= earliest)
+    .filter(
+      (t) => t <= clock.minutes - option.egressMinutes && t - option.accessMinutes >= earliest,
+    )
     .reverse();
   for (const departure of candidates.slice(0, MAX_ARRIVE_BY_CANDIDATES)) {
     const journey = ride(option, legPlans, departure);
@@ -114,6 +117,6 @@ function ride(option: JourneyOption, plans: LegPlan[], from: number): TimedJourn
     legs,
     leaveAt: departure - option.accessMinutes,
     departure,
-    arrival: legs.at(-1)!.arrival,
+    arrival: legs.at(-1)!.arrival + option.egressMinutes,
   };
 }
