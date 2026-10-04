@@ -13,6 +13,8 @@ import {
 import { matchShape } from '../build/match-shapes.ts';
 import { checkPlausibility } from '../build/sanity.ts';
 import { buildZones, insidePolygon, stopsInZone } from '../build/build-zones.ts';
+import { buildStreets } from '../build/build-streets.ts';
+import { parseStreets } from '../sources/streets.ts';
 import { parseWktPolygons, parseZonesCsv, titleCase } from '../sources/zones.ts';
 import { parseCsv } from '../sources/csv.ts';
 import { parseStopTimes } from '../sources/gtfs-times.ts';
@@ -179,6 +181,7 @@ describe('checkPlausibility', () => {
     approximateShapes: 4,
     zones: 430,
     departures: 20000,
+    streets: 3500,
   };
 
   it('acepta datos normales', () => {
@@ -190,6 +193,7 @@ describe('checkPlausibility', () => {
     assert.throws(() => checkPlausibility({ ...ok, stops: 600 }, ok), ValidationError);
     assert.throws(() => checkPlausibility({ ...ok, lines: 3 }, null), ValidationError);
     assert.throws(() => checkPlausibility({ ...ok, zones: 0 }, null), ValidationError);
+    assert.throws(() => checkPlausibility({ ...ok, streets: 10 }, null), ValidationError);
   });
 
   it('acepta una publicación anterior sin zonas', () => {
@@ -434,5 +438,35 @@ describe('horarios', () => {
     );
     assert.deepEqual(timetables.departures, { '1|1': { L: [360, 420], F: [600] } });
     assert.deepEqual(Object.keys(timetables.services).sort(), ['F', 'L']);
+  });
+});
+
+describe('Calles del callejero', () => {
+  const vias = [
+    'FID,CODVIAL5,CODVIAL,NOMVIAL,CODHACIENDA,CODTIPVIAL,CODCLASEVIAL,CODCALLECOM,CODCALLEFIN,FECALTA,FECBAJA',
+    'a,10,100,LARIOS,1,5,1,,,1900-01-01,',
+    'b,20,200,VIEJA,1,5,1,,,1900-01-01,2001-01-01',
+    'c,30,300,SIN PORTALES,1,2,2,,,1900-01-01,',
+  ].join('\n');
+  const tipos = ['FID,CODTIPVIAL,ABRTIPVIAL,DESTIPVIAL', 't,5,CL,Calle', 'u,2,AV,Avenida'].join('\n');
+  const numeros = [
+    'FID,ID_NUMERO,ID_TRAMOVIAL,CODVIAL5,CODVIAL,NUMERO,BIS,TIPNUMERO,FECALTA,FECBAJA,GMROTATION,SDOPUNTO',
+    'n1,1,1,10,100,1, ,A,2008-01-01,,0,POINT (-4.4210 36.7200)',
+    // A 11 m del portal 1: no se publica (menos de 40 m).
+    'n2,2,1,10,100,3, ,A,2008-01-01,,0,POINT (-4.4210 36.7201)',
+    'n3,3,1,10,100,21, ,A,2008-01-01,,0,POINT (-4.4210 36.7210)',
+    'n4,4,1,20,200,5, ,A,2008-01-01,,0,POINT (-4.4300 36.7300)',
+  ].join('\n');
+
+  it('publica las calles en vigor con portales separados al menos 40 m', () => {
+    const file = buildStreets(parseStreets(vias, tipos, numeros));
+    assert.equal(file.streets.length, 1);
+    const [street] = file.streets;
+    assert.equal(street!.name, 'Calle Larios');
+    assert.deepEqual(street!.numbers, [1, 21]);
+    assert.deepEqual(
+      decodePolyline(street!.points).map(([lat]) => lat),
+      [36.72, 36.721],
+    );
   });
 });

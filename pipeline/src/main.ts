@@ -20,6 +20,8 @@ import { download } from './sources/fetch.ts';
 import { parseGtfsZip } from './sources/gtfs.ts';
 import { parseZonesCsv } from './sources/zones.ts';
 import { buildZones } from './build/build-zones.ts';
+import { buildStreets } from './build/build-streets.ts';
+import { parseStreets } from './sources/streets.ts';
 import { buildTimetables, countDepartures } from './build/build-timetables.ts';
 import { ValidationError } from './validation.ts';
 
@@ -29,11 +31,22 @@ async function main(): Promise<void> {
   });
   if (!values.out) throw new Error('Falta --out <carpeta>');
 
-  const [emtRaw, gtfsRaw, neighbourhoodsRaw, districtsRaw] = await Promise.all([
+  const [
+    emtRaw,
+    gtfsRaw,
+    neighbourhoodsRaw,
+    districtsRaw,
+    streetsRaw,
+    streetTypesRaw,
+    streetNumbersRaw,
+  ] = await Promise.all([
     download(SOURCES.emtLines.url),
     download(SOURCES.gtfs.url),
     download(SOURCES.neighbourhoods.url),
     download(SOURCES.districts.url),
+    download(SOURCES.streets.url),
+    download(SOURCES.streetTypes.url),
+    download(SOURCES.streetNumbers.url),
   ]);
   const decode = (bytes: Uint8Array) => new TextDecoder().decode(bytes);
 
@@ -48,6 +61,13 @@ async function main(): Promise<void> {
     dataset.network.stops,
   );
   const timetables = buildTimetables(dataset.network, gtfs.trips, gtfs.serviceDates);
+  const streets = buildStreets(
+    parseStreets(
+      decode(streetsRaw.bytes),
+      decode(streetTypesRaw.bytes),
+      decode(streetNumbersRaw.bytes),
+    ),
+  );
 
   const counts: Manifest['counts'] = {
     lines: dataset.network.lines.length,
@@ -56,6 +76,7 @@ async function main(): Promise<void> {
     approximateShapes: dataset.report.approximateDirections.length,
     zones: zones.zones.length,
     departures: countDepartures(timetables),
+    streets: streets.streets.length,
   };
   checkPlausibility(counts, await readPreviousCounts(values.previous));
 
@@ -65,6 +86,7 @@ async function main(): Promise<void> {
     shapesDetail: JSON.stringify(dataset.shapesDetail),
     zones: JSON.stringify(zones),
     timetables: JSON.stringify(timetables),
+    streets: JSON.stringify(streets),
   };
   const entry = (path: string, content: string): FileEntry => ({
     path,
@@ -77,6 +99,7 @@ async function main(): Promise<void> {
     shapesDetail: entry('shapes-detail.json', contents.shapesDetail),
     zones: entry('zones.json', contents.zones),
     timetables: entry('timetables.json', contents.timetables),
+    streets: entry('streets.json', contents.streets),
   };
 
   const manifest: Manifest = {
@@ -94,6 +117,9 @@ async function main(): Promise<void> {
       { ...SOURCES.gtfs, lastModified: gtfsRaw.lastModified },
       { ...SOURCES.neighbourhoods, lastModified: neighbourhoodsRaw.lastModified },
       { ...SOURCES.districts, lastModified: districtsRaw.lastModified },
+      { ...SOURCES.streets, lastModified: streetsRaw.lastModified },
+      { ...SOURCES.streetTypes, lastModified: streetTypesRaw.lastModified },
+      { ...SOURCES.streetNumbers, lastModified: streetNumbersRaw.lastModified },
     ],
     license: { ...LICENSE },
   };
@@ -105,6 +131,7 @@ async function main(): Promise<void> {
     writeFile(join(values.out, files.shapesDetail.path), contents.shapesDetail),
     writeFile(join(values.out, files.zones.path), contents.zones),
     writeFile(join(values.out, files.timetables.path), contents.timetables),
+    writeFile(join(values.out, files.streets.path), contents.streets),
     writeFile(join(values.out, 'report.json'), JSON.stringify(dataset.report, null, 2)),
   ]);
   // El manifest se escribe el último: solo existe si todo lo anterior ha ido bien.
@@ -112,7 +139,7 @@ async function main(): Promise<void> {
 
   console.log(
     `Datos ${manifest.dataVersion}: ${counts.lines} líneas, ${counts.stops} paradas, ` +
-      `${counts.shapes} trazados (${counts.approximateShapes} aproximados), ${counts.zones} zonas, ${counts.departures} salidas, ` +
+      `${counts.shapes} trazados (${counts.approximateShapes} aproximados), ${counts.zones} zonas, ${counts.departures} salidas, ${counts.streets} calles, ` +
       `${dataset.report.stopConflicts.length} conflictos de paradas.`,
   );
 }

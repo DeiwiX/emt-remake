@@ -72,6 +72,23 @@ export interface ZonesFile {
   zones: PublishedZone[];
 }
 
+/** Calle del callejero municipal con una muestra de sus portales. */
+export interface PublishedStreet {
+  id: string;
+  /** "Calle Larios", "Avenida de Andalucía"... */
+  name: string;
+  /** Posición de los portales publicados, como polilínea codificada (no es el trazado). */
+  points: string;
+  /** Número de portal de cada punto, en el mismo orden. */
+  numbers: number[];
+}
+
+/** Calles para buscar origen y destino (añadido sin romper el formato). */
+export interface StreetsFile {
+  schemaVersion: number;
+  streets: PublishedStreet[];
+}
+
 /**
  * Salidas programadas (GTFS) por sentido de línea y día de servicio. La hora de
  * paso por cada parada = salida + minutos del sentido en esa parada (aproximado).
@@ -102,6 +119,7 @@ export interface Manifest {
     approximateShapes: number;
     zones: number;
     departures: number;
+    streets: number;
   };
   files: {
     network: FileEntry;
@@ -109,6 +127,7 @@ export interface Manifest {
     shapesDetail: FileEntry;
     zones: FileEntry;
     timetables: FileEntry;
+    streets: FileEntry;
   };
   sources: { name: string; dataset: string; url: string; lastModified: string | null }[];
   license: { id: string; url: string; attribution: string };

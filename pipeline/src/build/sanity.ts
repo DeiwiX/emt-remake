@@ -25,10 +25,13 @@ export function checkPlausibility(counts: Counts, previous: PreviousCounts | nul
   if (counts.zones < MIN_COUNTS.zones) {
     throw new ValidationError(`Solo hay ${counts.zones} zonas (mínimo ${MIN_COUNTS.zones})`);
   }
+  if (counts.streets < MIN_COUNTS.streets) {
+    throw new ValidationError(`Solo hay ${counts.streets} calles (mínimo ${MIN_COUNTS.streets})`);
+  }
   if (!previous) return;
 
-  for (const key of ['lines', 'stops', 'shapes', 'zones', 'departures'] as const) {
-    // Las publicaciones anteriores a las zonas no tienen ese recuento.
+  for (const key of ['lines', 'stops', 'shapes', 'zones', 'departures', 'streets'] as const) {
+    // Las publicaciones anteriores a las zonas o a las calles no tienen ese recuento.
     if (previous[key] === undefined) continue;
     const minimum = Math.floor(previous[key] * MIN_RATIO_VS_PREVIOUS);
     if (counts[key] < minimum) {

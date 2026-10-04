@@ -28,6 +28,22 @@ export const SOURCES = {
       'https://datosabiertos.malaga.eu/dataset/sistema-de-informacion-cartografica-distrito-municipal',
     url: `${CARTO_BASE}/da_cartografiaDistritoMunicipal-4326.csv`,
   },
+  /** Callejero: vías, tipos de vía y números de portal con su posición (WGS84, WKT). */
+  streets: {
+    name: 'Sistema de información cartográfica: vial',
+    dataset: 'https://datosabiertos.malaga.eu/dataset/sistema-de-informacion-cartografica-vial',
+    url: `${CARTO_BASE}/da_cartografiaVial-4326.csv`,
+  },
+  streetTypes: {
+    name: 'Sistema de información cartográfica: tipo de vial',
+    dataset: 'https://datosabiertos.malaga.eu/dataset/sistema-de-informacion-cartografica-vial',
+    url: `${CARTO_BASE}/da_cartografiaTipoVial-4326.csv`,
+  },
+  streetNumbers: {
+    name: 'Sistema de información cartográfica: número de portal',
+    dataset: 'https://datosabiertos.malaga.eu/dataset/sistema-de-informacion-cartografica-numero',
+    url: `${CARTO_BASE}/da_cartografiaNumero-4326.csv`,
+  },
 } as const;
 
 export const LICENSE = {
@@ -53,7 +69,13 @@ export const SIMPLIFY_TOLERANCE_M = {
 export const MIN_RATIO_VS_PREVIOUS = 0.8;
 
 /** Mínimos absolutos de sentido común para la red de la EMT. */
-export const MIN_COUNTS = { lines: 20, stops: 500, zones: 100, departures: 1000 } as const;
+export const MIN_COUNTS = {
+  lines: 20,
+  stops: 500,
+  zones: 100,
+  departures: 1000,
+  streets: 1000,
+} as const;
 
 /** Tolerancia de simplificación de los contornos de barrios y distritos, en metros. */
 export const ZONE_SIMPLIFY_TOLERANCE_M = 8;
