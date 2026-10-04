@@ -41,6 +41,8 @@ También se puede abrir `app/android` en Android Studio (que usa su propio Java;
 
 iOS (16 o superior): el proyecto está en `app/ios`, pero compilarlo exige un Mac con Xcode (`npx cap open ios`).
 
+Icono y pantalla de inicio: la fuente es `app/assets/icon.svg` (autobús blanco sobre el azul de la marca); los PNG de `app/assets/` se generan a partir de él y los recursos nativos con `npx @capacitor/assets generate --android --ios --iconBackgroundColor "#0b4fc4" --splashBackgroundColor "#f4f5f8" --splashBackgroundColorDark "#121212"`. La web usa el mismo dibujo como `favicon.svg`.
+
 El botón "atrás" de Android navega dentro de la app gracias al plugin `@capacitor/app`. La app no se publica en tiendas: el APK de depuración es para uso personal.
 
 Script de datos:

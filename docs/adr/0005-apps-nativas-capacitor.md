@@ -26,4 +26,4 @@ La app es una PWA Ionic/Angular. El ADR 0001 fijó Capacitor 8 para Android 8+ e
 - Antes de compilar hay que ejecutar `npm run native:sync`.
 - iOS queda preparado pero sin compilar ni probar hasta disponer de un Mac o un servicio en la nube.
 - `@capacitor/cli` trae `uuid` 7 (aviso moderado de npm audit), solo como dependencia de desarrollo (herramienta de proyectos Xcode); no se incluye en la app.
-- Pendiente: icono y pantalla de inicio propios (ahora son los de Capacitor) y pruebas con TalkBack y VoiceOver.
+- Icono y pantalla de inicio propios desde el incremento 14 (ADR 0006). Pendiente: pruebas con TalkBack y VoiceOver.
