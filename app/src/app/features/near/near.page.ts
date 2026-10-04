@@ -99,8 +99,12 @@ export class NearPage {
     return id ? this.network.getStop(id) : undefined;
   });
   protected readonly selectedMarker = computed(() => toMapStops([this.selectedStop()])[0] ?? null);
+  /** En el mapa, cada parada con las líneas que pasan por ella encima ("1 · 36"). */
   protected readonly mapStops = computed(() =>
-    toMapStops((this.near()?.stops ?? []).map((s) => s.stop)),
+    (this.near()?.stops ?? []).map(({ stop }) => ({
+      ...toMapStops([stop])[0]!,
+      label: this.lineIds(stop).join(' · '),
+    })),
   );
   /** Encuadre: la parada elegida o tu posición con las paradas cercanas. */
   protected readonly fitPoints = computed<LatLon[]>(() => {
@@ -132,6 +136,10 @@ export class NearPage {
   }
 
   protected lineCodes(stop: Stop): string {
-    return [...new Set(stop.services.map((s) => s.lineId))].join(', ');
+    return this.lineIds(stop).join(', ');
+  }
+
+  private lineIds(stop: Stop): string[] {
+    return [...new Set(stop.services.map((s) => s.lineId))];
   }
 }

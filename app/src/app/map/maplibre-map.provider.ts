@@ -64,6 +64,7 @@ const LAYER = {
   approximate: 'routes-approximate',
   labels: 'routes-labels',
   stops: 'stops',
+  stopLabels: 'stop-labels',
   selectedStop: 'selected-stop',
   areaFill: 'area-fill',
   areaOutline: 'area-outline',
@@ -347,6 +348,26 @@ class MapLibreView implements MapView {
         'circle-stroke-width': 2,
       },
     });
+    // Rótulo encima de las paradas que lo traen (las líneas que pasan, en "Cerca de mí").
+    map.addLayer({
+      id: LAYER.stopLabels,
+      type: 'symbol',
+      source: SOURCE.stops,
+      filter: ['has', 'label'],
+      layout: {
+        'text-field': ['get', 'label'],
+        'text-font': ['Noto Sans Bold'],
+        'text-size': 12,
+        'text-anchor': 'bottom',
+        'text-offset': [0, -0.8],
+        'text-max-width': 12,
+      },
+      paint: {
+        'text-color': stopStroke,
+        'text-halo-color': stopFill,
+        'text-halo-width': 2,
+      },
+    });
     // Parada marcada: más grande y con color de acento, visible a cualquier zoom.
     map.addLayer({
       id: LAYER.selectedStop,
@@ -394,6 +415,7 @@ class MapLibreView implements MapView {
     if (!this.map.getLayer(LAYER.stops)) return;
     const minZoom = this.stops.length > MANY_STOPS ? MANY_STOPS_MIN_ZOOM : 0;
     this.map.setLayerZoomRange(LAYER.stops, minZoom, 24);
+    this.map.setLayerZoomRange(LAYER.stopLabels, minZoom, 24);
   }
 
   private applyFiltersAndHighlight(): void {
@@ -516,7 +538,9 @@ class MapLibreView implements MapView {
       type: 'FeatureCollection',
       features: this.stops.map((stop) => ({
         type: 'Feature',
-        properties: { id: stop.id, name: stop.name },
+        properties: stop.label
+          ? { id: stop.id, name: stop.name, label: stop.label }
+          : { id: stop.id, name: stop.name },
         geometry: { type: 'Point', coordinates: [stop.lon, stop.lat] },
       })),
     };

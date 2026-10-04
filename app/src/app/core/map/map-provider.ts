@@ -27,6 +27,8 @@ export interface MapStop {
   readonly name: string;
   readonly lat: number;
   readonly lon: number;
+  /** Texto encima de la parada (p. ej. las líneas que pasan: "1 · 36"); sin él, no se rotula. */
+  readonly label?: string;
 }
 
 export interface MapViewOptions {
