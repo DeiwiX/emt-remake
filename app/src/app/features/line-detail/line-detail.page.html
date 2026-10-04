@@ -7,62 +7,15 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content>
-  <app-data-status-banner />
-
-  @if (line(); as line) {
-    <div class="ion-padding">
-      <div class="heading">
-        <app-line-badge [code]="line.id" />
-        <h1>
-          <span class="visually-hidden">{{ 'lines.line' | transloco: { id: line.id } }}.</span>
-          {{ line.name }}
-        </h1>
-      </div>
-      @if (line.notes) {
-        <p>
-          <ion-note>{{ 'lineDetail.notes' | transloco: { notes: line.notes } }}</ion-note>
-        </p>
-      }
-    </div>
-
-    @if (line.directions.length > 1) {
-      <!-- Botones con aria-pressed en lugar de ion-segment: funcionan igual con toque,
-           ratón, teclado y lectores de pantalla, y admiten destinos largos. -->
-      <div
-        class="directions ion-padding-horizontal"
-        role="group"
-        [attr.aria-label]="'lineDetail.direction' | transloco"
-      >
-        @for (d of line.directions; track d.id) {
-          <ion-button
-            [fill]="d.id === selectedDirectionId() ? 'solid' : 'outline'"
-            [attr.aria-pressed]="d.id === selectedDirectionId()"
-            (click)="selectedDirectionId.set(d.id)"
-          >
-            {{ 'lineDetail.towards' | transloco: { headsign: d.headsign } }}
-          </ion-button>
-        }
-      </div>
-    }
-
-    @if (selectedDirection(); as direction) {
-      <h2 class="ion-padding-horizontal">
-        {{ 'lineDetail.towards' | transloco: { headsign: direction.headsign } }}
-        · {{ 'lineDetail.stopCount' | transloco: { count: direction.stopIds.length } }}
-      </h2>
-      @if (direction.shapeQuality === 'approximate') {
-        <p class="ion-padding-horizontal">
-          <ion-note>{{ 'lineDetail.approximateRoute' | transloco }}</ion-note>
-        </p>
-      }
-      <!-- En modo sencillo no hay mapa: la lista de paradas basta. -->
-      @if (!simpleMode()) {
-        <!-- El mapa se descarga solo cuando la sección entra en pantalla. La lista de
-             paradas de debajo es su alternativa en texto (RNF-01). -->
-        @defer (on viewport) {
+<ion-content [scrollY]="false">
+  <!-- Mismo esquema que Mapa y Paradas: mapa ancho y panel con la línea y sus paradas.
+       En modo sencillo no hay mapa y el panel ocupa todo. -->
+  <div class="split-layout" [class.text-only]="simpleMode()">
+    @if (!simpleMode()) {
+      <div class="split-map">
+        @if (line(); as line) {
           <app-map-view
-            class="detail-map"
+            class="split-map-fill"
             role="region"
             [attr.aria-label]="'lineDetail.mapLabel' | transloco: { id: line.id }"
             [routes]="mapRoutes()"
@@ -70,29 +23,83 @@
             [fitPoints]="fitPoints()"
             (stopSelected)="openStop($event)"
           />
-        } @placeholder {
-          <div class="detail-map"></div>
         }
-        <p class="ion-padding-horizontal">
-          <a [routerLink]="['/map']" [queryParams]="{ line: line.id }">{{
-            'lineDetail.openInMap' | transloco
-          }}</a>
+      </div>
+    }
+
+    <!-- La lista de paradas es la alternativa en texto del mapa (RNF-01). -->
+    <section class="split-panel" [attr.aria-label]="'lines.line' | transloco: { id: lineId() }">
+      <app-data-status-banner />
+
+      @if (line(); as line) {
+        <div class="ion-padding">
+          <div class="heading">
+            <app-line-badge [code]="line.id" />
+            <h1>
+              <span class="visually-hidden">{{ 'lines.line' | transloco: { id: line.id } }}.</span>
+              {{ line.name }}
+            </h1>
+          </div>
+          @if (line.notes) {
+            <p>
+              <ion-note>{{ 'lineDetail.notes' | transloco: { notes: line.notes } }}</ion-note>
+            </p>
+          }
+        </div>
+
+        @if (line.directions.length > 1) {
+          <!-- Botones con aria-pressed en lugar de ion-segment: funcionan igual con toque,
+               ratón, teclado y lectores de pantalla, y admiten destinos largos. -->
+          <div
+            class="directions ion-padding-horizontal"
+            role="group"
+            [attr.aria-label]="'lineDetail.direction' | transloco"
+          >
+            @for (d of line.directions; track d.id) {
+              <ion-button
+                [fill]="d.id === selectedDirectionId() ? 'solid' : 'outline'"
+                [attr.aria-pressed]="d.id === selectedDirectionId()"
+                (click)="selectedDirectionId.set(d.id)"
+              >
+                {{ 'lineDetail.towards' | transloco: { headsign: d.headsign } }}
+              </ion-button>
+            }
+          </div>
+        }
+
+        @if (selectedDirection(); as direction) {
+          <h2 class="ion-padding-horizontal">
+            {{ 'lineDetail.towards' | transloco: { headsign: direction.headsign } }}
+            · {{ 'lineDetail.stopCount' | transloco: { count: direction.stopIds.length } }}
+          </h2>
+          @if (direction.shapeQuality === 'approximate') {
+            <p class="ion-padding-horizontal">
+              <ion-note>{{ 'lineDetail.approximateRoute' | transloco }}</ion-note>
+            </p>
+          }
+          @if (!simpleMode()) {
+            <p class="ion-padding-horizontal">
+              <a [routerLink]="['/map']" [queryParams]="{ line: line.id }">{{
+                'lineDetail.openInMap' | transloco
+              }}</a>
+            </p>
+          }
+          <ion-list [attr.aria-label]="'lineDetail.stopsInOrder' | transloco">
+            @for (stop of stops(); track $index) {
+              <ion-item [routerLink]="['/stops', stop.id]" detail>
+                <ion-label class="ion-text-wrap">
+                  {{ $index + 1 }}. {{ stop.name }}
+                  <p>{{ 'stops.code' | transloco: { id: stop.id } }}</p>
+                </ion-label>
+              </ion-item>
+            }
+          </ion-list>
+        }
+      } @else if (notFound()) {
+        <p class="ion-padding" role="status">
+          {{ 'lineDetail.notFound' | transloco: { id: lineId() } }}
         </p>
       }
-      <ion-list [attr.aria-label]="'lineDetail.stopsInOrder' | transloco">
-        @for (stop of stops(); track $index) {
-          <ion-item [routerLink]="['/stops', stop.id]" detail>
-            <ion-label class="ion-text-wrap">
-              {{ $index + 1 }}. {{ stop.name }}
-              <p>{{ 'stops.code' | transloco: { id: stop.id } }}</p>
-            </ion-label>
-          </ion-item>
-        }
-      </ion-list>
-    }
-  } @else if (notFound()) {
-    <p class="ion-padding" role="status">
-      {{ 'lineDetail.notFound' | transloco: { id: lineId() } }}
-    </p>
-  }
+    </section>
+  </div>
 </ion-content>

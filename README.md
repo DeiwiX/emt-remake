@@ -93,13 +93,14 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
 
   Con daltonismo algunos pueden parecerse; el número de línea aparece siempre en las insignias y sobre los recorridos.
 - El buscador del inicio y el del mapa también encuentran barrios y distritos. Al elegir uno en el inicio se abre el mapa con la zona marcada (`/map?zone=...`). En el mapa, al elegir uno se marca su contorno, se muestran sus paradas y se resaltan las líneas que pasan por ellas. Los límites proceden del "Sistema de información cartográfica" del Ayuntamiento (mismo portal y licencia).
+- Los detalles de línea y de parada también usan el esquema de mapa ancho y panel (en el móvil, mapa arriba y panel debajo).
 - La sección Paradas tiene el mismo esquema que el mapa: mapa ancho con las paradas (las filtradas, si se filtra) y panel con la lista. Al elegir una, en la lista o en el mapa, se marca, se dibujan sus líneas y aparece su ficha con el próximo bus y el acceso al detalle.
 - Capas del mapa: "Claro" y "Oscuro" (OpenFreeMap) y "Satélite" (PNOA del IGN, CC BY 4.0). El selector está en todos los mapas (Mapa, Cómo llegar, línea y parada) y la elección se recuerda en el dispositivo; hasta elegir una, el callejero sigue el tema de la app.
 
 ### Horario programado y "Cómo llegar"
 
 - **Horario oficial:** el GTFS del portal municipal es el horario programado de la EMT. El script publica `timetables.json`: las salidas de cada línea y sentido por día de servicio, con los días de cada servicio (unos 17 KB comprimidos). La hora de paso por una parada se calcula como la salida más los minutos del sentido hasta esa parada, así que es aproximada. No es tiempo real (Fase 3).
-- **Próximo bus:** en el detalle de parada y en la ficha de parada del mapa aparece "Próximo bus según horario", con la hora de Málaga. Si hoy no hay más, muestra el próximo día con servicio.
+- **Próximo bus:** en el detalle de parada y en la ficha de parada de Mapa y Paradas, cada línea muestra los tres próximos pasos según horario (hora de Málaga) en cápsulas: lo que falta ("8 min") y la hora; a más de una hora, la hora y el tiempo que falta; si hoy no hay más, el día. El primero va destacado.
 - **Cómo llegar:**
   - Origen y destino: parada, barrio o distrito.
   - Modos "Salir ahora", "Salir a las…" o "Llegar a las…", hoy u otro día dentro del horario publicado.

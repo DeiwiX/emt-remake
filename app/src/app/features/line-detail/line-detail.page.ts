@@ -36,7 +36,7 @@ import { MapViewComponent } from '../../shared/map-view/map-view.component';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
 import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component';
 
-/** Detalle de línea en texto (RF-03): sentidos y paradas en orden. El mapa llega en el incremento 5. */
+/** Detalle de línea (RF-03): mapa ancho con el recorrido y panel con sentidos y paradas en orden. */
 @Component({
   selector: 'app-line-detail',
   imports: [
@@ -58,28 +58,7 @@ import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component
     IonToolbar,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  styles: `
-    .heading {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .heading h1 {
-      margin: 0;
-      font-size: 1.25rem;
-    }
-    .directions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    .directions ion-button {
-      flex: 1 1 10rem;
-      min-height: 44px;
-      text-transform: none;
-      white-space: normal;
-    }
-  `,
+  styleUrl: './line-detail.page.scss',
   templateUrl: './line-detail.page.html',
 })
 export class LineDetailPage {

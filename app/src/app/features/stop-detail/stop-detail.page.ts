@@ -50,7 +50,7 @@ import { NextBusComponent } from '../../shared/next-bus/next-bus.component';
     IonToolbar,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  styles: ``,
+  styleUrl: './stop-detail.page.scss',
   template: `
     <ion-header>
       <ion-toolbar>
@@ -60,63 +60,76 @@ import { NextBusComponent } from '../../shared/next-bus/next-bus.component';
         <ion-title>{{ 'stopDetail.title' | transloco: { id: stopId() } }}</ion-title>
       </ion-toolbar>
     </ion-header>
-    <ion-content>
-      <app-data-status-banner />
-      @if (stop(); as stop) {
-        <div class="ion-padding-horizontal">
-          <h1>{{ stop.name }}</h1>
-          <p>{{ 'stops.code' | transloco: { id: stop.id } }}</p>
-          @if (stop.address) {
-            <p>{{ 'stopDetail.address' | transloco: { address: stop.address } }}</p>
-          }
-          <p>{{ 'stopDetail.coordinates' | transloco: { lat: stop.lat, lon: stop.lon } }}</p>
-        </div>
+    <ion-content [scrollY]="false">
+      <!-- Mismo esquema que Mapa y Paradas: mapa ancho y panel con las líneas y el próximo
+           bus. En modo sencillo no hay mapa y el panel ocupa todo. -->
+      <div class="split-layout" [class.text-only]="simpleMode()">
         @if (!simpleMode()) {
-          @defer (on viewport) {
-            <app-map-view
-              class="detail-map"
-              role="region"
-              [attr.aria-label]="'stopDetail.mapLabel' | transloco: { name: stop.name }"
-              [routes]="mapRoutes()"
-              [stops]="mapStops()"
-              [fitPoints]="fitPoints()"
-              (stopSelected)="openStop($event)"
-            />
-          } @placeholder {
-            <div class="detail-map"></div>
-          }
+          <div class="split-map">
+            @if (stop(); as stop) {
+              <app-map-view
+                class="split-map-fill"
+                role="region"
+                [attr.aria-label]="'stopDetail.mapLabel' | transloco: { name: stop.name }"
+                [routes]="mapRoutes()"
+                [stops]="mapStops()"
+                [fitPoints]="fitPoints()"
+                (stopSelected)="openStop($event)"
+              />
+            }
+          </div>
         }
-        <h2 class="ion-padding-horizontal">{{ 'stopDetail.lines' | transloco }}</h2>
-        <p class="ion-padding-horizontal">
-          <ion-note>{{ 'stopDetail.nextBusNote' | transloco }}</ion-note>
-        </p>
-        <ion-list [attr.aria-label]="'stopDetail.lines' | transloco">
-          @for (service of services(); track service.lineId + '-' + service.directionId) {
-            <ion-item
-              [routerLink]="['/lines', service.lineId]"
-              [queryParams]="{ direction: service.directionId }"
-              detail
-            >
-              <app-line-badge slot="start" [code]="service.lineId" />
-              <ion-label class="ion-text-wrap">
-                <span class="visually-hidden"
-                  >{{ 'lines.line' | transloco: { id: service.lineId } }}.</span
+
+        <section
+          class="split-panel"
+          [attr.aria-label]="'stopDetail.title' | transloco: { id: stopId() }"
+        >
+          <app-data-status-banner />
+          @if (stop(); as stop) {
+            <div class="ion-padding-horizontal">
+              <h1>{{ stop.name }}</h1>
+              <p>{{ 'stops.code' | transloco: { id: stop.id } }}</p>
+              @if (stop.address) {
+                <p>{{ 'stopDetail.address' | transloco: { address: stop.address } }}</p>
+              }
+              <!-- Sin mapa, la ubicación se da en coordenadas. -->
+              @if (simpleMode()) {
+                <p>{{ 'stopDetail.coordinates' | transloco: { lat: stop.lat, lon: stop.lon } }}</p>
+              }
+            </div>
+            <h2 class="ion-padding-horizontal">{{ 'stopDetail.lines' | transloco }}</h2>
+            <ion-list [attr.aria-label]="'stopDetail.lines' | transloco">
+              @for (service of services(); track service.lineId + '-' + service.directionId) {
+                <ion-item
+                  [routerLink]="['/lines', service.lineId]"
+                  [queryParams]="{ direction: service.directionId }"
+                  detail
                 >
-                {{ 'lineDetail.towards' | transloco: { headsign: service.headsign } }}
-                <app-next-bus
-                  [lineId]="service.lineId"
-                  [directionId]="service.directionId"
-                  [stopId]="stop.id"
-                />
-              </ion-label>
-            </ion-item>
+                  <app-line-badge slot="start" [code]="service.lineId" />
+                  <ion-label class="ion-text-wrap">
+                    <span class="visually-hidden"
+                      >{{ 'lines.line' | transloco: { id: service.lineId } }}.</span
+                    >
+                    {{ 'lineDetail.towards' | transloco: { headsign: service.headsign } }}
+                    <app-next-bus
+                      [lineId]="service.lineId"
+                      [directionId]="service.directionId"
+                      [stopId]="stop.id"
+                    />
+                  </ion-label>
+                </ion-item>
+              }
+            </ion-list>
+            <p class="ion-padding-horizontal">
+              <ion-note>{{ 'stopDetail.nextBusNote' | transloco }}</ion-note>
+            </p>
+          } @else if (notFound()) {
+            <p class="ion-padding" role="status">
+              {{ 'stopDetail.notFound' | transloco: { id: stopId() } }}
+            </p>
           }
-        </ion-list>
-      } @else if (notFound()) {
-        <p class="ion-padding" role="status">
-          {{ 'stopDetail.notFound' | transloco: { id: stopId() } }}
-        </p>
-      }
+        </section>
+      </div>
     </ion-content>
   `,
 })

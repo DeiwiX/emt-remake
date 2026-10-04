@@ -184,10 +184,12 @@
   "nextBus": {
     "loading": "Cargando horario…",
     "unavailable": "Sin horario publicado para esta línea",
-    "next": "Próximo bus según horario: {{time}} (en {{minutes}} min)",
-    "then": "después {{time}}",
     "tomorrow": "mañana",
-    "nextAt": "Próximo bus según horario: {{time}}",
-    "otherDay": "No hay más buses hoy · próximo según horario: {{day}} a las {{time}}"
+    "scheduled": "Según el horario programado",
+    "spoken": "Próximos buses según horario: {{list}}.",
+    "now": "ahora",
+    "inMinutes": "{{minutes}} min",
+    "inHours": "en {{hours}} h {{minutes}} min",
+    "today": "hoy"
   }
 }

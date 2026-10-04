@@ -184,10 +184,12 @@
   "nextBus": {
     "loading": "Loading timetable…",
     "unavailable": "No timetable published for this line",
-    "next": "Next bus (timetable): {{time}} (in {{minutes}} min)",
-    "then": "then {{time}}",
     "tomorrow": "tomorrow",
-    "nextAt": "Next bus (timetable): {{time}}",
-    "otherDay": "No more buses today · next (timetable): {{day}} at {{time}}"
+    "scheduled": "From the published timetable",
+    "spoken": "Next buses from the timetable: {{list}}.",
+    "now": "now",
+    "inMinutes": "{{minutes}} min",
+    "inHours": "in {{hours}} h {{minutes}} min",
+    "today": "today"
   }
 }

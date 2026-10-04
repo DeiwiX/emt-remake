@@ -1,0 +1,22 @@
+@use '../../shared/styles/split-layout';
+
+.heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.heading h1 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+.directions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.directions ion-button {
+  flex: 1 1 10rem;
+  min-height: 44px;
+  text-transform: none;
+  white-space: normal;
+}
