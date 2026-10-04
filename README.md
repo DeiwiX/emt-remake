@@ -126,7 +126,7 @@ Revisión del incremento 9 (04/10/2026):
 - **axe-core 4.10** en las pantallas principales (inicio, búsqueda, líneas, detalle de línea, paradas, detalle de parada, mapa, "Cómo llegar" con resultados, ajustes y acerca de), en tema claro y oscuro: sin incidencias tras las correcciones. Se corrigieron una cabecera dentro del contenido principal, dos regiones de mapa con el mismo nombre (ahora el nombre va en el lienzo del mapa) y los radios de Ajustes dentro de una lista.
 - **Texto al 200 % en 320 px:** nada se sale de la pantalla. Los botones parten el texto en varias líneas y el selector de capa del mapa se reparte en filas.
 - **Carga** (compilación de producción, CPU ×4 y red "4G lenta" simulados, sin caché): primer contenido en unos 2,4 s y unos 270 KB transferidos, de los que 183 KB son el código inicial comprimido. El código inicial ocupa unos 800 KB sin comprimir: la mayor parte es Ionic (unos 360 KB) y Angular (unos 300 KB), así que bajar de 500 KB sin comprimir exigiría prescindir de Ionic. La librería del mapa (230 KB comprimidos) solo se descarga al abrir un mapa.
-- Pendiente: probar con TalkBack en un Android real y con VoiceOver (necesita un Mac o un iPhone).
+- Pendiente para el incremento 10 (apps nativas): probar con TalkBack en un Android real y con VoiceOver (necesita un Mac o un iPhone). La auditoría con axe no se automatiza en las pruebas (decisión del desarrollador, 04/10/2026).
 
 ### Origen y licencia
 
