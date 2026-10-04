@@ -44,6 +44,18 @@ export const SOURCES = {
     dataset: 'https://datosabiertos.malaga.eu/dataset/sistema-de-informacion-cartografica-numero',
     url: `${CARTO_BASE}/da_cartografiaNumero-4326.csv`,
   },
+  /** Cortes de tráfico del Ayuntamiento (puntos en WGS84). */
+  trafficCuts: {
+    name: 'Cortes de tráfico',
+    dataset: 'https://datosabiertos.malaga.eu/dataset/cortes-de-trafico',
+    url: 'https://datosabiertos.malaga.eu/recursos/transporte/trafico/da_cortesTrafico-4326.geojson',
+  },
+  /** Incidencias de la DGT en DATEX II (toda España; se filtra la zona de Málaga). */
+  dgtSituations: {
+    name: 'DGT – Situaciones (DATEX II)',
+    dataset: 'https://nap.dgt.es/dataset',
+    url: 'https://nap.dgt.es/datex2/v3/dgt/SituationPublication/datex2_v36.xml',
+  },
 } as const;
 
 export const LICENSE = {

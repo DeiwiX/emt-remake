@@ -22,6 +22,13 @@ import { parseZonesCsv } from './sources/zones.ts';
 import { buildZones } from './build/build-zones.ts';
 import { buildStreets } from './build/build-streets.ts';
 import { parseStreets } from './sources/streets.ts';
+import { buildTraffic } from './build/build-traffic.ts';
+import {
+  type RawTrafficItem,
+  madridLocal,
+  parseDgtSituations,
+  parseMunicipalCuts,
+} from './sources/traffic.ts';
 import { buildTimetables, countDepartures } from './build/build-timetables.ts';
 import { ValidationError } from './validation.ts';
 
@@ -69,6 +76,37 @@ async function main(): Promise<void> {
     ),
   );
 
+  // Tráfico: opcional. Si alguna fuente falla se publica sin ella (y sin tráfico si fallan las dos).
+  const trafficItems: RawTrafficItem[] = [];
+  const trafficSources: Manifest['sources'] = [];
+  try {
+    const raw = await download(SOURCES.trafficCuts.url);
+    trafficItems.push(...parseMunicipalCuts(JSON.parse(decode(raw.bytes))));
+    trafficSources.push({
+      ...SOURCES.trafficCuts,
+      lastModified: raw.lastModified,
+    });
+  } catch (error) {
+    console.warn(
+      'Sin cortes de tráfico del Ayuntamiento:',
+      error instanceof Error ? error.message : error,
+    );
+  }
+  try {
+    const raw = await download(SOURCES.dgtSituations.url);
+    trafficItems.push(...parseDgtSituations(decode(raw.bytes)));
+    trafficSources.push({
+      ...SOURCES.dgtSituations,
+      lastModified: raw.lastModified,
+    });
+  } catch (error) {
+    console.warn('Sin incidencias de la DGT:', error instanceof Error ? error.message : error);
+  }
+  const traffic =
+    trafficSources.length > 0
+      ? buildTraffic(trafficItems, madridLocal(new Date().toISOString())!)
+      : null;
+
   const counts: Manifest['counts'] = {
     lines: dataset.network.lines.length,
     stops: dataset.network.stops.length,
@@ -87,6 +125,7 @@ async function main(): Promise<void> {
     zones: JSON.stringify(zones),
     timetables: JSON.stringify(timetables),
     streets: JSON.stringify(streets),
+    traffic: traffic ? JSON.stringify(traffic) : null,
   };
   const entry = (path: string, content: string): FileEntry => ({
     path,
@@ -101,6 +140,7 @@ async function main(): Promise<void> {
     timetables: entry('timetables.json', contents.timetables),
     streets: entry('streets.json', contents.streets),
   };
+  const trafficEntry = contents.traffic ? entry('traffic.json', contents.traffic) : null;
 
   const manifest: Manifest = {
     schemaVersion: SCHEMA_VERSION,
@@ -111,15 +151,21 @@ async function main(): Promise<void> {
     ).slice(0, 16),
     generatedAt: new Date().toISOString(),
     counts,
-    files,
+    // El tráfico no cuenta en dataVersion: cambia cada hora y no debe obligar a la app
+    // a descargar de nuevo la red.
+    files: trafficEntry ? { ...files, traffic: trafficEntry } : files,
     sources: [
       { ...SOURCES.emtLines, lastModified: emtRaw.lastModified },
       { ...SOURCES.gtfs, lastModified: gtfsRaw.lastModified },
-      { ...SOURCES.neighbourhoods, lastModified: neighbourhoodsRaw.lastModified },
+      {
+        ...SOURCES.neighbourhoods,
+        lastModified: neighbourhoodsRaw.lastModified,
+      },
       { ...SOURCES.districts, lastModified: districtsRaw.lastModified },
       { ...SOURCES.streets, lastModified: streetsRaw.lastModified },
       { ...SOURCES.streetTypes, lastModified: streetTypesRaw.lastModified },
       { ...SOURCES.streetNumbers, lastModified: streetNumbersRaw.lastModified },
+      ...trafficSources,
     ],
     license: { ...LICENSE },
   };
@@ -132,6 +178,9 @@ async function main(): Promise<void> {
     writeFile(join(values.out, files.zones.path), contents.zones),
     writeFile(join(values.out, files.timetables.path), contents.timetables),
     writeFile(join(values.out, files.streets.path), contents.streets),
+    ...(trafficEntry && contents.traffic
+      ? [writeFile(join(values.out, trafficEntry.path), contents.traffic)]
+      : []),
     writeFile(join(values.out, 'report.json'), JSON.stringify(dataset.report, null, 2)),
   ]);
   // El manifest se escribe el último: solo existe si todo lo anterior ha ido bien.
@@ -139,7 +188,7 @@ async function main(): Promise<void> {
 
   console.log(
     `Datos ${manifest.dataVersion}: ${counts.lines} líneas, ${counts.stops} paradas, ` +
-      `${counts.shapes} trazados (${counts.approximateShapes} aproximados), ${counts.zones} zonas, ${counts.departures} salidas, ${counts.streets} calles, ` +
+      `${counts.shapes} trazados (${counts.approximateShapes} aproximados), ${counts.zones} zonas, ${counts.departures} salidas, ${counts.streets} calles, ${traffic?.items.length ?? 0} cortes e incidencias, ` +
       `${dataset.report.stopConflicts.length} conflictos de paradas.`,
   );
 }

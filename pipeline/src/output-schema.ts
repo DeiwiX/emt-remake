@@ -89,6 +89,27 @@ export interface StreetsFile {
   streets: PublishedStreet[];
 }
 
+/** Corte de tráfico o incidencia (Ayuntamiento o DGT). */
+export interface PublishedTrafficItem {
+  id: string;
+  source: 'ayto' | 'dgt';
+  kind: string;
+  effect: string;
+  description: string;
+  address: string;
+  /** Hora de Madrid sin zona ("2026-10-06T15:30"); null si no se sabe. */
+  from: string | null;
+  to: string | null;
+  /** Punto o tramo como polilínea codificada. */
+  points: string;
+}
+
+/** Cortes de tráfico e incidencias (se actualiza cada hora; no cuenta en dataVersion). */
+export interface TrafficFile {
+  schemaVersion: number;
+  items: PublishedTrafficItem[];
+}
+
 /**
  * Salidas programadas (GTFS) por sentido de línea y día de servicio. La hora de
  * paso por cada parada = salida + minutos del sentido en esa parada (aproximado).
@@ -135,7 +156,14 @@ export interface Manifest {
     zones: FileEntry;
     timetables: FileEntry;
     streets: FileEntry;
+    /** Opcional: si sus fuentes fallan, se publica el resto igualmente. */
+    traffic?: FileEntry;
   };
-  sources: { name: string; dataset: string; url: string; lastModified: string | null }[];
+  sources: {
+    name: string;
+    dataset: string;
+    url: string;
+    lastModified: string | null;
+  }[];
   license: { id: string; url: string; attribution: string };
 }

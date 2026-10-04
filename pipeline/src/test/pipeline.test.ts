@@ -15,6 +15,8 @@ import { checkPlausibility } from '../build/sanity.ts';
 import { buildZones, insidePolygon, stopsInZone } from '../build/build-zones.ts';
 import { buildStreets } from '../build/build-streets.ts';
 import { parseStreets } from '../sources/streets.ts';
+import { buildTraffic } from '../build/build-traffic.ts';
+import { localDate, parseDgtSituations, parseMunicipalCuts } from '../sources/traffic.ts';
 import { parseWktPolygons, parseZonesCsv, titleCase } from '../sources/zones.ts';
 import { parseCsv } from '../sources/csv.ts';
 import { parseStopTimes } from '../sources/gtfs-times.ts';
@@ -130,7 +132,9 @@ describe('parseGtfsZip', () => {
   });
 
   it('falla si falta un fichero necesario', () => {
-    const zip = zipSync({ 'routes.txt': strToU8('route_id,route_short_name\n1,1\n') });
+    const zip = zipSync({
+      'routes.txt': strToU8('route_id,route_short_name\n1,1\n'),
+    });
     assert.throws(() => parseGtfsZip(zip), /falta o está vacío trips/);
   });
 });
@@ -254,8 +258,18 @@ x,7,1,TEATINOS   ,T,"${wkt}"
   it('genera zones.json con distritos primero y contornos codificados', () => {
     const zones = buildZones(
       [
-        { id: 'b1', kind: 'neighbourhood', name: 'Teatinos', polygons: [[square]] },
-        { id: 'd11', kind: 'district', name: 'Teatinos-Universidad', polygons: [[square]] },
+        {
+          id: 'b1',
+          kind: 'neighbourhood',
+          name: 'Teatinos',
+          polygons: [[square]],
+        },
+        {
+          id: 'd11',
+          kind: 'district',
+          name: 'Teatinos-Universidad',
+          polygons: [[square]],
+        },
       ],
       [{ id: '1', name: 'x', address: '', lat: 36.721, lon: -4.419 }],
     );
@@ -303,7 +317,11 @@ describe('tiempos de viaje', () => {
 
   it('toma la secuencia más frecuente y la mediana de minutos por parada', () => {
     const pattern = parseStopTimes(csv, trips, stops).patterns.get('S1');
-    assert.deepEqual(pattern, { stopCodes: ['101', '102', '103'], minutes: [0, 2, 5], trips: 3 });
+    assert.deepEqual(pattern, {
+      stopCodes: ['101', '102', '103'],
+      minutes: [0, 2, 5],
+      trips: 3,
+    });
   });
 
   const emtStop = (code: string, lon: number) => ({
@@ -436,7 +454,9 @@ describe('horarios', () => {
         ['X', ['20261013']],
       ]),
     );
-    assert.deepEqual(timetables.departures, { '1|1': { L: [360, 420], F: [600] } });
+    assert.deepEqual(timetables.departures, {
+      '1|1': { L: [360, 420], F: [600] },
+    });
     assert.deepEqual(Object.keys(timetables.services).sort(), ['F', 'L']);
   });
 });
@@ -448,7 +468,9 @@ describe('Calles del callejero', () => {
     'b,20,200,VIEJA,1,5,1,,,1900-01-01,2001-01-01',
     'c,30,300,SIN PORTALES,1,2,2,,,1900-01-01,',
   ].join('\n');
-  const tipos = ['FID,CODTIPVIAL,ABRTIPVIAL,DESTIPVIAL', 't,5,CL,Calle', 'u,2,AV,Avenida'].join('\n');
+  const tipos = ['FID,CODTIPVIAL,ABRTIPVIAL,DESTIPVIAL', 't,5,CL,Calle', 'u,2,AV,Avenida'].join(
+    '\n',
+  );
   const numeros = [
     'FID,ID_NUMERO,ID_TRAMOVIAL,CODVIAL5,CODVIAL,NUMERO,BIS,TIPNUMERO,FECALTA,FECBAJA,GMROTATION,SDOPUNTO',
     'n1,1,1,10,100,1, ,A,2008-01-01,,0,POINT (-4.4210 36.7200)',
@@ -482,6 +504,71 @@ describe('horario exacto por viaje', () => {
   });
 
   it('si el viaje casi no coincide con el sentido, no da perfil', () => {
-    assert.equal(tripProfile(['a', 'b'], [0, 3], { stopCodes: ['x', 'b'], minutes: [0, 4] }), null);
+    assert.equal(
+      tripProfile(['a', 'b'], [0, 3], {
+        stopCodes: ['x', 'b'],
+        minutes: [0, 4],
+      }),
+      null,
+    );
+  });
+});
+
+describe('tráfico', () => {
+  const cuts = {
+    features: [
+      {
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [-4.42, 36.72] },
+        properties: {
+          ID: 1,
+          TIPOCORTE: 'Obras',
+          TIPOAFECTACION: ' Corte',
+          DESCRIPCION: 'Corte total\r\nde la calle',
+          DIRECCION: 'CALLE LARIOS, 1 ',
+          DESDE: '06/10/2026 8:00',
+          HASTA: '06/10/2026 18:00',
+        },
+      },
+      {
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [-4.41, 36.71] },
+        properties: {
+          ID: 2,
+          TIPOCORTE: 'Mudanza',
+          DESDE: '01/01/2025 8:00',
+          HASTA: '02/01/2025 8:00',
+        },
+      },
+    ],
+  };
+
+  it('lee los cortes del Ayuntamiento y descarta los que ya terminaron', () => {
+    const items = parseMunicipalCuts(cuts);
+    assert.equal(items.length, 2);
+    assert.equal(items[0]!.effect, 'Corte');
+    assert.equal(items[0]!.description, 'Corte total de la calle');
+    assert.equal(items[0]!.from, '2026-10-06T08:00');
+    const file = buildTraffic(items, '2026-10-04T12:00');
+    assert.deepEqual(
+      file.items.map((i) => i.id),
+      ['ayto-1'],
+    );
+    assert.equal(localDate('basura'), null);
+  });
+
+  it('lee las incidencias de la DGT solo en la zona de Málaga', () => {
+    const record = (id: string, lat: number, lon: number) =>
+      `<sit:situationRecord xsi:type="sit:GenericSituationRecord" id="${id}" version="1">
+        <com:overallStartTime>2026-10-04T10:00:00.000+02:00</com:overallStartTime>
+        <sit:causeType>roadMaintenance</sit:causeType>
+        <loc:roadName>MA-20</loc:roadName>
+        <loc:latitude>${lat}</loc:latitude> <loc:longitude>${lon}</loc:longitude>
+      </sit:situationRecord>`;
+    const items = parseDgtSituations(record('a', 36.7, -4.45) + record('b', 40.4, -3.7));
+    assert.deepEqual(
+      items.map((i) => [i.id, i.kind, i.effect, i.from]),
+      [['dgt-a', 'roadMaintenance', 'MA-20', '2026-10-04T10:00']],
+    );
   });
 });

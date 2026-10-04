@@ -5,8 +5,10 @@ name: Datos
 
 on:
   schedule:
-    # Las fuentes se actualizan hacia las 03:10 y 04:30 UTC.
-    - cron: '30 5 * * *'
+    # Cada hora: los cortes de tráfico y las incidencias cambian durante el día.
+    # El resto de fuentes se actualizan hacia las 03:10 y 04:30 UTC; si no cambian,
+    # dataVersion no cambia y la app no vuelve a descargar la red.
+    - cron: '17 * * * *'
   workflow_dispatch:
   push:
     branches: [main]
