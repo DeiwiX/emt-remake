@@ -119,6 +119,15 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
 - **Modo sencillo** (RF-07): solo listas y texto, sin mapa. El inicio quita la tarjeta del mapa; los detalles de línea y parada y "Cómo llegar" no muestran mapa; Mapa y Paradas muestran solo su panel de texto (búsqueda de barrios, líneas y paradas, y la ficha de cada parada). Con él activo no se crea ningún mapa, así que la librería del mapa no se descarga. Si el dispositivo no tiene WebGL, la app funciona siempre en modo sencillo y el interruptor aparece desactivado.
 - La capa elegida en los mapas (Claro, Oscuro o Satélite) también se guarda con los ajustes.
 
+### Accesibilidad y rendimiento
+
+Revisión del incremento 9 (04/10/2026):
+
+- **axe-core 4.10** en las pantallas principales (inicio, búsqueda, líneas, detalle de línea, paradas, detalle de parada, mapa, "Cómo llegar" con resultados, ajustes y acerca de), en tema claro y oscuro: sin incidencias tras las correcciones. Se corrigieron una cabecera dentro del contenido principal, dos regiones de mapa con el mismo nombre (ahora el nombre va en el lienzo del mapa) y los radios de Ajustes dentro de una lista.
+- **Texto al 200 % en 320 px:** nada se sale de la pantalla. Los botones parten el texto en varias líneas y el selector de capa del mapa se reparte en filas.
+- **Carga** (compilación de producción, CPU ×4 y red "4G lenta" simulados, sin caché): primer contenido en unos 2,4 s y unos 270 KB transferidos, de los que 183 KB son el código inicial comprimido. El código inicial ocupa unos 800 KB sin comprimir: la mayor parte es Ionic (unos 360 KB) y Angular (unos 300 KB), así que bajar de 500 KB sin comprimir exigiría prescindir de Ionic. La librería del mapa (230 KB comprimidos) solo se descarga al abrir un mapa.
+- Pendiente: probar con TalkBack en un Android real y con VoiceOver (necesita un Mac o un iPhone).
+
 ### Origen y licencia
 
 Los datos proceden del portal de datos abiertos del Ayuntamiento de Málaga (datosabiertos.malaga.eu). Se tratan como CC BY-SA 4.0 (ver `docs/adr/0002-datos-preprocesados.md`).

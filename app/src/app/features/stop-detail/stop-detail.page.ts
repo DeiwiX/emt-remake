@@ -69,8 +69,7 @@ import { NextBusComponent } from '../../shared/next-bus/next-bus.component';
             @if (stop(); as stop) {
               <app-map-view
                 class="split-map-fill"
-                role="region"
-                [attr.aria-label]="'stopDetail.mapLabel' | transloco: { name: stop.name }"
+                [label]="'stopDetail.mapLabel' | transloco: { name: stop.name }"
                 [routes]="mapRoutes()"
                 [stops]="mapStops()"
                 [fitPoints]="fitPoints()"

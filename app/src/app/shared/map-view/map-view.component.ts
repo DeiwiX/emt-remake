@@ -63,7 +63,10 @@ const LAYER_CHOICES: readonly Exclude<MapStylePreference, 'auto'>[] = [
       left: 8px;
       z-index: 1;
       display: flex;
+      flex-wrap: wrap;
       gap: 2px;
+      /* Con texto grande o pantallas estrechas se parte en filas sin tapar el zoom. */
+      max-width: calc(100% - 64px);
       padding: 3px;
       border-radius: 12px;
       background: var(--ion-background-color, #fff);
@@ -151,6 +154,11 @@ export class MapViewComponent {
   readonly highlightedStop = input<MapStop | null>(null);
   /** Zona marcada (contorno de barrio o distrito); null = ninguna. */
   readonly highlightedArea = input<readonly Polygon[] | null>(null);
+  /**
+   * Nombre accesible del mapa. Se pone en el lienzo, que MapLibre ya marca como
+   * región: así no hay dos regiones con el mismo nombre.
+   */
+  readonly label = input<string>();
   /** Muestra el selector Claro / Oscuro / Satélite (la elección se recuerda en Ajustes). */
   readonly layerSwitch = input(true);
   /** Puntos que el mapa debe encuadrar cuando cambian. */
@@ -184,6 +192,10 @@ export class MapViewComponent {
     effect(() => this.view()?.setHighlightedLines(this.highlightedLines()));
     effect(() => this.view()?.setHighlightedStop(this.highlightedStop()));
     effect(() => this.view()?.setHighlightedArea(this.highlightedArea()));
+    effect(() => {
+      const label = this.label();
+      if (label) this.view()?.setLabel(label);
+    });
     effect(() => this.view()?.setScheme(this.mapScheme()));
     effect(() =>
       this.view()?.setBaseLayer(this.activeLayer() === 'satellite' ? 'satellite' : 'streets'),
@@ -224,7 +236,8 @@ export class MapViewComponent {
           zoom: INITIAL_ZOOM,
           scheme: this.mapScheme(),
           reduceMotion: prefersReducedMotion(),
-          label: await firstValueFrom(this.transloco.selectTranslate('map.mapLabel')),
+          label:
+            this.label() || (await firstValueFrom(this.transloco.selectTranslate('map.mapLabel'))),
         },
         {
           lineSelected: (lineId) => this.lineSelected.emit(lineId),

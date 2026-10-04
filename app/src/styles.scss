@@ -26,3 +26,18 @@
   border: 0;
 }
 
+/*
+ * Con el texto ampliado (200 %) o en pantallas de 320 px, el texto de los botones
+ * se parte en varias líneas y el botón crece en alto en vez de salirse (RNF-04).
+ */
+ion-button {
+  max-width: 100%;
+  height: auto;
+  min-height: 2.25rem;
+}
+
+ion-button::part(native) {
+  white-space: normal;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}

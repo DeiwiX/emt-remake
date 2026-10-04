@@ -90,8 +90,7 @@ const MAX_FIT_RESULTS = 200;
           <div class="split-map">
             <app-map-view
               class="split-map-fill"
-              role="region"
-              [attr.aria-label]="'stops.mapLabel' | transloco"
+              [label]="'stops.mapLabel' | transloco"
               [routes]="mapRoutes()"
               [stops]="mapStops()"
               [highlightedStop]="selectedMarker()"

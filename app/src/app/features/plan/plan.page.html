@@ -90,8 +90,7 @@
         @defer (on viewport) {
           <app-map-view
             class="plan-map"
-            role="region"
-            [attr.aria-label]="'plan.mapLabel' | transloco"
+            [label]="'plan.mapLabel' | transloco"
             [routes]="mapRoutes()"
             [stops]="mapStops()"
             [fitPoints]="fitPoints()"

@@ -16,8 +16,7 @@
         @if (line(); as line) {
           <app-map-view
             class="split-map-fill"
-            role="region"
-            [attr.aria-label]="'lineDetail.mapLabel' | transloco: { id: line.id }"
+            [label]="'lineDetail.mapLabel' | transloco: { id: line.id }"
             [routes]="mapRoutes()"
             [stops]="mapStops()"
             [fitPoints]="fitPoints()"

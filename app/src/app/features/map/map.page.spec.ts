@@ -49,6 +49,7 @@ class FakeMapView implements MapView {
   fitTo = vi.fn();
   setScheme = vi.fn();
   setBaseLayer = vi.fn();
+  setLabel = vi.fn();
   area: readonly unknown[] | null = null;
   setHighlightedArea(polygons: readonly unknown[] | null) {
     this.area = polygons;

@@ -23,8 +23,7 @@
       <div class="split-map">
         <app-map-view
           class="split-map-fill"
-          role="region"
-          [attr.aria-label]="'map.mapLabel' | transloco"
+          [label]="'map.mapLabel' | transloco"
           [routes]="routes()"
           [stops]="mapStops()"
           [visibleLines]="visibleLines()"

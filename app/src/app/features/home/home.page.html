@@ -1,7 +1,7 @@
 <ion-content>
   <div class="page">
     <!-- Cabecera sobria: logotipo (vuelve al inicio), Ajustes, pregunta y búsqueda. -->
-    <header class="top">
+    <div class="top">
       <div class="top-bar">
         <a class="brand" routerLink="/" (click)="resetHome()">
           <span class="brand-icon"><ion-icon name="bus-outline" aria-hidden="true" /></span>
@@ -26,7 +26,7 @@
         [debounce]="150"
         (ionInput)="setQuery($event.detail.value ?? '')"
       />
-    </header>
+    </div>
 
     <app-data-status-banner />
 

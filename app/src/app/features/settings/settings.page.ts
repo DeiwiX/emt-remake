@@ -59,32 +59,34 @@ const THEMES: readonly ThemePreference[] = ['system', 'light', 'dark'];
       </ion-toolbar>
     </ion-header>
     <ion-content>
-      <ion-list>
-        <ion-list-header>
-          <ion-label id="language-label">{{ 'settings.language' | transloco }}</ion-label>
-        </ion-list-header>
-        <ion-radio-group
-          aria-labelledby="language-label"
-          [value]="settings().language"
-          (ionChange)="setLanguage($event.detail.value)"
-        >
+      <!-- El grupo de radios envuelve la lista, y la lista no se anuncia como tal
+           (role="none"): ARIA no admite radios como hijos de una lista. -->
+      <ion-radio-group
+        aria-labelledby="language-label"
+        [value]="settings().language"
+        (ionChange)="setLanguage($event.detail.value)"
+      >
+        <ion-list role="none">
+          <ion-list-header>
+            <ion-label id="language-label">{{ 'settings.language' | transloco }}</ion-label>
+          </ion-list-header>
           @for (lang of languages; track lang) {
             <ion-item>
               <ion-radio [value]="lang" [attr.lang]="lang">{{ languageNames[lang] }}</ion-radio>
             </ion-item>
           }
-        </ion-radio-group>
-      </ion-list>
+        </ion-list>
+      </ion-radio-group>
 
-      <ion-list>
-        <ion-list-header>
-          <ion-label id="theme-label">{{ 'settings.theme' | transloco }}</ion-label>
-        </ion-list-header>
-        <ion-radio-group
-          aria-labelledby="theme-label"
-          [value]="settings().theme"
-          (ionChange)="setTheme($event.detail.value)"
-        >
+      <ion-radio-group
+        aria-labelledby="theme-label"
+        [value]="settings().theme"
+        (ionChange)="setTheme($event.detail.value)"
+      >
+        <ion-list role="none">
+          <ion-list-header>
+            <ion-label id="theme-label">{{ 'settings.theme' | transloco }}</ion-label>
+          </ion-list-header>
           <!-- ion-radio solo detecta su texto cuando se pinta por primera vez y aquí llega
                después (traducción): por eso el texto va en ion-label y el radio usa aria-label.
                ion-item reenvía el toque al radio, así que toda la fila es pulsable. Se recrean al
@@ -97,7 +99,10 @@ const THEMES: readonly ThemePreference[] = ['system', 'light', 'dark'];
               </ion-item>
             }
           }
-        </ion-radio-group>
+        </ion-list>
+      </ion-radio-group>
+
+      <ion-list>
         <ion-item>
           <ion-toggle
             [checked]="settings().highContrast"

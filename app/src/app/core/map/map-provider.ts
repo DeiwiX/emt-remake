@@ -61,6 +61,8 @@ export interface MapView {
   fitTo(points: readonly LatLon[]): void;
   setScheme(scheme: ColorScheme): void;
   setBaseLayer(layer: MapBaseLayer): void;
+  /** Nombre accesible del mapa (el lienzo es la región que anuncian los lectores de pantalla). */
+  setLabel(label: string): void;
   /** Marca una zona (contorno y relleno suave); null = ninguna. */
   setHighlightedArea(polygons: readonly Polygon[] | null): void;
   destroy(): void;

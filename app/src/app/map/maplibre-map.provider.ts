@@ -227,6 +227,10 @@ class MapLibreView implements MapView {
     this.map.setStyle(styleFor(layer, this.scheme));
   }
 
+  setLabel(label: string): void {
+    this.map.getCanvas().setAttribute('aria-label', label);
+  }
+
   destroy(): void {
     this.map.remove();
   }
