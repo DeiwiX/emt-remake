@@ -341,11 +341,21 @@ class MapLibreView implements MapView {
       id: LAYER.stops,
       type: 'circle',
       source: SOURCE.stops,
+      // Las paradas rotuladas ("Cerca de mí") son el contenido principal: más grandes
+      // y en naranja (distinto del punto azul del usuario), para verlas de un vistazo.
       paint: {
-        'circle-radius': ['interpolate', ['linear'], ['zoom'], 13, 3, 17, 7],
-        'circle-color': stopFill,
-        'circle-stroke-color': stopStroke,
-        'circle-stroke-width': 2,
+        'circle-radius': [
+          'interpolate',
+          ['linear'],
+          ['zoom'],
+          13,
+          ['case', ['has', 'label'], 7, 3],
+          17,
+          ['case', ['has', 'label'], 11, 7],
+        ],
+        'circle-color': ['case', ['has', 'label'], '#D9480F', stopFill],
+        'circle-stroke-color': ['case', ['has', 'label'], '#FFFFFF', stopStroke],
+        'circle-stroke-width': ['case', ['has', 'label'], 3, 2],
       },
     });
     // Rótulo encima de las paradas que lo traen (las líneas que pasan, en "Cerca de mí").
@@ -359,7 +369,7 @@ class MapLibreView implements MapView {
         'text-font': ['Noto Sans Bold'],
         'text-size': 12,
         'text-anchor': 'bottom',
-        'text-offset': [0, -0.8],
+        'text-offset': [0, -1.1],
         'text-max-width': 12,
       },
       paint: {

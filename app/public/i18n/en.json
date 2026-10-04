@@ -208,7 +208,8 @@
     "empty": "Tap the star on a stop, line or \"Get there\" trip to keep it here.",
     "trips": "Trips",
     "lines": "Lines",
-    "stops": "Stops"
+    "stops": "Stops",
+    "nextLine": "Line {{id}}"
   },
   "near": {
     "title": "Near me",

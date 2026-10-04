@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { IonIcon } from '@ionic/angular';
@@ -8,7 +8,7 @@ import { placeParam } from '../../core/favorites/favorites';
 import { FavoritesService } from '../../core/favorites/favorites.service';
 import { Stop } from '../../core/models/network.model';
 import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component';
-import { NextBusComponent } from '../../shared/next-bus/next-bus.component';
+import { FavoriteStopTileComponent } from './favorite-stop-tile.component';
 
 /**
  * "Mis favoritos" en el inicio: cada parada con los próximos buses de sus
@@ -16,7 +16,7 @@ import { NextBusComponent } from '../../shared/next-bus/next-bus.component';
  */
 @Component({
   selector: 'app-favorites-section',
-  imports: [RouterLink, TranslocoPipe, IonIcon, LineBadgeComponent, NextBusComponent],
+  imports: [RouterLink, TranslocoPipe, IonIcon, LineBadgeComponent, FavoriteStopTileComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
     :host {
@@ -63,29 +63,12 @@ import { NextBusComponent } from '../../shared/next-bus/next-bus.component';
       outline: 3px solid var(--ion-color-primary);
       outline-offset: 2px;
     }
-    .stop-name {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 8px;
-      font-weight: 700;
-      color: inherit;
-      text-decoration: none;
-    }
-    .stop-name small {
-      font-weight: 400;
-      color: var(--muted);
-    }
-    .service {
-      display: flex;
-      align-items: flex-start;
+    /* Paradas: dos por fila; la desplegada ocupa la fila entera. */
+    .stop-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 10px;
-      margin-top: 10px;
-    }
-    .service-text {
-      display: flex;
-      flex-direction: column;
-      font-size: 0.9rem;
+      align-items: start;
     }
     .trip {
       display: flex;
@@ -117,32 +100,15 @@ import { NextBusComponent } from '../../shared/next-bus/next-bus.component';
 
     @if (stops().length > 0) {
       <h3>{{ 'favorites.stops' | transloco }}</h3>
-      <ul>
+      <div class="stop-grid">
         @for (stop of stops(); track stop.id) {
-          <li class="card">
-            <a class="stop-name" [routerLink]="['/stops', stop.id]">
-              {{ stop.name }}
-              <small>{{ 'stops.code' | transloco: { id: stop.id } }}</small>
-            </a>
-            @for (service of servicesOf(stop); track service.lineId + '-' + service.directionId) {
-              <div class="service">
-                <app-line-badge [code]="service.lineId" />
-                <span class="service-text">
-                  <span class="visually-hidden"
-                    >{{ 'lines.line' | transloco: { id: service.lineId } }}.</span
-                  >
-                  {{ 'lineDetail.towards' | transloco: { headsign: service.headsign } }}
-                  <app-next-bus
-                    [lineId]="service.lineId"
-                    [directionId]="service.directionId"
-                    [stopId]="stop.id"
-                  />
-                </span>
-              </div>
-            }
-          </li>
+          <app-favorite-stop-tile
+            [stop]="stop"
+            [expanded]="expandedId() === stop.id"
+            (toggled)="toggle(stop.id)"
+          />
         }
-      </ul>
+      </div>
     }
 
     @if (trips().length > 0) {
@@ -190,6 +156,13 @@ export class FavoritesSectionComponent {
       .filter((stop): stop is Stop => !!stop);
   });
 
+  /** Parada desplegada (solo una a la vez, para no alargar el inicio). */
+  protected readonly expandedId = signal<string | null>(null);
+
+  protected toggle(stopId: string): void {
+    this.expandedId.update((id) => (id === stopId ? null : stopId));
+  }
+
   protected readonly lines = computed(() => {
     this.network.lines();
     return this.favorites
@@ -206,13 +179,4 @@ export class FavoritesSectionComponent {
       params: { from: placeParam(trip.origin), to: placeParam(trip.destination) },
     })),
   );
-
-  protected servicesOf(stop: Stop) {
-    return stop.services.map((service) => ({
-      ...service,
-      headsign:
-        this.network.getLine(service.lineId)?.directions.find((d) => d.id === service.directionId)
-          ?.headsign ?? '',
-    }));
-  }
 }

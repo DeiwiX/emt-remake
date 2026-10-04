@@ -172,7 +172,16 @@ describe('Pantallas con datos', () => {
     const home = await open('/');
     const section = home.querySelector('app-favorites-section');
     expect(section?.textContent).toContain('Mis favoritos');
-    expect(section?.querySelectorAll('app-next-bus').length).toBeGreaterThan(0);
+    // Plegada: nombre y líneas; al pulsarla se despliega con los próximos buses.
+    const tile = section?.querySelector('app-favorite-stop-tile');
+    expect(tile?.textContent).toContain('Alameda');
+    expect(tile?.querySelectorAll('app-line-badge').length).toBeGreaterThan(0);
+    expect(tile?.querySelector('app-next-bus')).toBeNull();
+    const toggle = tile?.querySelector<HTMLButtonElement>('button.toggle');
+    toggle?.click();
+    TestBed.tick();
+    expect(toggle?.getAttribute('aria-expanded')).toBe('true');
+    expect(tile?.querySelectorAll('app-next-bus').length).toBeGreaterThan(0);
     expect(section?.querySelector('a[href^="/plan"]')?.getAttribute('href')).toBe(
       '/plan?from=stop:1&to=stop:2',
     );

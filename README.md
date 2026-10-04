@@ -136,7 +136,7 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
 ### Favoritos
 
 - Estrella en el detalle de parada, en la ficha de parada de Mapa y Paradas, en el detalle de línea y en "Cómo llegar" (trayecto origen → destino).
-- En el inicio, "Mis favoritos" muestra cada parada guardada con los próximos buses de sus líneas, los trayectos (abren "Cómo llegar" ya rellenado: `/plan?from=stop:152&to=neighbourhood:...`) y las líneas.
+- En el inicio, "Mis favoritos" muestra las paradas guardadas como tarjetas pequeñas en dos columnas (nombre, líneas y el próximo bus de cualquiera de ellas); al pulsar una se despliega a lo ancho con los próximos buses de cada línea y el acceso al detalle. También los trayectos (abren "Cómo llegar" ya rellenado: `/plan?from=stop:152&to=neighbourhood:...`) y las líneas.
 - Se guardan solo en el dispositivo (`localStorage`), sin cuentas (ADR 0006).
 
 ### Cerca de mí

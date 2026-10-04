@@ -208,7 +208,8 @@
     "empty": "Pulsa la estrella en una parada, una línea o un trayecto de \"Cómo llegar\" para tenerlo aquí.",
     "trips": "Trayectos",
     "lines": "Líneas",
-    "stops": "Paradas"
+    "stops": "Paradas",
+    "nextLine": "Línea {{id}}"
   },
   "near": {
     "title": "Cerca de mí",
