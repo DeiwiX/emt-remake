@@ -404,7 +404,7 @@ class MapLibreView implements MapView {
     const stopStroke = this.scheme === 'dark' ? '#FFFFFF' : '#1A1A1A';
     const stopFill = this.scheme === 'dark' ? '#1A1A1A' : '#FFFFFF';
 
-    const accent = this.scheme === 'dark' ? '#4D8DFF' : '#0054E9';
+    const accent = this.scheme === 'dark' ? '#6FB0DE' : '#1D5D8A';
     // La zona marcada va debajo de los recorridos para no taparlos.
     map.addSource(SOURCE.area, { type: 'geojson', data: this.areaGeoJson() });
     map.addLayer({
@@ -514,7 +514,7 @@ class MapLibreView implements MapView {
       source: SOURCE.selectedStop,
       paint: {
         'circle-radius': 10,
-        'circle-color': this.scheme === 'dark' ? '#4D8DFF' : '#0054E9',
+        'circle-color': this.scheme === 'dark' ? '#6FB0DE' : '#1D5D8A',
         'circle-stroke-color': this.scheme === 'dark' ? '#000000' : '#FFFFFF',
         'circle-stroke-width': 3,
       },

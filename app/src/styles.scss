@@ -13,6 +13,13 @@
 @use '@ionic/angular/css/palettes/high-contrast.class.css';
 @use '@ionic/angular/css/palettes/high-contrast-dark.class.css';
 
+/* Letras de la app, incluidas en el paquete (sin pedirlas a Google al abrirla). */
+@use '@fontsource-variable/lexend/index.css' as lexend;
+@use '@fontsource-variable/urbanist/index.css' as urbanist;
+
+/* Colores y letras de la marca (Fase 5). */
+@use 'theme/brand';
+
 /* Texto solo para lectores de pantalla. */
 .visually-hidden {
   position: absolute !important;

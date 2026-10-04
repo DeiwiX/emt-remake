@@ -33,7 +33,7 @@ import { FavoriteStopTileComponent } from './favorite-stop-tile.component';
       font-weight: 700;
     }
     h2 ion-icon {
-      color: #b06a00;
+      color: var(--app-accent);
     }
     h3 {
       margin: 4px 0 0;

@@ -1,0 +1,154 @@
+/*
+ * Identidad visual "Mediterráneo al atardecer" (Fase 5, mezcla A + C elegida por
+ * el desarrollador el 04/10/2026): fondo arena, azul mar como color principal,
+ * coral de atardecer como acento y cabeceras azul noche. Letra Lexend (texto,
+ * muy legible) y Urbanist (títulos), incluidas en la app.
+ *
+ * Se carga después de las paletas de Ionic: en claro y oscuro estas variables
+ * mandan; las de alto contraste de Ionic son más específicas y siguen mandando
+ * en sus colores (el contraste sigue siendo lo primero).
+ *
+ * Contrastes comprobados (AA): blanco sobre #1D5D8A 6,9:1; blanco sobre #B9472F
+ * 5,0:1; #1B2A36 sobre #F7F2E8 13:1; #0B1820 sobre #6FB0DE 8,0:1.
+ */
+
+:root {
+  --app-font-display: 'Urbanist Variable', 'Lexend Variable', system-ui, sans-serif;
+  --ion-font-family: 'Lexend Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Azul mar. */
+  --ion-color-primary: #1d5d8a;
+  --ion-color-primary-rgb: 29, 93, 138;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #1a5279;
+  --ion-color-primary-tint: #346d96;
+
+  /* Coral de atardecer. */
+  --ion-color-secondary: #b9472f;
+  --ion-color-secondary-rgb: 185, 71, 47;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: #a33e29;
+  --ion-color-secondary-tint: #c05944;
+
+  /* Azul noche de las cabeceras. */
+  --ion-color-tertiary: #1c2b4a;
+  --ion-color-tertiary-rgb: 28, 43, 74;
+  --ion-color-tertiary-contrast: #ffffff;
+  --ion-color-tertiary-contrast-rgb: 255, 255, 255;
+  --ion-color-tertiary-shade: #192641;
+  --ion-color-tertiary-tint: #33405c;
+
+  --ion-background-color: #f7f2e8;
+  --ion-background-color-rgb: 247, 242, 232;
+  --ion-text-color: #1b2a36;
+  --ion-text-color-rgb: 27, 42, 54;
+  --ion-item-background: #ffffff;
+  --ion-card-background: #ffffff;
+  --ion-border-color: #e6dccb;
+
+  /* Escalones de fondo en tonos arena (los usan buscadores, notas y bordes). */
+  --ion-background-color-step-50: #f0e9dc;
+  --ion-background-color-step-100: #e9e0d0;
+  --ion-background-color-step-150: #e2d8c6;
+  --ion-background-color-step-200: #dacfbb;
+  --ion-color-step-50: #f0e9dc;
+  --ion-color-step-100: #e9e0d0;
+  --ion-color-step-150: #e2d8c6;
+  --ion-color-step-200: #dacfbb;
+
+  --ion-toolbar-background: #1c2b4a;
+  --ion-toolbar-color: #ffffff;
+  --ion-toolbar-border-color: #1c2b4a;
+
+  /* Tonos de la app (tarjetas, iconos y avisos). */
+  --app-card: #ffffff;
+  --app-muted: #56616b;
+  --app-primary-soft: #ddeaf3;
+  --app-accent: #b9472f;
+  --app-accent-soft: #f8e0d8;
+  --app-header: #1c2b4a;
+  --app-sun: #f08a5d;
+}
+
+/*
+ * La paleta oscura de Ionic fija sus colores también en <body>, así que los
+ * nuestros se fijan en los dos sitios (misma especificidad, gana el último).
+ */
+:root.ion-palette-dark,
+:root.ion-palette-dark body {
+  --ion-color-primary: #6fb0de;
+  --ion-color-primary-rgb: 111, 176, 222;
+  --ion-color-primary-contrast: #0b1820;
+  --ion-color-primary-contrast-rgb: 11, 24, 32;
+  --ion-color-primary-shade: #629bc3;
+  --ion-color-primary-tint: #7db8e1;
+
+  --ion-color-secondary: #f29a7e;
+  --ion-color-secondary-rgb: 242, 154, 126;
+  --ion-color-secondary-contrast: #1b0f0b;
+  --ion-color-secondary-contrast-rgb: 27, 15, 11;
+  --ion-color-secondary-shade: #d5886f;
+  --ion-color-secondary-tint: #f3a48b;
+
+  --ion-color-tertiary: #33467a;
+  --ion-color-tertiary-rgb: 51, 70, 122;
+  --ion-color-tertiary-contrast: #ffffff;
+  --ion-color-tertiary-contrast-rgb: 255, 255, 255;
+  --ion-color-tertiary-shade: #2d3e6b;
+  --ion-color-tertiary-tint: #47598a;
+
+  --ion-background-color: #0f1a22;
+  --ion-background-color-rgb: 15, 26, 34;
+  --ion-text-color: #eef2f4;
+  --ion-text-color-rgb: 238, 242, 244;
+  --ion-item-background: #18252f;
+  --ion-card-background: #18252f;
+  --ion-border-color: #26343f;
+
+  --ion-background-color-step-50: #16232c;
+  --ion-background-color-step-100: #1d2b35;
+  --ion-background-color-step-150: #24333e;
+  --ion-background-color-step-200: #2b3b47;
+  --ion-color-step-50: #16232c;
+  --ion-color-step-100: #1d2b35;
+  --ion-color-step-150: #24333e;
+  --ion-color-step-200: #2b3b47;
+
+  --ion-toolbar-background: #1c2b4a;
+  --ion-toolbar-color: #ffffff;
+  --ion-toolbar-border-color: #1c2b4a;
+
+  --app-card: #18252f;
+  --app-muted: #a9b4bc;
+  --app-primary-soft: #1d3444;
+  --app-accent: #f29a7e;
+  --app-accent-soft: #3a2530;
+  --app-header: #1c2b4a;
+}
+
+/* Títulos con la letra de titulares. */
+h1,
+h2,
+h3,
+ion-title {
+  font-family: var(--app-font-display);
+  letter-spacing: -0.005em;
+}
+
+/* Botones y enlaces de la barra superior en blanco sobre el azul noche. */
+ion-toolbar {
+  --color: var(--ion-toolbar-color);
+}
+
+ion-toolbar ion-back-button,
+ion-toolbar ion-button {
+  --color: var(--ion-toolbar-color);
+}
+
+/* Buscadores dentro de la barra azul noche: fondo de tarjeta para que destaquen. */
+ion-toolbar ion-searchbar {
+  --background: var(--app-card);
+  --color: var(--ion-text-color);
+}

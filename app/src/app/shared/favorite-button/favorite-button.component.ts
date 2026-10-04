@@ -22,7 +22,7 @@ import { FavoritesService } from '../../core/favorites/favorites.service';
       min-width: 44px;
       min-height: 44px;
       padding: 0 10px;
-      border: 1px solid var(--ion-color-step-250, #c8c8c8);
+      border: 1px solid var(--ion-border-color, #c8c8c8);
       border-radius: 999px;
       background: transparent;
       color: var(--ion-text-color);
@@ -30,15 +30,11 @@ import { FavoritesService } from '../../core/favorites/favorites.service';
       font-size: 0.9rem;
       cursor: pointer;
     }
+    /* Guardado: coral de la marca (texto ≥ 4,5:1 sobre su fondo en claro y oscuro). */
     button[aria-pressed='true'] {
-      border-color: #b06a00;
-      color: #8a5300;
-      background: #fff4e0;
-    }
-    :host-context(.ion-palette-dark) button[aria-pressed='true'] {
-      border-color: #ffc56e;
-      color: #ffd28f;
-      background: rgba(255, 180, 60, 0.14);
+      border-color: var(--app-accent);
+      color: var(--app-accent);
+      background: var(--app-accent-soft);
     }
     ion-icon {
       font-size: 1.3rem;

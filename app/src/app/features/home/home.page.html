@@ -2,6 +2,13 @@
   <div class="page">
     <!-- Cabecera sobria: logotipo (vuelve al inicio), Ajustes, pregunta y búsqueda. -->
     <div class="top">
+      <!-- Sol poniéndose sobre el mar (decorativo). -->
+      <svg class="sun" viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="32" cy="32" r="30" fill="#f08a5d" />
+        <rect x="0" y="38" width="64" height="4" fill="#1c2b4a" />
+        <rect x="4" y="46" width="56" height="4" fill="#1c2b4a" />
+        <rect x="0" y="54" width="64" height="10" fill="#1c2b4a" />
+      </svg>
       <div class="top-bar">
         <a class="brand" routerLink="/" (click)="resetHome()">
           <span class="brand-icon"><ion-icon name="bus-outline" aria-hidden="true" /></span>
@@ -27,6 +34,23 @@
         (ionInput)="setQuery($event.detail.value ?? '')"
       />
     </div>
+    <!-- Olas del Mediterráneo hacia el fondo arena (decorativo). -->
+    <svg class="waves" viewBox="0 0 390 28" preserveAspectRatio="none" aria-hidden="true">
+      <path
+        d="M0 10 C 32 2, 65 2, 97 10 S 162 18, 195 10 S 260 2, 292 10 S 357 18, 390 10 V28 H0Z"
+        fill="var(--ion-color-primary)"
+        opacity="0.3"
+      />
+      <path
+        d="M0 16 C 32 8, 65 8, 97 16 S 162 24, 195 16 S 260 8, 292 16 S 357 24, 390 16 V28 H0Z"
+        fill="var(--ion-color-primary)"
+        opacity="0.5"
+      />
+      <path
+        d="M0 22 C 32 16, 65 16, 97 22 S 162 28, 195 22 S 260 16, 292 22 S 357 28, 390 22 V28 H0Z"
+        fill="var(--ion-background-color)"
+      />
+    </svg>
 
     <app-data-status-banner />
 
@@ -114,27 +138,27 @@
 
         <div class="tile-grid" [class.simple]="simpleMode()">
           @if (!simpleMode()) {
-            <a class="tile tone-blue" routerLink="/map">
+            <a class="tile tone-sea" routerLink="/map">
               <span class="tile-icon"><ion-icon name="map-outline" aria-hidden="true" /></span>
               <span class="tile-title">{{ 'map.title' | transloco }}</span>
               <span class="tile-description">{{ 'home.mapDescription' | transloco }}</span>
             </a>
           }
-          <a class="tile tone-green" routerLink="/lines">
+          <a class="tile tone-coral" routerLink="/lines">
             <span class="tile-icon"><ion-icon name="bus-outline" aria-hidden="true" /></span>
             <span class="tile-title">{{ 'home.linesTile' | transloco }}</span>
             <span class="tile-description">{{
               'home.lineCount' | transloco: { count: lineCount() }
             }}</span>
           </a>
-          <a class="tile tone-orange" routerLink="/stops">
+          <a class="tile tone-coral" routerLink="/stops">
             <span class="tile-icon"><ion-icon name="location-outline" aria-hidden="true" /></span>
             <span class="tile-title">{{ 'stops.title' | transloco }}</span>
             <span class="tile-description">{{
               'home.stopCount' | transloco: { count: stopCount() }
             }}</span>
           </a>
-          <a class="tile tone-purple tile-near" routerLink="/near">
+          <a class="tile tone-sea tile-near" routerLink="/near">
             <span class="tile-icon"><ion-icon name="navigate-outline" aria-hidden="true" /></span>
             <span class="tile-title">{{ 'near.title' | transloco }}</span>
             <span class="tile-description">{{ 'near.tile' | transloco }}</span>

@@ -1,20 +1,19 @@
-<!-- Icono de EMT remake: autobús de frente en blanco sobre el azul de la marca (#0b4fc4).
+<!-- Icono de EMT remake (Fase 5, "Mediterráneo al atardecer"): autobús de frente en blanco
+     sobre el azul noche, con el sol coral poniéndose sobre el mar.
      Fuente de los PNG de assets/ (generados con @capacitor/assets). -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#1663e0"/>
-      <stop offset="1" stop-color="#0a3fa3"/>
-    </linearGradient>
-  </defs>
-  <rect id="background" width="1024" height="1024" fill="url(#bg)"/>
-  <g id="bus" transform="translate(512 512)">
+  <rect id="background" width="1024" height="1024" fill="#1c2b4a"/>
+  <!-- Sol y mar -->
+  <circle cx="512" cy="430" r="300" fill="#f08a5d"/>
+  <rect x="0" y="600" width="1024" height="424" fill="#1d5d8a"/>
+  <rect x="0" y="600" width="1024" height="18" fill="#1c2b4a" opacity="0.35"/>
+  <g id="bus" transform="translate(512 560) scale(0.78)">
     <!-- Carrocería -->
     <rect x="-200" y="-250" width="400" height="440" rx="70" fill="#fff"/>
     <!-- Letrero de línea -->
-    <rect x="-130" y="-215" width="260" height="46" rx="14" fill="#0b4fc4"/>
+    <rect x="-130" y="-215" width="260" height="46" rx="14" fill="#b9472f"/>
     <!-- Parabrisas -->
-    <rect x="-160" y="-145" width="320" height="170" rx="26" fill="#0b4fc4"/>
+    <rect x="-160" y="-145" width="320" height="170" rx="26" fill="#1c2b4a"/>
     <!-- Faros -->
     <circle cx="-118" cy="98" r="30" fill="#ffc94a"/>
     <circle cx="118" cy="98" r="30" fill="#ffc94a"/>

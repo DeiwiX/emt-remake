@@ -5,47 +5,53 @@
  * cortarlas (RNF-01, RNF-04). Los colores de texto cumplen AA en claro y oscuro.
  */
 :host {
-  --brand: #0b4fc4;
-  --surface: var(--ion-color-step-50, var(--ion-background-color-step-50, #f4f5f8));
-  --card: var(--ion-item-background, var(--ion-background-color, #fff));
-  --soft: var(--ion-color-step-100, var(--ion-background-color-step-100, #eceef2));
-  --muted: var(--ion-color-step-600, var(--ion-text-color-step-400, #5f6368));
-  --radius: 18px;
+  --surface: var(--ion-background-color);
+  --card: var(--app-card);
+  --soft: var(--ion-background-color-step-100);
+  --muted: var(--app-muted);
+  --radius: 20px;
 
-  /* Tintes de los iconos: fondo suave y trazo con contraste ≥ 3:1. */
-  --blue-bg: #e6efff;
-  --blue-fg: #0b4fc4;
-  --green-bg: #e3f5ec;
-  --green-fg: #0b6b46;
-  --orange-bg: #fff0e0;
-  --orange-fg: #a64b00;
-  --purple-bg: #f1e8ff;
-  --purple-fg: #6a2fc0;
-}
-
-:host-context(.ion-palette-dark) {
-  --card: var(--ion-background-color-step-100, var(--ion-color-step-100, #1e1e1e));
-  --soft: var(--ion-background-color-step-200, var(--ion-color-step-200, #333));
-  --blue-bg: rgba(110, 160, 255, 0.16);
-  --blue-fg: #8db4ff;
-  --green-bg: rgba(60, 200, 140, 0.16);
-  --green-fg: #6ddba8;
-  --orange-bg: rgba(255, 160, 80, 0.16);
-  --orange-fg: #ffb57a;
-  --purple-bg: rgba(180, 130, 255, 0.16);
-  --purple-fg: #c9a6ff;
+  /* Tintes de los iconos (Fase 5): azul mar y coral, con trazo de contraste ≥ 3:1. */
+  --sea-bg: var(--app-primary-soft);
+  --sea-fg: var(--ion-color-primary);
+  --coral-bg: var(--app-accent-soft);
+  --coral-fg: var(--app-accent);
 }
 
 ion-content {
   --background: var(--surface);
 }
 
-/* ---------- Cabecera ---------- */
+/* ---------- Cabecera: azul noche con el sol poniéndose y olas hacia la arena ---------- */
 .top {
-  padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 16px;
-  border-radius: 0 0 24px 24px;
-  background: var(--card);
-  box-shadow: 0 1px 0 var(--soft);
+  position: relative;
+  overflow: hidden;
+  padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 4px;
+  background: var(--app-header);
+  color: #fff;
+}
+
+.sun {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 74px);
+  right: 22px;
+  width: 64px;
+  height: 64px;
+  pointer-events: none;
+}
+
+.top-bar,
+.question,
+.home-search {
+  position: relative;
+}
+
+.waves {
+  display: block;
+  width: 100%;
+  height: 28px;
+  margin-top: -1px;
+  background: var(--app-header);
 }
 
 .top-bar {
@@ -60,13 +66,14 @@ ion-content {
   gap: 10px;
   min-height: 44px;
   border-radius: 12px;
-  color: var(--ion-text-color);
-  font-size: 1.05rem;
+  color: #fff;
+  font-family: var(--app-font-display);
+  font-size: 1.1rem;
   font-weight: 800;
   text-decoration: none;
 
   &:focus-visible {
-    outline: 3px solid var(--ion-color-primary);
+    outline: 3px solid #fff;
     outline-offset: 2px;
   }
 }
@@ -77,7 +84,7 @@ ion-content {
   width: 36px;
   height: 36px;
   border-radius: 11px;
-  background: var(--brand);
+  background: #b9472f;
   color: #fff;
   font-size: 1.2rem;
 }
@@ -88,19 +95,22 @@ ion-content {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: var(--soft);
-  color: var(--ion-text-color);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
   font-size: 1.3rem;
 
   &:focus-visible {
-    outline: 3px solid var(--ion-color-primary);
+    outline: 3px solid #fff;
     outline-offset: 2px;
   }
 }
 
 .question {
   margin: 18px 0 10px;
-  font-size: 1.75rem;
+  max-width: calc(100% - 80px);
+  color: #fff;
+  font-size: 2rem;
   font-weight: 800;
   letter-spacing: -0.01em;
   line-height: 1.15;
@@ -108,9 +118,10 @@ ion-content {
 
 .home-search {
   padding: 0;
-  --background: var(--soft);
-  --border-radius: 14px;
-  --box-shadow: none;
+  --background: var(--card);
+  --color: var(--ion-text-color);
+  --border-radius: 20px;
+  --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
 }
 
 /* ---------- Menú ---------- */
@@ -139,22 +150,23 @@ ion-content {
   }
 }
 
-/* Acción principal: "Cómo llegar" (texto blanco sobre #0b4fc4: 6,3:1). */
+/* Acción principal: "Cómo llegar" en azul mar (blanco sobre #1d5d8a: 6,9:1). */
 .plan-card {
   align-items: center;
   gap: 14px;
   padding: 16px;
-  background: var(--brand);
-  color: #fff;
-  box-shadow: 0 8px 20px rgba(11, 79, 196, 0.28);
+  background: var(--ion-color-primary);
+  color: var(--ion-color-primary-contrast);
+  box-shadow: 0 8px 20px rgba(var(--ion-color-primary-rgb), 0.28);
 
   .tile-icon {
-    background: rgba(255, 255, 255, 0.18);
-    color: #fff;
+    border-radius: 50%;
+    background: rgba(var(--ion-color-primary-contrast-rgb), 0.16);
+    color: inherit;
   }
 
   .tile-description {
-    color: #fff;
+    color: inherit;
     opacity: 0.92;
   }
 }
@@ -180,8 +192,9 @@ ion-content {
   flex-direction: column;
   gap: 4px;
   padding: 14px;
+  border: 1px solid var(--ion-border-color);
   background: var(--card);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: none;
 
   .tile-icon {
     margin-bottom: 6px;
@@ -199,7 +212,8 @@ ion-content {
 }
 
 .tile-title {
-  font-size: 1.05rem;
+  font-family: var(--app-font-display);
+  font-size: 1.1rem;
   font-weight: 700;
 }
 
@@ -208,24 +222,14 @@ ion-content {
   color: var(--muted);
 }
 
-.tone-blue .tile-icon {
-  background: var(--blue-bg);
-  color: var(--blue-fg);
+.tone-sea .tile-icon {
+  background: var(--sea-bg);
+  color: var(--sea-fg);
 }
 
-.tone-green .tile-icon {
-  background: var(--green-bg);
-  color: var(--green-fg);
-}
-
-.tone-orange .tile-icon {
-  background: var(--orange-bg);
-  color: var(--orange-fg);
-}
-
-.tone-purple .tile-icon {
-  background: var(--purple-bg);
-  color: var(--purple-fg);
+.tone-coral .tile-icon {
+  background: var(--coral-bg);
+  color: var(--coral-fg);
 }
 
 /* La pista de "Mis favoritos" (sin favoritos) ocupa la fila entera. */

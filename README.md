@@ -41,7 +41,7 @@ También se puede abrir `app/android` en Android Studio (que usa su propio Java;
 
 iOS (16 o superior): el proyecto está en `app/ios`, pero compilarlo exige un Mac con Xcode (`npx cap open ios`).
 
-Icono y pantalla de inicio: la fuente es `app/assets/icon.svg` (autobús blanco sobre el azul de la marca); los PNG de `app/assets/` se generan a partir de él y los recursos nativos con `npx @capacitor/assets generate --android --ios --iconBackgroundColor "#0b4fc4" --splashBackgroundColor "#f4f5f8" --splashBackgroundColorDark "#121212"`. La web usa el mismo dibujo como `favicon.svg`.
+Icono y pantalla de inicio: la fuente es `app/assets/icon.svg` (autobús blanco ante el sol poniéndose sobre el mar); los PNG de `app/assets/` se generan a partir de él y los recursos nativos con `npx @capacitor/assets generate --android --ios --iconBackgroundColor "#1c2b4a" --splashBackgroundColor "#f7f2e8" --splashBackgroundColorDark "#0f1a22"`. La web usa el mismo dibujo como `favicon.svg`.
 
 El botón "atrás" de Android navega dentro de la app gracias al plugin `@capacitor/app`. La app no se publica en tiendas: el APK de depuración es para uso personal.
 
@@ -167,6 +167,12 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
 - **Modo sencillo** (RF-07): solo listas y texto, sin mapa. El inicio quita la tarjeta del mapa; los detalles de línea y parada y "Cómo llegar" no muestran mapa; Mapa y Paradas muestran solo su panel de texto (búsqueda de barrios, líneas y paradas, y la ficha de cada parada). Con él activo no se crea ningún mapa, así que la librería del mapa no se descarga. Si el dispositivo no tiene WebGL, la app funciona siempre en modo sencillo y el interruptor aparece desactivado.
 - La capa elegida en los mapas (Claro, Oscuro o Satélite) también se guarda con los ajustes.
 - Tamaño de los autobuses en tiempo real en el mapa (pequeño, normal o grande; solo se ven en la app del móvil).
+
+### Aspecto (Fase 5)
+
+- Identidad "Mediterráneo al atardecer" (mezcla de las propuestas A y C, ADR 0010): fondo arena, azul mar como color principal, coral de atardecer como acento y barras superiores azul noche; en el inicio, el sol poniéndose y unas olas bajo la cabecera.
+- Letras Lexend (texto) y Urbanist (títulos), incluidas en la app (`@fontsource-variable`), sin pedirlas a Google al abrirla.
+- Los colores están en `app/src/theme/brand.scss` como variables de Ionic y `--app-*`, con su versión oscura; el alto contraste sigue usando la paleta de Ionic.
 
 ### Accesibilidad y rendimiento
 
