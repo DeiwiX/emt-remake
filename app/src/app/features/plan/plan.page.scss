@@ -187,10 +187,31 @@
   }
 }
 
-.transfer a {
-  color: var(--ion-color-primary);
-  font-weight: 600;
+/* Paradas del transbordo: botones con la misma forma que las insignias de línea. */
+.transfer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.stop-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 2.75rem;
+  padding: 0 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--ion-color-primary);
+  color: var(--ion-color-primary-contrast);
   font-style: normal;
+  font-weight: 700;
+  text-decoration: none;
+
+  &:focus-visible {
+    outline: 3px solid var(--ion-color-primary);
+    outline-offset: 2px;
+  }
 }
 
 .option.is-selected {

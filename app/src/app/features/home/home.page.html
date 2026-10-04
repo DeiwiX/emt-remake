@@ -1,135 +1,122 @@
 <ion-content>
   <div class="page">
-  <!-- Cabecera sobria: logotipo (vuelve al inicio), Ajustes, pregunta y búsqueda. -->
-  <header class="top">
-    <div class="top-bar">
-      <a class="brand" routerLink="/" (click)="resetHome()">
-        <span class="brand-icon"><ion-icon name="bus-outline" aria-hidden="true" /></span>
-        <span class="brand-name">{{ 'app.name' | transloco }}</span>
-      </a>
-      <a class="round-button" routerLink="/settings" [attr.aria-label]="'settings.title' | transloco">
-        <ion-icon name="settings-outline" aria-hidden="true" />
-      </a>
-    </div>
-
-    <h1 class="question">{{ 'home.question' | transloco }}</h1>
-
-    <ion-searchbar
-      class="home-search"
-      [value]="query()"
-      [placeholder]="'home.searchPlaceholder' | transloco"
-      [attr.aria-label]="'home.searchPlaceholder' | transloco"
-      [debounce]="150"
-      (ionInput)="setQuery($event.detail.value ?? '')"
-    />
-  </header>
-
-  <app-data-status-banner />
-
-  @if (selectedZone(); as zone) {
-    <!-- Barrio o distrito elegido en la búsqueda: todas sus paradas. -->
-    <section class="zone-view" [attr.aria-label]="zone.name">
-      <ion-button fill="clear" size="small" (click)="selectedZoneId.set(null)">
-        <ion-icon slot="start" name="arrow-back" aria-hidden="true" />
-        {{ 'home.backToResults' | transloco }}
-      </ion-button>
-      <h2>{{ zone.name }}</h2>
-      <p>
-        {{ zoneKindKey(zone.kind) | transloco }} ·
-        {{ 'home.stopCount' | transloco: { count: zoneStops().length } }}
-      </p>
-      <ion-button size="small" fill="outline" routerLink="/map" [queryParams]="{ zone: zone.id }">
-        <ion-icon slot="start" name="map-outline" aria-hidden="true" />
-        {{ 'home.zoneOnMap' | transloco }}
-      </ion-button>
-    </section>
-    <app-stop-list [stops]="zoneStops()" [label]="'map.zoneStops' | transloco" />
-  } @else if (searching()) {
-    <!-- Resultados de búsqueda (RF-05): sustituyen al menú mientras hay texto. -->
-    <p class="ion-padding-horizontal" role="status">
-      {{
-        'home.resultCountWithZones'
-          | transloco
-            : {
-                zones: zoneResults().length,
-                lines: lineResults().length,
-                stops: totalStopResults(),
-              }
-      }}
-    </p>
-    @if (zoneResults().length > 0) {
-      <h2 class="ion-padding-horizontal">{{ 'map.zoneResults' | transloco }}</h2>
-      <ion-list [attr.aria-label]="'map.zoneResults' | transloco">
-        @for (zone of zoneResults(); track zone.id) {
-          <ion-item button detail (click)="selectedZoneId.set(zone.id)">
-            <ion-label class="ion-text-wrap">
-              {{ zone.name }}
-              <p>
-                {{ zoneKindKey(zone.kind) | transloco }} ·
-                {{ 'home.stopCount' | transloco: { count: zone.stopIds.length } }}
-              </p>
-            </ion-label>
-          </ion-item>
-        }
-      </ion-list>
-    }
-    @if (lineResults().length > 0) {
-      <h2 class="ion-padding-horizontal">{{ 'home.lineResults' | transloco }}</h2>
-      <app-line-list [lines]="lineResults()" [label]="'home.lineResults' | transloco" />
-    }
-    @if (stopResults().length > 0) {
-      <h2 class="ion-padding-horizontal">{{ 'home.stopResults' | transloco }}</h2>
-      @if (totalStopResults() > stopResults().length) {
-        <p class="ion-padding-horizontal">
-          {{ 'home.firstStops' | transloco: { count: stopResults().length } }}
-        </p>
-      }
-      <app-stop-list [stops]="stopResults()" [label]="'home.stopResults' | transloco" />
-    }
-  } @else {
-    <nav class="sections" [attr.aria-label]="'home.menuLabel' | transloco">
-      <!-- Acción principal: planificar un viaje. -->
-      <a class="plan-card" routerLink="/plan">
-        <span class="tile-icon"><ion-icon name="trail-sign-outline" aria-hidden="true" /></span>
-        <span class="tile-text">
-          <span class="tile-title">{{ 'plan.title' | transloco }}</span>
-          <span class="tile-description">{{ 'home.planDescription' | transloco }}</span>
-        </span>
-        <ion-icon class="tile-arrow" name="arrow-forward" aria-hidden="true" />
-      </a>
-
-      <div class="tile-grid">
-        <a class="tile tone-blue" routerLink="/map">
-          <span class="tile-icon"><ion-icon name="map-outline" aria-hidden="true" /></span>
-          <span class="tile-title">{{ 'map.title' | transloco }}</span>
-          <span class="tile-description">{{ 'home.mapDescription' | transloco }}</span>
+    <!-- Cabecera sobria: logotipo (vuelve al inicio), Ajustes, pregunta y búsqueda. -->
+    <header class="top">
+      <div class="top-bar">
+        <a class="brand" routerLink="/" (click)="resetHome()">
+          <span class="brand-icon"><ion-icon name="bus-outline" aria-hidden="true" /></span>
+          <span class="brand-name">{{ 'app.name' | transloco }}</span>
         </a>
-        <a class="tile tone-green" routerLink="/lines">
-          <span class="tile-icon"><ion-icon name="bus-outline" aria-hidden="true" /></span>
-          <span class="tile-title">{{ 'home.linesTile' | transloco }}</span>
-          <span class="tile-description">{{
-            'home.lineCount' | transloco: { count: lineCount() }
-          }}</span>
+        <a
+          class="round-button"
+          routerLink="/settings"
+          [attr.aria-label]="'settings.title' | transloco"
+        >
+          <ion-icon name="settings-outline" aria-hidden="true" />
         </a>
-        <a class="tile tone-orange" routerLink="/stops">
-          <span class="tile-icon"><ion-icon name="location-outline" aria-hidden="true" /></span>
-          <span class="tile-title">{{ 'stops.title' | transloco }}</span>
-          <span class="tile-description">{{
-            'home.stopCount' | transloco: { count: stopCount() }
-          }}</span>
-        </a>
-        <!-- Fase 2: visible pero no pulsable. -->
-        <div class="tile tile-soon" aria-disabled="true">
-          <span class="tile-icon"><ion-icon name="star-outline" aria-hidden="true" /></span>
-          <span class="tile-title">{{ 'home.favorites' | transloco }}</span>
-          <span class="tile-description">{{ 'home.comingInPhase2' | transloco }}</span>
-        </div>
       </div>
-    </nav>
 
-    <p class="notice">
-      <ion-note>{{ 'app.unofficialNotice' | transloco }}</ion-note>
-    </p>
-  }
+      <h1 class="question">{{ 'home.question' | transloco }}</h1>
+
+      <ion-searchbar
+        class="home-search"
+        [value]="query()"
+        [placeholder]="'home.searchPlaceholder' | transloco"
+        [attr.aria-label]="'home.searchPlaceholder' | transloco"
+        [debounce]="150"
+        (ionInput)="setQuery($event.detail.value ?? '')"
+      />
+    </header>
+
+    <app-data-status-banner />
+
+    @if (searching()) {
+      <!-- Resultados de búsqueda (RF-05): sustituyen al menú mientras hay texto. -->
+      <p class="ion-padding-horizontal" role="status">
+        {{
+          'home.resultCountWithZones'
+            | transloco
+              : {
+                  zones: zoneResults().length,
+                  lines: lineResults().length,
+                  stops: totalStopResults(),
+                }
+        }}
+      </p>
+      @if (zoneResults().length > 0) {
+        <h2 class="ion-padding-horizontal">{{ 'map.zoneResults' | transloco }}</h2>
+        <ion-list [attr.aria-label]="'map.zoneResults' | transloco">
+          @for (zone of zoneResults(); track zone.id) {
+            <!-- Elegir una zona abre el mapa con su contorno, sus paradas y sus líneas. -->
+            <ion-item routerLink="/map" [queryParams]="{ zone: zone.id }" detail>
+              <ion-label class="ion-text-wrap">
+                {{ zone.name }}
+                <p>
+                  {{ zoneKindKey(zone.kind) | transloco }} ·
+                  {{ 'home.stopCount' | transloco: { count: zone.stopIds.length } }}
+                </p>
+              </ion-label>
+            </ion-item>
+          }
+        </ion-list>
+      }
+      @if (lineResults().length > 0) {
+        <h2 class="ion-padding-horizontal">{{ 'home.lineResults' | transloco }}</h2>
+        <app-line-list [lines]="lineResults()" [label]="'home.lineResults' | transloco" />
+      }
+      @if (stopResults().length > 0) {
+        <h2 class="ion-padding-horizontal">{{ 'home.stopResults' | transloco }}</h2>
+        @if (totalStopResults() > stopResults().length) {
+          <p class="ion-padding-horizontal">
+            {{ 'home.firstStops' | transloco: { count: stopResults().length } }}
+          </p>
+        }
+        <app-stop-list [stops]="stopResults()" [label]="'home.stopResults' | transloco" />
+      }
+    } @else {
+      <nav class="sections" [attr.aria-label]="'home.menuLabel' | transloco">
+        <!-- Acción principal: planificar un viaje. -->
+        <a class="plan-card" routerLink="/plan">
+          <span class="tile-icon"><ion-icon name="trail-sign-outline" aria-hidden="true" /></span>
+          <span class="tile-text">
+            <span class="tile-title">{{ 'plan.title' | transloco }}</span>
+            <span class="tile-description">{{ 'home.planDescription' | transloco }}</span>
+          </span>
+          <ion-icon class="tile-arrow" name="arrow-forward" aria-hidden="true" />
+        </a>
+
+        <div class="tile-grid">
+          <a class="tile tone-blue" routerLink="/map">
+            <span class="tile-icon"><ion-icon name="map-outline" aria-hidden="true" /></span>
+            <span class="tile-title">{{ 'map.title' | transloco }}</span>
+            <span class="tile-description">{{ 'home.mapDescription' | transloco }}</span>
+          </a>
+          <a class="tile tone-green" routerLink="/lines">
+            <span class="tile-icon"><ion-icon name="bus-outline" aria-hidden="true" /></span>
+            <span class="tile-title">{{ 'home.linesTile' | transloco }}</span>
+            <span class="tile-description">{{
+              'home.lineCount' | transloco: { count: lineCount() }
+            }}</span>
+          </a>
+          <a class="tile tone-orange" routerLink="/stops">
+            <span class="tile-icon"><ion-icon name="location-outline" aria-hidden="true" /></span>
+            <span class="tile-title">{{ 'stops.title' | transloco }}</span>
+            <span class="tile-description">{{
+              'home.stopCount' | transloco: { count: stopCount() }
+            }}</span>
+          </a>
+          <!-- Fase 2: visible pero no pulsable. -->
+          <div class="tile tile-soon" aria-disabled="true">
+            <span class="tile-icon"><ion-icon name="star-outline" aria-hidden="true" /></span>
+            <span class="tile-title">{{ 'home.favorites' | transloco }}</span>
+            <span class="tile-description">{{ 'home.comingInPhase2' | transloco }}</span>
+          </div>
+        </div>
+      </nav>
+
+      <p class="notice">
+        <ion-note>{{ 'app.unofficialNotice' | transloco }}</ion-note>
+      </p>
+    }
   </div>
 </ion-content>

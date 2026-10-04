@@ -1,6 +1,5 @@
 import { addIcons } from 'ionicons';
 import {
-  arrowBack,
   arrowForward,
   busOutline,
   layersOutline,
@@ -20,7 +19,6 @@ import {
  */
 export function registerAppIcons(): void {
   addIcons({
-    arrowBack,
     arrowForward,
     busOutline,
     layersOutline,

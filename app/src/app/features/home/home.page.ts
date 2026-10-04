@@ -10,7 +10,6 @@ import {
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import {
-  IonButton,
   IonContent,
   IonIcon,
   IonItem,
@@ -39,7 +38,6 @@ const MAX_STOP_RESULTS = 30;
     DataStatusBannerComponent,
     LineListComponent,
     StopListComponent,
-    IonButton,
     IonContent,
     IonIcon,
     IonItem,
@@ -66,20 +64,11 @@ export class HomePage {
   /** Se pintan pocas paradas para que la búsqueda sea fluida; la lista completa está en Paradas. */
   protected readonly stopResults = computed(() => this.allStopResults().slice(0, MAX_STOP_RESULTS));
   protected readonly totalStopResults = computed(() => this.allStopResults().length);
-  /** Barrios y distritos: elegir uno muestra todas sus paradas. */
+  /** Barrios y distritos: elegir uno abre el mapa con la zona marcada. */
   private readonly zonesStore = inject(ZonesStore);
   protected readonly zoneResults = computed(() =>
     searchZones(this.zonesStore.zones(), this.query()),
   );
-  protected readonly selectedZoneId = signal<string | null>(null);
-  protected readonly selectedZone = computed(() =>
-    this.zonesStore.zones().find((zone) => zone.id === this.selectedZoneId()),
-  );
-  /** Paradas de la zona elegida, en el orden de la lista de paradas (por nombre). */
-  protected readonly zoneStops = computed(() => {
-    const ids = new Set(this.selectedZone()?.stopIds ?? []);
-    return this.network.stops().filter((stop) => ids.has(stop.id));
-  });
 
   protected readonly lineCount = computed(() => this.network.lines().length);
   protected readonly stopCount = computed(() => this.network.stops().length);
@@ -93,7 +82,7 @@ export class HomePage {
     });
   }
 
-  /** Vuelve al menú de inicio desde la búsqueda o una zona. */
+  /** Vuelve al menú de inicio desde la búsqueda. */
   protected resetHome(): void {
     this.setQuery('');
     void this.content()?.scrollToTop(prefersReducedMotion() ? 0 : 300);
@@ -101,7 +90,6 @@ export class HomePage {
 
   protected setQuery(value: string): void {
     this.query.set(value);
-    this.selectedZoneId.set(null);
   }
 
   protected zoneKindKey(kind: Zone['kind']): string {

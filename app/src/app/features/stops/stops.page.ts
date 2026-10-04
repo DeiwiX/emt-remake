@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  computed,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { TranslocoPipe } from '@jsverse/transloco';
 import {
   IonBackButton,
@@ -6,15 +14,22 @@ import {
   IonButtons,
   IonContent,
   IonHeader,
+  IonItem,
+  IonLabel,
+  IonList,
   IonSearchbar,
   IonTitle,
   IonToolbar,
 } from '@ionic/angular';
 
-import { NetworkRepository } from '../../core/data/repositories';
+import { NetworkRepository, ShapeRepository } from '../../core/data/repositories';
+import { LineColorsService } from '../../core/map/line-colors.service';
+import { toMapRoutes, toMapStops } from '../../core/map/map-features';
+import { LatLon, Line, Stop } from '../../core/models/network.model';
 import { searchStops } from '../../core/search/search';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
-import { StopListComponent } from '../../shared/stop-list/stop-list.component';
+import { MapViewComponent } from '../../shared/map-view/map-view.component';
+import { StopCardComponent } from '../../shared/stop-card/stop-card.component';
 
 /**
  * Hay más de 1.000 paradas: se pintan por bloques para que la lista sea fluida
@@ -22,23 +37,35 @@ import { StopListComponent } from '../../shared/stop-list/stop-list.component';
  */
 const PAGE_SIZE = 100;
 
-/** Todas las paradas, con filtro, navegables sin mapa (RF-06). */
+/** Con más resultados que estos, el mapa no se reencuadra al filtrar (sería casi toda la ciudad). */
+const MAX_FIT_RESULTS = 200;
+
+/**
+ * Todas las paradas (RF-06) con el mismo esquema que el Mapa: mapa ancho y panel
+ * con el filtro y la lista. Elegir una parada, en la lista o en el mapa, la
+ * marca, dibuja sus líneas y muestra su ficha con el próximo bus.
+ */
 @Component({
   selector: 'app-stops',
   imports: [
     TranslocoPipe,
     DataStatusBannerComponent,
-    StopListComponent,
+    MapViewComponent,
+    StopCardComponent,
     IonBackButton,
     IonButton,
     IonButtons,
     IonContent,
     IonHeader,
+    IonItem,
+    IonLabel,
+    IonList,
     IonSearchbar,
     IonTitle,
     IonToolbar,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  styleUrl: './stops.page.scss',
   template: `
     <ion-header>
       <ion-toolbar>
@@ -56,28 +83,76 @@ const PAGE_SIZE = 100;
         />
       </ion-toolbar>
     </ion-header>
-    <ion-content>
-      <app-data-status-banner />
-      @if (allStops().length > 0) {
-        <p class="ion-padding-horizontal" role="status">
-          {{ 'stops.showing' | transloco: { shown: visible().length, total: filtered().length } }}
-        </p>
-        <app-stop-list [stops]="visible()" [label]="'stops.title' | transloco" />
-        @if (visible().length < filtered().length) {
-          <div class="ion-padding">
-            <ion-button expand="block" fill="outline" (click)="showMore()">
-              {{ 'stops.showMore' | transloco }}
-            </ion-button>
-          </div>
-        }
-      }
+    <ion-content [scrollY]="false">
+      <div class="split-layout">
+        <div class="split-map">
+          <app-map-view
+            class="split-map-fill"
+            role="region"
+            [attr.aria-label]="'stops.mapLabel' | transloco"
+            [routes]="mapRoutes()"
+            [stops]="mapStops()"
+            [highlightedStop]="selectedMarker()"
+            [fitPoints]="fitPoints()"
+            (stopSelected)="selectStop($event)"
+          />
+        </div>
+
+        <section #panel class="split-panel" [attr.aria-label]="'stops.title' | transloco">
+          <app-data-status-banner />
+          @if (selectedStop(); as stop) {
+            <app-stop-card [stop]="stop" (closed)="selectStop(null)" />
+          }
+          @if (allStops().length > 0) {
+            <p class="ion-padding-horizontal" role="status">
+              {{
+                'stops.showing' | transloco: { shown: visible().length, total: filtered().length }
+              }}
+            </p>
+            <ion-list [attr.aria-label]="'stops.title' | transloco">
+              @for (stop of visible(); track stop.id) {
+                <ion-item
+                  button
+                  [detail]="false"
+                  [class.is-selected]="stop.id === selectedId()"
+                  [attr.aria-current]="stop.id === selectedId() ? 'true' : null"
+                  (click)="selectStop(stop.id)"
+                >
+                  <ion-label class="ion-text-wrap">
+                    {{ stop.name }}
+                    <p>
+                      {{ 'stops.code' | transloco: { id: stop.id } }} ·
+                      {{ 'stops.servedBy' | transloco: { lines: lineCodes(stop) } }}
+                    </p>
+                  </ion-label>
+                </ion-item>
+              }
+            </ion-list>
+            @if (visible().length < filtered().length) {
+              <div class="ion-padding">
+                <ion-button expand="block" fill="outline" (click)="showMore()">
+                  {{ 'stops.showMore' | transloco }}
+                </ion-button>
+              </div>
+            }
+          }
+        </section>
+      </div>
     </ion-content>
   `,
 })
 export class StopsPage {
-  protected readonly allStops = inject(NetworkRepository).stops;
+  private readonly network = inject(NetworkRepository);
+  private readonly shapes = inject(ShapeRepository);
+  private readonly colors = inject(LineColorsService);
+  private readonly panel = viewChild<ElementRef<HTMLElement>>('panel');
+
+  protected readonly allStops = this.network.stops;
   private readonly query = signal('');
   private readonly limit = signal(PAGE_SIZE);
+  protected readonly selectedId = signal<string | null>(null);
+  private readonly geometries = signal<ReadonlyMap<string, readonly LatLon[]>>(new Map());
+  private shapesRequested = false;
 
   protected readonly filtered = computed(() => {
     const query = this.query();
@@ -86,6 +161,40 @@ export class StopsPage {
   });
   protected readonly visible = computed(() => this.filtered().slice(0, this.limit()));
 
+  protected readonly selectedStop = computed(() => {
+    this.allStops();
+    const id = this.selectedId();
+    return id ? this.network.getStop(id) : undefined;
+  });
+  protected readonly selectedMarker = computed(() => toMapStops([this.selectedStop()])[0] ?? null);
+
+  /** En el mapa, las paradas filtradas; todas si no hay filtro. */
+  protected readonly mapStops = computed(() => toMapStops(this.filtered()));
+
+  /** Recorridos de las líneas que pasan por la parada elegida, en su sentido. */
+  protected readonly mapRoutes = computed(() => {
+    const services = this.selectedStop()?.services ?? [];
+    const lines = [...new Set(services.map((s) => s.lineId))]
+      .map((id) => this.network.getLine(id))
+      .filter((line): line is Line => !!line);
+    return toMapRoutes(
+      lines,
+      this.geometries(),
+      (id) => this.colors.colorFor(id),
+      (line, directionId) =>
+        services.some((s) => s.lineId === line.id && s.directionId === directionId),
+    );
+  });
+
+  /** Encuadre: la parada elegida o, al filtrar, las paradas encontradas. */
+  protected readonly fitPoints = computed<LatLon[]>(() => {
+    const stop = this.selectedStop();
+    if (stop) return [[stop.lat, stop.lon]];
+    const results = this.filtered();
+    if (!this.query().trim() || results.length > MAX_FIT_RESULTS) return [];
+    return results.map((s) => [s.lat, s.lon]);
+  });
+
   protected setQuery(value: string): void {
     this.query.set(value);
     this.limit.set(PAGE_SIZE);
@@ -93,5 +202,29 @@ export class StopsPage {
 
   protected showMore(): void {
     this.limit.update((n) => n + PAGE_SIZE);
+  }
+
+  protected selectStop(stopId: string | null): void {
+    this.selectedId.set(stopId);
+    if (!stopId) return;
+    void this.loadShapes();
+    const panel = this.panel()?.nativeElement;
+    if (panel) panel.scrollTop = 0;
+  }
+
+  protected lineCodes(stop: Stop): string {
+    return [...new Set(stop.services.map((s) => s.lineId))].join(', ');
+  }
+
+  /** Los trazados solo hacen falta al elegir una parada. */
+  private async loadShapes(): Promise<void> {
+    if (this.shapesRequested) return;
+    this.shapesRequested = true;
+    try {
+      this.geometries.set(await this.shapes.getShapes('detail'));
+    } catch (error) {
+      this.shapesRequested = false;
+      console.warn('No se pudieron cargar los trazados', error);
+    }
   }
 }

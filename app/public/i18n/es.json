@@ -21,8 +21,6 @@
     "stopCount": "{{count}} paradas",
     "planDescription": "Opciones y tiempo aproximado",
     "resultCountWithZones": "Encontradas: {{zones}} zonas, {{lines}} líneas y {{stops}} paradas",
-    "backToResults": "Volver a los resultados",
-    "zoneOnMap": "Ver la zona en el mapa",
     "question": "¿A dónde vas?",
     "linesTile": "Líneas"
   },
@@ -47,7 +45,8 @@
     "servedBy": "Líneas: {{lines}}",
     "filterPlaceholder": "Filtrar por nombre o código",
     "showing": "Mostrando {{shown}} de {{total}} paradas",
-    "showMore": "Mostrar más paradas"
+    "showMore": "Mostrar más paradas",
+    "mapLabel": "Mapa de las paradas"
   },
   "stopDetail": {
     "title": "Parada {{id}}",

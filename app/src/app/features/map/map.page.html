@@ -17,10 +17,10 @@
 </ion-header>
 
 <ion-content [scrollY]="false">
-  <div class="layout">
-    <div class="map-area">
+  <div class="split-layout">
+    <div class="split-map">
       <app-map-view
-        class="map-fill"
+        class="split-map-fill"
         role="region"
         [attr.aria-label]="'map.mapLabel' | transloco"
         [routes]="routes()"
@@ -37,7 +37,7 @@
     </div>
 
     <!-- Alternativa en texto de todo lo que muestra el mapa (RNF-01). -->
-    <section #panel class="panel" [attr.aria-label]="'map.panelLabel' | transloco">
+    <section #panel class="split-panel" [attr.aria-label]="'map.panelLabel' | transloco">
       <app-data-status-banner />
 
       @if (searching()) {
@@ -101,39 +101,7 @@
       } @else {
         <!-- La parada elegida va arriba del todo: es lo último que ha pedido el usuario. -->
         @if (selectedStop(); as stop) {
-          <div class="selected stop-card" aria-live="polite">
-            <h2>{{ stop.name }}</h2>
-            <p>{{ 'stops.code' | transloco: { id: stop.id } }}</p>
-            <ul class="stop-services">
-              @for (
-                service of selectedStopServices();
-                track service.lineId + '-' + service.directionId
-              ) {
-                <li>
-                  <app-line-badge [code]="service.lineId" />
-                  <span class="service-text">
-                    <span class="visually-hidden"
-                      >{{ 'lines.line' | transloco: { id: service.lineId } }}.</span
-                    >
-                    {{ 'lineDetail.towards' | transloco: { headsign: service.headsign } }}
-                    <app-next-bus
-                      [lineId]="service.lineId"
-                      [directionId]="service.directionId"
-                      [stopId]="stop.id"
-                    />
-                  </span>
-                </li>
-              }
-            </ul>
-            <div class="actions">
-              <ion-button [routerLink]="['/stops', stop.id]">{{
-                'map.openStopDetail' | transloco
-              }}</ion-button>
-              <ion-button fill="outline" (click)="selectStop(null)">{{
-                'map.clearStop' | transloco
-              }}</ion-button>
-            </div>
-          </div>
+          <app-stop-card [stop]="stop" (closed)="selectStop(null)" />
         }
 
         @if (selectedZone(); as zone) {

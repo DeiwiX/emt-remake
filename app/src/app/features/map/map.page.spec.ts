@@ -290,7 +290,11 @@ describe('MapPage', () => {
     // Se encuadra la parada, se resaltan sus líneas y su ficha va antes que la de la zona.
     expect(view.fitTo).toHaveBeenLastCalledWith([[36.71, -4.43]]);
     expect(view.highlighted).toBe('2,10');
-    const cards = [...(harness.routeNativeElement as HTMLElement).querySelectorAll('.selected h2')];
+    const cards = [
+      ...(harness.routeNativeElement as HTMLElement).querySelectorAll(
+        'app-stop-card h2, .selected h2',
+      ),
+    ];
     expect(cards.map((h) => h.textContent?.trim())).toEqual(['Alameda', 'Teatinos']);
     // Cada línea de la ficha muestra su próximo bus según horario (aquí, sin horario).
     expect((harness.routeNativeElement as HTMLElement).textContent).toMatch(/horario/);

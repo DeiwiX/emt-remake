@@ -21,8 +21,6 @@
     "stopCount": "{{count}} stops",
     "planDescription": "Options and approximate time",
     "resultCountWithZones": "Found: {{zones}} areas, {{lines}} lines and {{stops}} stops",
-    "backToResults": "Back to results",
-    "zoneOnMap": "Show the area on the map",
     "question": "Where are you going?",
     "linesTile": "Lines"
   },
@@ -47,7 +45,8 @@
     "servedBy": "Lines: {{lines}}",
     "filterPlaceholder": "Filter by name or code",
     "showing": "Showing {{shown}} of {{total}} stops",
-    "showMore": "Show more stops"
+    "showMore": "Show more stops",
+    "mapLabel": "Map of the stops"
   },
   "stopDetail": {
     "title": "Stop {{id}}",

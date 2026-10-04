@@ -1,0 +1,43 @@
+// Pantalla con mapa y panel de texto (Mapa y Paradas). En el móvil, mapa
+// arriba y panel debajo; en pantallas anchas, mapa a la izquierda y panel a la
+// derecha (RNF-04). El panel repite en texto lo que muestra el mapa (RNF-01).
+// Se incluye en cada pantalla que la usa para que no pese en el paquete inicial.
+
+.split-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.split-map {
+  position: relative;
+  flex: 0 0 55%;
+  min-height: 220px;
+}
+
+.split-map-fill {
+  position: absolute;
+  inset: 0;
+}
+
+.split-panel {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  border-top: 1px solid var(--ion-border-color, #ccc);
+}
+
+@media (min-width: 768px) {
+  .split-layout {
+    flex-direction: row;
+  }
+
+  .split-map {
+    flex: 1 1 auto;
+  }
+
+  .split-panel {
+    flex: 0 0 380px;
+    border-top: none;
+    border-inline-start: 1px solid var(--ion-border-color, #ccc);
+  }
+}

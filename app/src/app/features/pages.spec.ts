@@ -19,6 +19,7 @@ import { buildIndex } from '../data/static-repositories';
 import { networkFixture } from '../data/testing/data-fixtures';
 import { HomePage } from './home/home.page';
 import { PlanPage } from './plan/plan.page';
+import { StopsPage } from './stops/stops.page';
 
 /** Pantallas con datos de prueba: búsqueda, listas y detalles (RF-03 a RF-06). */
 describe('Pantallas con datos', () => {
@@ -102,25 +103,37 @@ describe('Pantallas con datos', () => {
     expect(text).toContain('Alameda - Universidad');
   });
 
-  it('la búsqueda del inicio encuentra barrios y muestra todas sus paradas', async () => {
+  it('la búsqueda del inicio encuentra barrios y los abre en el mapa', async () => {
     const harness = await RouterTestingHarness.create();
     const home = await harness.navigateByUrl('/', HomePage);
-    const actions = home as unknown as {
-      setQuery(v: string): void;
-      selectedZoneId: { set(v: string): void };
-    };
-    actions.setQuery('miraflores');
+    (home as unknown as { setQuery(v: string): void }).setQuery('miraflores');
     harness.detectChanges();
     await harness.fixture.whenStable();
     harness.detectChanges();
     const element = harness.routeNativeElement as HTMLElement;
     expect(element.textContent).toContain('Miraflores de los Ángeles');
 
-    actions.selectedZoneId.set('b-miraflores');
+    const zoneItem = [...element.querySelectorAll('ion-item')].find((item) =>
+      item.textContent?.includes('Miraflores de los Ángeles'),
+    );
+    expect(
+      zoneItem?.getAttribute('href') ?? zoneItem?.querySelector('a')?.getAttribute('href'),
+    ).toBe('/map?zone=b-miraflores');
+  });
+
+  it('en Paradas, elegir una parada muestra su ficha con sus líneas', async () => {
+    const harness = await RouterTestingHarness.create();
+    const page = await harness.navigateByUrl('/stops', StopsPage);
+    const element = harness.routeNativeElement as HTMLElement;
+    expect(element.querySelectorAll('ion-list ion-item').length).toBe(
+      networkFixture().stops.length,
+    );
+
+    (page as unknown as { selectStop(id: string): void }).selectStop('2');
     harness.detectChanges();
-    const stopItems = element.querySelectorAll('app-stop-list ion-item');
-    expect(stopItems.length).toBe(networkFixture().stops.length);
-    expect(element.textContent).toContain('Ver la zona en el mapa');
+    const card = element.querySelector('app-stop-card');
+    expect(card?.textContent).toContain('Alameda');
+    expect(card?.querySelectorAll('app-line-badge').length).toBeGreaterThan(0);
   });
 
   it('la lista de líneas muestra todas las líneas ordenadas', async () => {

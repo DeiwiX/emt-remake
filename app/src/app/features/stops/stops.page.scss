@@ -1,0 +1,5 @@
+@use '../../shared/styles/split-layout';
+
+ion-item.is-selected {
+  --background: var(--ion-color-step-100, rgba(127, 127, 127, 0.15));
+}

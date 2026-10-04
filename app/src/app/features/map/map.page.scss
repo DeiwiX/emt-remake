@@ -1,25 +1,4 @@
-.layout {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.map-area {
-  position: relative;
-  flex: 0 0 55%;
-  min-height: 220px;
-}
-
-.map-fill {
-  position: absolute;
-  inset: 0;
-}
-
-.panel {
-  flex: 1 1 auto;
-  overflow-y: auto;
-  border-top: 1px solid var(--ion-border-color, #ccc);
-}
+@use '../../shared/styles/split-layout';
 
 .selected {
   padding: 8px 16px;
@@ -55,23 +34,6 @@ app-line-badge {
   margin-inline-end: 12px;
 }
 
-/* Pantallas anchas: mapa a la izquierda y panel a la derecha (RNF-04). */
-@media (min-width: 768px) {
-  .layout {
-    flex-direction: row;
-  }
-
-  .map-area {
-    flex: 1 1 auto;
-  }
-
-  .panel {
-    flex: 0 0 360px;
-    border-top: none;
-    border-inline-start: 1px solid var(--ion-border-color, #ccc);
-  }
-}
-
 /* Líneas de la zona elegida: insignias pulsables para resaltar cada línea. */
 .zone-lines {
   display: flex;
@@ -97,34 +59,4 @@ app-line-badge {
     outline-offset: 2px;
     border-radius: 8px;
   }
-}
-
-/* Ficha de la parada elegida: cada línea con su insignia y el hueco del próximo bus. */
-.stop-card {
-  border-bottom: 1px solid var(--ion-border-color, #ccc);
-}
-
-.stop-services {
-  list-style: none;
-  padding: 0;
-
-  li {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 6px 0;
-  }
-}
-
-.service-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.next-bus {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.9rem;
-  color: var(--ion-color-step-600, var(--ion-text-color-step-400, #666));
 }

@@ -36,7 +36,7 @@ import { searchLines, searchStops, searchZones } from '../../core/search/search'
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
 import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component';
 import { MapViewComponent } from '../../shared/map-view/map-view.component';
-import { NextBusComponent } from '../../shared/next-bus/next-bus.component';
+import { StopCardComponent } from '../../shared/stop-card/stop-card.component';
 
 /** Paradas que se pintan como resultado de búsqueda; la lista completa está en Paradas. */
 const MAX_STOP_RESULTS = 30;
@@ -60,7 +60,7 @@ const DETAIL_ZOOM = 14;
     DataStatusBannerComponent,
     LineBadgeComponent,
     MapViewComponent,
-    NextBusComponent,
+    StopCardComponent,
     IonBackButton,
     IonButton,
     IonButtons,
@@ -139,15 +139,6 @@ export class MapPage {
   });
   protected readonly selectedStopMarker = computed(
     () => toMapStops([this.selectedStop()])[0] ?? null,
-  );
-  /** Líneas que pasan por la parada marcada, con el destino de cada sentido. */
-  protected readonly selectedStopServices = computed(() =>
-    (this.selectedStop()?.services ?? []).map((service) => ({
-      ...service,
-      headsign:
-        this.network.getLine(service.lineId)?.directions.find((d) => d.id === service.directionId)
-          ?.headsign ?? '',
-    })),
   );
 
   private readonly focus = linkedSignal<MapFocus | null>(() => {
