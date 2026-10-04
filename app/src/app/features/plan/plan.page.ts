@@ -43,6 +43,7 @@ import {
 } from '../../core/planner/scheduled-journey';
 import { ServiceClock, dayOffsetOf, formatClock } from '../../core/schedule/schedule';
 import { ScheduleClockService } from '../../core/schedule/schedule-clock.service';
+import { SimpleModeService } from '../../core/settings/simple-mode.service';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
 import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component';
 import { MapViewComponent } from '../../shared/map-view/map-view.component';
@@ -200,6 +201,9 @@ export class PlanPage {
   protected readonly hasOptions = computed(
     () => !!this.origin() && !!this.destination() && !this.samePlace() && this.rows().length > 0,
   );
+  private readonly simpleMode = inject(SimpleModeService).active;
+  /** El mapa de la opción elegida, salvo en modo sencillo. */
+  protected readonly showMap = computed(() => this.hasOptions() && !this.simpleMode());
   protected readonly samePlace = computed(() => {
     const origin = this.origin();
     const destination = this.destination();

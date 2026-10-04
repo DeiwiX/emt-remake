@@ -41,3 +41,17 @@
     border-inline-start: 1px solid var(--ion-border-color, #ccc);
   }
 }
+
+/* Modo sencillo: sin mapa, el panel ocupa todo y no se estira de borde a borde. */
+.split-layout.text-only {
+  .split-panel {
+    flex: 1 1 auto;
+    border: none;
+  }
+}
+
+@media (min-width: 768px) {
+  .split-layout.text-only .split-panel {
+    padding-inline: max(0px, calc((100% - 760px) / 2));
+  }
+}

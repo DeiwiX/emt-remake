@@ -11,7 +11,7 @@
   <app-data-status-banner />
 
   <!-- Móvil: formulario, mapa y opciones en columna. Pantalla ancha: el mapa a la derecha. -->
-  <div class="plan-layout" [class.with-map]="hasOptions()">
+  <div class="plan-layout" [class.with-map]="showMap()">
     <section
       class="places ion-padding-horizontal"
       [attr.aria-label]="'plan.placesLabel' | transloco"
@@ -84,7 +84,7 @@
       </p>
     </section>
 
-    @if (hasOptions()) {
+    @if (showMap()) {
       <!-- Mapa de la opción elegida (al principio, la recomendada). -->
       <div #mapSection class="map-column">
         @defer (on viewport) {
@@ -240,16 +240,18 @@
                     <ion-note>{{ 'plan.estimatedNote' | transloco }}</ion-note>
                   </p>
                 }
-                <ion-button
-                  [fill]="index === selectedIndex() ? 'solid' : 'outline'"
-                  size="small"
-                  [attr.aria-pressed]="index === selectedIndex()"
-                  (click)="select(index)"
-                >
-                  {{
-                    (index === selectedIndex() ? 'plan.shownOnMap' : 'plan.showOnMap') | transloco
-                  }}
-                </ion-button>
+                @if (showMap()) {
+                  <ion-button
+                    [fill]="index === selectedIndex() ? 'solid' : 'outline'"
+                    size="small"
+                    [attr.aria-pressed]="index === selectedIndex()"
+                    (click)="select(index)"
+                  >
+                    {{
+                      (index === selectedIndex() ? 'plan.shownOnMap' : 'plan.showOnMap') | transloco
+                    }}
+                  </ion-button>
+                }
               </li>
             }
           </ol>

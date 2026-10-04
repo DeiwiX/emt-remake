@@ -113,8 +113,10 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
 
 ### Ajustes
 
-- Idioma (español o inglés), tema (según el sistema, claro u oscuro) y alto contraste. Se aplican al momento y se guardan solo en el dispositivo (`localStorage`). La primera vez el idioma se elige según el del navegador.
+- Idioma (español o inglés), tema (según el sistema, claro u oscuro), alto contraste y modo sencillo. Se aplican al momento y se guardan solo en el dispositivo (`localStorage`). La primera vez el idioma se elige según el del navegador.
 - Si el sistema pide reducir el movimiento, se desactivan las animaciones de transición y las del mapa.
+- **Modo sencillo** (RF-07): solo listas y texto, sin mapa. El inicio quita la tarjeta del mapa; los detalles de línea y parada y "Cómo llegar" no muestran mapa; Mapa y Paradas muestran solo su panel de texto (búsqueda de barrios, líneas y paradas, y la ficha de cada parada). Con él activo no se crea ningún mapa, así que la librería del mapa no se descarga. Si el dispositivo no tiene WebGL, la app funciona siempre en modo sencillo y el interruptor aparece desactivado.
+- La capa elegida en los mapas (Claro, Oscuro o Satélite) también se guarda con los ajustes.
 
 ### Origen y licencia
 

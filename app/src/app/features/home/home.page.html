@@ -85,12 +85,14 @@
           <ion-icon class="tile-arrow" name="arrow-forward" aria-hidden="true" />
         </a>
 
-        <div class="tile-grid">
-          <a class="tile tone-blue" routerLink="/map">
-            <span class="tile-icon"><ion-icon name="map-outline" aria-hidden="true" /></span>
-            <span class="tile-title">{{ 'map.title' | transloco }}</span>
-            <span class="tile-description">{{ 'home.mapDescription' | transloco }}</span>
-          </a>
+        <div class="tile-grid" [class.simple]="simpleMode()">
+          @if (!simpleMode()) {
+            <a class="tile tone-blue" routerLink="/map">
+              <span class="tile-icon"><ion-icon name="map-outline" aria-hidden="true" /></span>
+              <span class="tile-title">{{ 'map.title' | transloco }}</span>
+              <span class="tile-description">{{ 'home.mapDescription' | transloco }}</span>
+            </a>
+          }
           <a class="tile tone-green" routerLink="/lines">
             <span class="tile-icon"><ion-icon name="bus-outline" aria-hidden="true" /></span>
             <span class="tile-title">{{ 'home.linesTile' | transloco }}</span>

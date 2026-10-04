@@ -239,6 +239,13 @@ ion-content {
   padding: 0 16px 16px;
 }
 
+/* Modo sencillo en el móvil: con tres tarjetas, "Favoritos" ocupa la fila entera. */
+@media (max-width: 767px) {
+  .tile-grid.simple .tile-soon {
+    grid-column: 1 / -1;
+  }
+}
+
 /* En pantallas anchas el contenido no se estira de borde a borde. */
 .page {
   max-width: 760px;

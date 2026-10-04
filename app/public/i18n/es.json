@@ -89,7 +89,9 @@
     },
     "zoneSummary": "{{stops}} paradas y {{lines}} líneas",
     "clearZone": "Quitar zona",
-    "zoneStops": "Paradas de la zona"
+    "zoneStops": "Paradas de la zona",
+    "simpleTitle": "Barrios, líneas y paradas",
+    "simpleHint": "Busca un barrio, una línea o una parada. Estás en modo sencillo, sin mapa."
   },
   "settings": {
     "title": "Ajustes",
@@ -101,7 +103,10 @@
       "dark": "Oscuro"
     },
     "highContrast": "Alto contraste",
-    "highContrastHint": "Aumenta el contraste de textos y controles. Funciona con el tema claro y con el oscuro."
+    "highContrastHint": "Aumenta el contraste de textos y controles. Funciona con el tema claro y con el oscuro.",
+    "simpleMode": "Modo sencillo",
+    "simpleModeHint": "Solo listas y texto, sin mapa. Ocupa menos datos y es más fácil de usar.",
+    "simpleModeForced": "Este dispositivo no puede mostrar el mapa, así que la app funciona siempre en modo sencillo."
   },
   "about": {
     "title": "Acerca de",

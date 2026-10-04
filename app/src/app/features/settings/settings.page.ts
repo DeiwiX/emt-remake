@@ -21,12 +21,13 @@ import {
 
 import { AVAILABLE_LANGS, AppLang } from '../../core/i18n/i18n.config';
 import { SettingsService, ThemePreference } from '../../core/settings/settings.service';
+import { SimpleModeService } from '../../core/settings/simple-mode.service';
 
 /** Nombre de cada idioma en su propio idioma, para que se reconozca aunque no se entienda el actual. */
 const LANGUAGE_NAMES: Record<AppLang, string> = { es: 'Español', en: 'English' };
 const THEMES: readonly ThemePreference[] = ['system', 'light', 'dark'];
 
-/** Ajustes (RF-10): idioma, tema y alto contraste. Se aplican al momento. */
+/** Ajustes (RF-10): idioma, tema, alto contraste y modo sencillo. Se aplican al momento. */
 @Component({
   selector: 'app-settings',
   imports: [
@@ -111,6 +112,24 @@ const THEMES: readonly ThemePreference[] = ['system', 'light', 'dark'];
       </ion-list>
 
       <ion-list>
+        <ion-item>
+          <ion-toggle
+            [checked]="simpleMode.active()"
+            [disabled]="simpleMode.forced"
+            (ionChange)="service.update({ simpleMode: $event.detail.checked })"
+          >
+            {{ 'settings.simpleMode' | transloco }}
+          </ion-toggle>
+        </ion-item>
+        <ion-item lines="none">
+          <ion-note>{{
+            (simpleMode.forced ? 'settings.simpleModeForced' : 'settings.simpleModeHint')
+              | transloco
+          }}</ion-note>
+        </ion-item>
+      </ion-list>
+
+      <ion-list>
         <ion-item routerLink="/about" detail>
           <ion-label>{{ 'about.title' | transloco }}</ion-label>
         </ion-item>
@@ -121,6 +140,7 @@ const THEMES: readonly ThemePreference[] = ['system', 'light', 'dark'];
 export class SettingsPage {
   protected readonly service = inject(SettingsService);
   protected readonly settings = this.service.settings;
+  protected readonly simpleMode = inject(SimpleModeService);
   protected readonly languages = AVAILABLE_LANGS;
   protected readonly languageNames = LANGUAGE_NAMES;
   protected readonly themes = THEMES;

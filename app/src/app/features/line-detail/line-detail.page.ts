@@ -30,6 +30,7 @@ import {
 } from '../../core/data/repositories';
 import { LineColorsService } from '../../core/map/line-colors.service';
 import { toMapRoutes, toMapStops } from '../../core/map/map-features';
+import { SimpleModeService } from '../../core/settings/simple-mode.service';
 import { LatLon } from '../../core/models/network.model';
 import { MapViewComponent } from '../../shared/map-view/map-view.component';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
@@ -86,6 +87,7 @@ export class LineDetailPage {
   private readonly dataStatus = inject(DataStatusService);
   private readonly colors = inject(LineColorsService);
   private readonly router = inject(Router);
+  protected readonly simpleMode = inject(SimpleModeService).active;
   private readonly geometries = signal<ReadonlyMap<string, readonly LatLon[]>>(new Map());
 
   /** Parámetros de la ruta (/lines/:lineId?direction=2), enlazados por withComponentInputBinding. */

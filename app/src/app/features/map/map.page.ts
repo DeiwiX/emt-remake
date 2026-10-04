@@ -29,6 +29,7 @@ import {
 
 import { NetworkRepository, ShapeRepository } from '../../core/data/repositories';
 import { ZonesStore } from '../../core/data/zones-store.service';
+import { SimpleModeService } from '../../core/settings/simple-mode.service';
 import { LineColorsService } from '../../core/map/line-colors.service';
 import { toMapRoutes, toMapStops } from '../../core/map/map-features';
 import { LatLon, ShapeDetail, Zone } from '../../core/models/network.model';
@@ -82,6 +83,7 @@ export class MapPage {
   private readonly network = inject(NetworkRepository);
   private readonly shapes = inject(ShapeRepository);
   private readonly colors = inject(LineColorsService);
+  protected readonly simpleMode = inject(SimpleModeService).active;
 
   /** Línea a resaltar al abrir (/map?line=C1). */
   readonly line = input<string>();
@@ -96,7 +98,6 @@ export class MapPage {
     const id = this.highlightedId();
     return id ? this.network.getLine(id) : undefined;
   });
-
 
   /** Búsqueda de líneas y paradas dentro del mapa (RF-05). */
   protected readonly query = signal('');

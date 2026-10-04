@@ -27,6 +27,7 @@ import { LineColorsService } from '../../core/map/line-colors.service';
 import { toMapRoutes, toMapStops } from '../../core/map/map-features';
 import { LatLon, Line, Stop } from '../../core/models/network.model';
 import { searchStops } from '../../core/search/search';
+import { SimpleModeService } from '../../core/settings/simple-mode.service';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
 import { MapViewComponent } from '../../shared/map-view/map-view.component';
 import { StopCardComponent } from '../../shared/stop-card/stop-card.component';
@@ -84,19 +85,21 @@ const MAX_FIT_RESULTS = 200;
       </ion-toolbar>
     </ion-header>
     <ion-content [scrollY]="false">
-      <div class="split-layout">
-        <div class="split-map">
-          <app-map-view
-            class="split-map-fill"
-            role="region"
-            [attr.aria-label]="'stops.mapLabel' | transloco"
-            [routes]="mapRoutes()"
-            [stops]="mapStops()"
-            [highlightedStop]="selectedMarker()"
-            [fitPoints]="fitPoints()"
-            (stopSelected)="selectStop($event)"
-          />
-        </div>
+      <div class="split-layout" [class.text-only]="simpleMode()">
+        @if (!simpleMode()) {
+          <div class="split-map">
+            <app-map-view
+              class="split-map-fill"
+              role="region"
+              [attr.aria-label]="'stops.mapLabel' | transloco"
+              [routes]="mapRoutes()"
+              [stops]="mapStops()"
+              [highlightedStop]="selectedMarker()"
+              [fitPoints]="fitPoints()"
+              (stopSelected)="selectStop($event)"
+            />
+          </div>
+        }
 
         <section #panel class="split-panel" [attr.aria-label]="'stops.title' | transloco">
           <app-data-status-banner />
@@ -145,6 +148,7 @@ export class StopsPage {
   private readonly network = inject(NetworkRepository);
   private readonly shapes = inject(ShapeRepository);
   private readonly colors = inject(LineColorsService);
+  protected readonly simpleMode = inject(SimpleModeService).active;
   private readonly panel = viewChild<ElementRef<HTMLElement>>('panel');
 
   protected readonly allStops = this.network.stops;

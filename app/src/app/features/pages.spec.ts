@@ -136,6 +136,19 @@ describe('Pantallas con datos', () => {
     expect(card?.querySelectorAll('app-line-badge').length).toBeGreaterThan(0);
   });
 
+  it('en modo sencillo (aquí, sin WebGL) el inicio no ofrece el mapa', async () => {
+    const home = await open('/');
+    const links = [...home.querySelectorAll('nav a')].map((a) => a.getAttribute('href'));
+    expect(links).toContain('/lines');
+    expect(links).not.toContain('/map');
+  });
+
+  it('en modo sencillo el detalle de parada no pinta el mapa', async () => {
+    const stop = await open('/stops/2');
+    expect(stop.textContent).toContain('Alameda');
+    expect(stop.querySelector('app-map-view, .detail-map')).toBeNull();
+  });
+
   it('la lista de líneas muestra todas las líneas ordenadas', async () => {
     const element = await open('/lines');
     const labels = [...element.querySelectorAll('app-line-badge')].map((b) =>

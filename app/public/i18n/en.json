@@ -89,7 +89,9 @@
     },
     "zoneSummary": "{{stops}} stops and {{lines}} lines",
     "clearZone": "Clear area",
-    "zoneStops": "Stops in the area"
+    "zoneStops": "Stops in the area",
+    "simpleTitle": "Areas, lines and stops",
+    "simpleHint": "Search for a neighbourhood, line or stop. You are in simple mode, without the map."
   },
   "settings": {
     "title": "Settings",
@@ -101,7 +103,10 @@
       "dark": "Dark"
     },
     "highContrast": "High contrast",
-    "highContrastHint": "Increases the contrast of text and controls. Works with both the light and the dark theme."
+    "highContrastHint": "Increases the contrast of text and controls. Works with both the light and the dark theme.",
+    "simpleMode": "Simple mode",
+    "simpleModeHint": "Lists and text only, no map. Uses less data and is easier to use.",
+    "simpleModeForced": "This device cannot show the map, so the app always works in simple mode."
   },
   "about": {
     "title": "About",

@@ -3,7 +3,7 @@
     <ion-buttons slot="start">
       <ion-back-button defaultHref="/" [text]="'common.back' | transloco" />
     </ion-buttons>
-    <ion-title>{{ 'map.title' | transloco }}</ion-title>
+    <ion-title>{{ (simpleMode() ? 'map.simpleTitle' : 'map.title') | transloco }}</ion-title>
   </ion-toolbar>
   <ion-toolbar>
     <ion-searchbar
@@ -17,24 +17,27 @@
 </ion-header>
 
 <ion-content [scrollY]="false">
-  <div class="split-layout">
-    <div class="split-map">
-      <app-map-view
-        class="split-map-fill"
-        role="region"
-        [attr.aria-label]="'map.mapLabel' | transloco"
-        [routes]="routes()"
-        [stops]="mapStops()"
-        [visibleLines]="visibleLines()"
-        [highlightedLines]="highlightedLines()"
-        [highlightedStop]="selectedStopMarker()"
-        [highlightedArea]="selectedZone()?.polygons ?? null"
-        [fitPoints]="fitPoints()"
-        (lineSelected)="highlight($event)"
-        (stopSelected)="selectStop($event)"
-        (zoomChanged)="onZoom($event)"
-      />
-    </div>
+  <!-- En modo sencillo no hay mapa: solo el panel, que ya es su alternativa en texto. -->
+  <div class="split-layout" [class.text-only]="simpleMode()">
+    @if (!simpleMode()) {
+      <div class="split-map">
+        <app-map-view
+          class="split-map-fill"
+          role="region"
+          [attr.aria-label]="'map.mapLabel' | transloco"
+          [routes]="routes()"
+          [stops]="mapStops()"
+          [visibleLines]="visibleLines()"
+          [highlightedLines]="highlightedLines()"
+          [highlightedStop]="selectedStopMarker()"
+          [highlightedArea]="selectedZone()?.polygons ?? null"
+          [fitPoints]="fitPoints()"
+          (lineSelected)="highlight($event)"
+          (stopSelected)="selectStop($event)"
+          (zoomChanged)="onZoom($event)"
+        />
+      </div>
+    }
 
     <!-- Alternativa en texto de todo lo que muestra el mapa (RNF-01). -->
     <section #panel class="split-panel" [attr.aria-label]="'map.panelLabel' | transloco">
@@ -183,42 +186,49 @@
               }}</ion-button>
             </div>
           </div>
+        } @else if (simpleMode()) {
+          <p class="ion-padding-horizontal">{{ 'map.simpleHint' | transloco }}</p>
         } @else {
           <p class="ion-padding-horizontal">{{ 'map.hint' | transloco }}</p>
         }
 
-        <div class="actions ion-padding-horizontal">
-          <ion-button size="small" fill="outline" (click)="showAll()">{{
-            'map.showAll' | transloco
-          }}</ion-button>
-          <ion-button size="small" fill="outline" (click)="hideAll()">{{
-            'map.hideAll' | transloco
-          }}</ion-button>
-        </div>
+        <!-- Visibilidad y resaltado de cada línea: solo tienen sentido con mapa. -->
+        @if (!simpleMode()) {
+          <div class="actions ion-padding-horizontal">
+            <ion-button size="small" fill="outline" (click)="showAll()">{{
+              'map.showAll' | transloco
+            }}</ion-button>
+            <ion-button size="small" fill="outline" (click)="hideAll()">{{
+              'map.hideAll' | transloco
+            }}</ion-button>
+          </div>
 
-        <ion-list [attr.aria-label]="'lines.title' | transloco">
-          @for (line of lines(); track line.id) {
-            <ion-item [class.is-highlighted]="highlightedId() === line.id">
-              <ion-checkbox
-                slot="start"
-                [checked]="isVisible(line.id)"
-                [attr.aria-label]="'map.showLine' | transloco: { id: line.id }"
-                (ionChange)="setVisible(line.id, $event.detail.checked)"
-              />
-              <app-line-badge slot="start" [code]="line.id" />
-              <ion-label class="ion-text-wrap">{{ line.name }}</ion-label>
-              <ion-button
-                slot="end"
-                fill="clear"
-                [attr.aria-pressed]="highlightedId() === line.id"
-                (click)="highlight(highlightedId() === line.id ? null : line.id)"
-              >
-                {{ 'map.highlight' | transloco }}
-                <span class="visually-hidden">{{ 'lines.line' | transloco: { id: line.id } }}</span>
-              </ion-button>
-            </ion-item>
-          }
-        </ion-list>
+          <ion-list [attr.aria-label]="'lines.title' | transloco">
+            @for (line of lines(); track line.id) {
+              <ion-item [class.is-highlighted]="highlightedId() === line.id">
+                <ion-checkbox
+                  slot="start"
+                  [checked]="isVisible(line.id)"
+                  [attr.aria-label]="'map.showLine' | transloco: { id: line.id }"
+                  (ionChange)="setVisible(line.id, $event.detail.checked)"
+                />
+                <app-line-badge slot="start" [code]="line.id" />
+                <ion-label class="ion-text-wrap">{{ line.name }}</ion-label>
+                <ion-button
+                  slot="end"
+                  fill="clear"
+                  [attr.aria-pressed]="highlightedId() === line.id"
+                  (click)="highlight(highlightedId() === line.id ? null : line.id)"
+                >
+                  {{ 'map.highlight' | transloco }}
+                  <span class="visually-hidden">{{
+                    'lines.line' | transloco: { id: line.id }
+                  }}</span>
+                </ion-button>
+              </ion-item>
+            }
+          </ion-list>
+        }
       }
     </section>
   </div>

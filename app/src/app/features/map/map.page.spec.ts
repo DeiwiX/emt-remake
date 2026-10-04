@@ -22,6 +22,7 @@ import {
   MapViewEvents,
 } from '../../core/map/map-provider';
 import { LatLon, Zone } from '../../core/models/network.model';
+import { SettingsService } from '../../core/settings/settings.service';
 import { buildIndex } from '../../data/static-repositories';
 import { networkFixture } from '../../data/testing/data-fixtures';
 import { MapPage } from './map.page';
@@ -80,10 +81,19 @@ describe('MapPage', () => {
   let view: FakeMapView;
   let events: MapViewEvents;
   let supported: boolean;
+  let create: ReturnType<
+    typeof vi.fn<(el: HTMLElement, options: unknown, e: MapViewEvents) => Promise<MapView>>
+  >;
 
   let zonesResult: () => Promise<Zone[]>;
 
   beforeEach(() => {
+    // Los ajustes se guardan en localStorage: cada prueba empieza sin modo sencillo.
+    localStorage.clear();
+    create = vi.fn((_el: HTMLElement, _options: unknown, e: MapViewEvents) => {
+      events = e;
+      return Promise.resolve(view);
+    });
     zonesResult = () => Promise.resolve(zones);
     view = new FakeMapView();
     supported = true;
@@ -146,10 +156,7 @@ describe('MapPage', () => {
           provide: MapProvider,
           useValue: {
             isSupported: () => supported,
-            create: (_: HTMLElement, __: unknown, e: MapViewEvents) => {
-              events = e;
-              return Promise.resolve(view);
-            },
+            create: (...args: [HTMLElement, unknown, MapViewEvents]) => create(...args),
           },
         },
       ],
@@ -307,14 +314,26 @@ describe('MapPage', () => {
     expect(view.highlightedStop?.id).toBe('1');
   });
 
-  it('avisa y ofrece las listas si el dispositivo no puede mostrar el mapa', async () => {
+  it('sin WebGL pasa solo al modo sencillo: solo el panel de texto, sin mapa', async () => {
     supported = false;
     const harness = await RouterTestingHarness.create();
     await harness.navigateByUrl('/map', MapPage);
     await harness.fixture.whenStable();
     harness.detectChanges();
-    expect((harness.routeNativeElement as HTMLElement).textContent).toContain(
-      'Este dispositivo no puede mostrar el mapa',
-    );
+    const element = harness.routeNativeElement as HTMLElement;
+    expect(element.querySelector('app-map-view')).toBeNull();
+    expect(element.textContent).toContain('Barrios, líneas y paradas');
+    expect(element.textContent).toContain('Estás en modo sencillo');
+    expect(element.querySelector('ion-checkbox')).toBeNull();
+  });
+
+  it('con el modo sencillo activado en Ajustes no crea el mapa', async () => {
+    TestBed.inject(SettingsService).update({ simpleMode: true });
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/map', MapPage);
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+    expect((harness.routeNativeElement as HTMLElement).querySelector('app-map-view')).toBeNull();
+    expect(create).not.toHaveBeenCalled();
   });
 });

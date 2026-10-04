@@ -21,6 +21,7 @@ import {
 } from '../../core/data/repositories';
 import { LineColorsService } from '../../core/map/line-colors.service';
 import { toMapRoutes, toMapStops } from '../../core/map/map-features';
+import { SimpleModeService } from '../../core/settings/simple-mode.service';
 import { LatLon, Line } from '../../core/models/network.model';
 import { MapViewComponent } from '../../shared/map-view/map-view.component';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
@@ -70,18 +71,20 @@ import { NextBusComponent } from '../../shared/next-bus/next-bus.component';
           }
           <p>{{ 'stopDetail.coordinates' | transloco: { lat: stop.lat, lon: stop.lon } }}</p>
         </div>
-        @defer (on viewport) {
-          <app-map-view
-            class="detail-map"
-            role="region"
-            [attr.aria-label]="'stopDetail.mapLabel' | transloco: { name: stop.name }"
-            [routes]="mapRoutes()"
-            [stops]="mapStops()"
-            [fitPoints]="fitPoints()"
-            (stopSelected)="openStop($event)"
-          />
-        } @placeholder {
-          <div class="detail-map"></div>
+        @if (!simpleMode()) {
+          @defer (on viewport) {
+            <app-map-view
+              class="detail-map"
+              role="region"
+              [attr.aria-label]="'stopDetail.mapLabel' | transloco: { name: stop.name }"
+              [routes]="mapRoutes()"
+              [stops]="mapStops()"
+              [fitPoints]="fitPoints()"
+              (stopSelected)="openStop($event)"
+            />
+          } @placeholder {
+            <div class="detail-map"></div>
+          }
         }
         <h2 class="ion-padding-horizontal">{{ 'stopDetail.lines' | transloco }}</h2>
         <p class="ion-padding-horizontal">
@@ -122,6 +125,7 @@ export class StopDetailPage {
   private readonly dataStatus = inject(DataStatusService);
   private readonly colors = inject(LineColorsService);
   private readonly router = inject(Router);
+  protected readonly simpleMode = inject(SimpleModeService).active;
   private readonly geometries = signal<ReadonlyMap<string, readonly LatLon[]>>(new Map());
 
   /** Recibido desde la ruta gracias a withComponentInputBinding. */

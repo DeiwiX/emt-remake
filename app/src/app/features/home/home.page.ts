@@ -24,6 +24,7 @@ import { ZonesStore } from '../../core/data/zones-store.service';
 import { Zone } from '../../core/models/network.model';
 import { prefersReducedMotion } from '../../core/theme/color-scheme.service';
 import { searchLines, searchStops, searchZones } from '../../core/search/search';
+import { SimpleModeService } from '../../core/settings/simple-mode.service';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
 import { LineListComponent } from '../../shared/line-list/line-list.component';
 import { StopListComponent } from '../../shared/stop-list/stop-list.component';
@@ -53,6 +54,8 @@ const MAX_STOP_RESULTS = 30;
 export class HomePage {
   private readonly network = inject(NetworkRepository);
 
+  /** En modo sencillo el inicio son solo listas: sin acceso al mapa. */
+  protected readonly simpleMode = inject(SimpleModeService).active;
   protected readonly query = signal('');
   protected readonly searching = computed(() => this.query().trim().length > 0);
   protected readonly lineResults = computed(() =>

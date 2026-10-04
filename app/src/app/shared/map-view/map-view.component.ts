@@ -29,7 +29,11 @@ const INITIAL_ZOOM = 12;
 type MapState = 'loading' | 'ready' | 'unsupported' | 'error';
 
 /** Capas que se pueden elegir. La foto aérea es la del PNOA (IGN), ADR 0004. */
-const LAYER_CHOICES: readonly Exclude<MapStylePreference, 'auto'>[] = ['light', 'dark', 'satellite'];
+const LAYER_CHOICES: readonly Exclude<MapStylePreference, 'auto'>[] = [
+  'light',
+  'dark',
+  'satellite',
+];
 
 /**
  * Mapa reutilizable sobre MapProvider: crea y destruye el mapa, le pasa los
