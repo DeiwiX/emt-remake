@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { RealtimeSource } from '../core/realtime/realtime.service';
 
 /** "Ubicaciones de autobuses EMT en tiempo real" (datos abiertos del Ayuntamiento). */
-const VEHICLES_URL =
+export const VEHICLES_URL =
   'https://datosabiertos.malaga.eu/recursos/transporte/EMT/EMTlineasUbicaciones/lineasyubicaciones.geojson';
 
 /**

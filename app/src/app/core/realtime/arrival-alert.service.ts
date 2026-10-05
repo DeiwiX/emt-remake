@@ -3,7 +3,8 @@ import { TranslocoService } from '@jsverse/transloco';
 
 import { NetworkRepository } from '../data/repositories';
 import { ArrivalAlert, LiveArrival, createAlert, parseAlert, updateAlert } from './arrival-alert';
-import { ArrivalNotifier, NotificationText } from './arrival-notifier';
+import { ArrivalNotifier, NotificationText, TrackingRequest } from './arrival-notifier';
+import { formatClock, madridClock } from '../schedule/schedule';
 import { estimateArrivals } from './realtime';
 import { RealtimeService } from './realtime.service';
 import { LiveContextService } from './live-context.service';
@@ -58,7 +59,11 @@ export class ArrivalAlertService {
   async start(target: AlertTarget, minutes: number): Promise<boolean> {
     if (!this.available() || !(await this.notifier.requestPermission())) return false;
     const alert = createAlert(target, minutes);
-    await this.notifier.schedule(new Date(alert.notifyAt), this.text(alert, minutes));
+    await this.notifier.schedule(
+      new Date(alert.notifyAt),
+      this.text(alert, minutes),
+      this.tracking(alert),
+    );
     this.set(alert);
     this.watchRealtime();
     return true;
@@ -96,13 +101,14 @@ export class ArrivalAlertService {
           void this.notifier.schedule(
             new Date(update.alert.notifyAt),
             this.text(update.alert, update.alert.minutes),
+            this.tracking(update.alert),
           );
         }
         this.set(update.alert);
         return;
       case 'notify-now': {
         const minutes = Math.max(0, Math.round((update.alert.expectedAt - Date.now()) / MINUTE_MS));
-        void this.notifier.showNow(this.text(update.alert, minutes));
+        void this.notifier.showNow(this.text(update.alert, minutes), this.tracking(update.alert));
         this.set(null);
         return;
       }
@@ -131,6 +137,38 @@ export class ArrivalAlertService {
       },
     });
     this.stopWatching = () => callbacks.forEach((fn) => fn());
+  }
+
+  /** Datos para que el seguimiento nativo vigile el autobús con la app cerrada. */
+  private tracking(alert: ArrivalAlert): TrackingRequest | undefined {
+    const direction = this.network
+      .getLine(alert.lineId)
+      ?.directions.find((d) => d.id === alert.directionId);
+    const stopIndex = direction?.stopIds.indexOf(alert.stopId) ?? -1;
+    if (!direction?.minutes || stopIndex === -1) return undefined;
+    const stop = this.network.getStop(alert.stopId)?.name ?? alert.stopId;
+    const params = { line: alert.lineId, stop, minutes: '{minutes}', before: alert.minutes };
+    const notifyAt = madridClock(new Date(alert.notifyAt));
+    return {
+      lineId: alert.lineId,
+      directionId: alert.directionId,
+      stopIds: direction.stopIds,
+      profile: direction.minutes,
+      stopIndex,
+      minutesBefore: alert.minutes,
+      vehicleId: alert.vehicleId,
+      expectedAt: alert.expectedAt,
+      notifyAt: alert.notifyAt,
+      title: this.transloco.translate('alert.title', params),
+      body: this.transloco.translate('alert.body', params),
+      bodyNow: this.transloco.translate('alert.bodyNow', params),
+      trackingTitle: this.transloco.translate('alert.trackingTitle', params),
+      trackingText: this.transloco.translate('alert.trackingText', params),
+      trackingWaiting: this.transloco.translate('alert.trackingWaiting', {
+        ...params,
+        time: formatClock(notifyAt.minutes),
+      }),
+    };
   }
 
   private text(alert: ArrivalAlert, minutes: number): NotificationText {

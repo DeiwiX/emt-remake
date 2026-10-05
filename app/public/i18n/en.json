@@ -300,6 +300,9 @@
     "body": "Arrives at {{stop}} in about {{minutes}} min",
     "bodyNow": "Arriving at {{stop}} now",
     "todayAt": "{{time}}",
-    "dayAt": "{{day}} {{time}}"
+    "dayAt": "{{day}} {{time}}",
+    "trackingTitle": "Following your bus · Line {{line}}",
+    "trackingText": "Arrives at {{stop}} in ~{{minutes}} min · alert {{before}} min before",
+    "trackingWaiting": "Waiting for it to appear in real time · alert due at {{time}}"
   }
 }

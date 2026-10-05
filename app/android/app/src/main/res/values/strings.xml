@@ -4,4 +4,6 @@
     <string name="title_activity_main">EMT remake</string>
     <string name="package_name">io.github.deiwix.emtremake</string>
     <string name="custom_url_scheme">io.github.deiwix.emtremake</string>
+    <string name="tracking_channel">Siguiendo tu autobús</string>
+    <string name="alerts_channel">Avisos de llegada</string>
 </resources>

@@ -20,6 +20,17 @@
             </intent-filter>
         </activity>
 
+        <!-- "Siguiendo tu bus" (Fase 6): sigue el autobús de un aviso con la app cerrada. -->
+        <service
+            android:name=".tracker.BusTrackerService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Seguimiento en tiempo real del autobús de un aviso de llegada pedido por el usuario" />
+        </service>
+        <receiver android:name=".tracker.TrackerAlarmReceiver" android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -40,4 +51,8 @@
          móvil esté en reposo. USE_EXACT_ALARM se concede sola; si algún día se publica en
          Google Play habría que justificarla o cambiarla por SCHEDULE_EXACT_ALARM. -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <!-- "Siguiendo tu bus": servicio en primer plano mientras haya un aviso. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>
