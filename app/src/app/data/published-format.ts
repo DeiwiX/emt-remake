@@ -33,6 +33,8 @@ export interface ManifestFile {
     streets?: FileEntry;
     /** Cortes de tráfico e incidencias (se actualiza cada hora). Opcional. */
     traffic?: FileEntry;
+    /** Red peatonal de OpenStreetMap (se renueva cada semana). Opcional. */
+    walkGraph?: FileEntry;
   };
   license: { id: string; url: string; attribution: string };
 }
@@ -192,6 +194,37 @@ export function parseTraffic(value: unknown): TrafficFile {
   return { schemaVersion: SUPPORTED_SCHEMA_VERSION, items };
 }
 
+/** Red peatonal (OpenStreetMap) para las rutas andando: ver pipeline/src/output-schema.ts. */
+export interface WalkGraphFile {
+  schemaVersion: number;
+  builtAt: string;
+  nodes: string;
+  edges: ([number, number, number] | [number, number, number, string])[];
+}
+
+export function parseWalkGraph(value: unknown): WalkGraphFile {
+  const g = record(value, 'walkGraph');
+  schema(g['schemaVersion'], 'walkGraph');
+  const edges = array(g['edges'], 'walkGraph.edges').map((raw, i) => {
+    const edge = array(raw, `walkGraph.edges[${i}]`);
+    const [a, b, cost, shape] = edge;
+    const head: [number, number, number] = [
+      number(a, `walkGraph.edges[${i}][0]`),
+      number(b, `walkGraph.edges[${i}][1]`),
+      number(cost, `walkGraph.edges[${i}][2]`),
+    ];
+    return shape === undefined
+      ? head
+      : ([...head, string(shape, `walkGraph.edges[${i}][3]`)] as [number, number, number, string]);
+  });
+  return {
+    schemaVersion: SUPPORTED_SCHEMA_VERSION,
+    builtAt: string(g['builtAt'], 'walkGraph.builtAt'),
+    nodes: string(g['nodes'], 'walkGraph.nodes'),
+    edges,
+  };
+}
+
 export interface TimetablesFile {
   schemaVersion: number;
   services: Record<string, string[]>;
@@ -296,6 +329,9 @@ export function parseManifest(value: unknown): ManifestFile {
       ...(files['traffic'] === undefined
         ? {}
         : { traffic: fileEntry(files['traffic'], 'traffic') }),
+      ...(files['walkGraph'] === undefined
+        ? {}
+        : { walkGraph: fileEntry(files['walkGraph'], 'walkGraph') }),
     },
     license: {
       id: string(license['id'], 'license.id'),

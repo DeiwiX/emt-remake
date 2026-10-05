@@ -56,7 +56,18 @@ export const SOURCES = {
     dataset: 'https://nap.dgt.es/dataset',
     url: 'https://nap.dgt.es/datex2/v3/dgt/SituationPublication/datex2_v36.xml',
   },
+  /** Calles por las que se puede andar (OpenStreetMap vía Overpass API, ODbL). */
+  osmWalk: {
+    name: 'OpenStreetMap – red peatonal (© colaboradores de OpenStreetMap, ODbL)',
+    dataset: 'https://www.openstreetmap.org/copyright',
+    url: 'https://overpass-api.de/api/interpreter',
+  },
 } as const;
+
+/** La red peatonal cambia poco: se descarga de OpenStreetMap como mucho una vez por semana. */
+export const WALK_GRAPH_MAX_AGE_DAYS = 7;
+/** Por debajo de estos tramos la descarga se considera rota y se mantiene la anterior. */
+export const WALK_GRAPH_MIN_EDGES = 20_000;
 
 export const LICENSE = {
   id: 'CC-BY-SA-4.0',
@@ -101,4 +112,9 @@ export const ZONE_STOP_MARGIN_M = 100;
 /** Distancia media máxima (m) entre las paradas de un sentido y su trazado para aceptarlo. */
 export const MAX_MEAN_STOP_TO_SHAPE_M = 60;
 
-export const FETCH = { timeoutMs: 60_000, retries: 3 } as const;
+export const FETCH = {
+  timeoutMs: 60_000,
+  retries: 3,
+  // Overpass rechaza las peticiones sin identificar (HTTP 406).
+  userAgent: 'emt-remake-pipeline (https://github.com/DeiwiX/emt-remake)',
+} as const;

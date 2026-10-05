@@ -10,7 +10,10 @@ export async function download(url: string): Promise<Downloaded> {
   let lastError: unknown;
   for (let attempt = 1; attempt <= FETCH.retries; attempt++) {
     try {
-      const response = await fetch(url, { signal: AbortSignal.timeout(FETCH.timeoutMs) });
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(FETCH.timeoutMs),
+        headers: { 'User-Agent': FETCH.userAgent },
+      });
       if (!response.ok) {
         throw new Error(`HTTP ${response.status} al descargar ${url}`);
       }

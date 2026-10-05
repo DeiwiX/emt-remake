@@ -12,6 +12,7 @@ import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 
 import { LICENSE, SCHEMA_VERSION, SOURCES } from './config.ts';
+import { resolveWalkGraph } from './build/walk-graph-source.ts';
 import { buildDataset } from './build/build-dataset.ts';
 import { checkPlausibility } from './build/sanity.ts';
 import type { FileEntry, Manifest } from './output-schema.ts';
@@ -34,7 +35,11 @@ import { ValidationError } from './validation.ts';
 
 async function main(): Promise<void> {
   const { values } = parseArgs({
-    options: { out: { type: 'string' }, previous: { type: 'string' } },
+    options: {
+      out: { type: 'string' },
+      previous: { type: 'string' },
+      'previous-walk': { type: 'string' },
+    },
   });
   if (!values.out) throw new Error('Falta --out <carpeta>');
 
@@ -107,6 +112,15 @@ async function main(): Promise<void> {
       ? buildTraffic(trafficItems, madridLocal(new Date().toISOString())!)
       : null;
 
+  // Red peatonal: opcional, se reutiliza la publicada si tiene menos de una semana.
+  const walk = await resolveWalkGraph(
+    values['previous-walk'] && existsSync(values['previous-walk'])
+      ? await readFile(values['previous-walk'], 'utf8')
+      : null,
+    dataset.network.stops,
+    new Date(),
+  );
+
   const counts: Manifest['counts'] = {
     lines: dataset.network.lines.length,
     stops: dataset.network.stops.length,
@@ -141,6 +155,7 @@ async function main(): Promise<void> {
     streets: entry('streets.json', contents.streets),
   };
   const trafficEntry = contents.traffic ? entry('traffic.json', contents.traffic) : null;
+  const walkEntry = walk ? entry('walk-graph.json', walk.content) : null;
 
   const manifest: Manifest = {
     schemaVersion: SCHEMA_VERSION,
@@ -153,7 +168,12 @@ async function main(): Promise<void> {
     counts,
     // El tráfico no cuenta en dataVersion: cambia cada hora y no debe obligar a la app
     // a descargar de nuevo la red.
-    files: trafficEntry ? { ...files, traffic: trafficEntry } : files,
+    // Tampoco la red peatonal, que se renueva cada semana y la app descarga aparte.
+    files: {
+      ...files,
+      ...(trafficEntry ? { traffic: trafficEntry } : {}),
+      ...(walkEntry ? { walkGraph: walkEntry } : {}),
+    },
     sources: [
       { ...SOURCES.emtLines, lastModified: emtRaw.lastModified },
       { ...SOURCES.gtfs, lastModified: gtfsRaw.lastModified },
@@ -166,6 +186,7 @@ async function main(): Promise<void> {
       { ...SOURCES.streetTypes, lastModified: streetTypesRaw.lastModified },
       { ...SOURCES.streetNumbers, lastModified: streetNumbersRaw.lastModified },
       ...trafficSources,
+      ...(walk ? [{ ...SOURCES.osmWalk, lastModified: walk.builtAt }] : []),
     ],
     license: { ...LICENSE },
   };
@@ -181,6 +202,7 @@ async function main(): Promise<void> {
     ...(trafficEntry && contents.traffic
       ? [writeFile(join(values.out, trafficEntry.path), contents.traffic)]
       : []),
+    ...(walkEntry && walk ? [writeFile(join(values.out, walkEntry.path), walk.content)] : []),
     writeFile(join(values.out, 'report.json'), JSON.stringify(dataset.report, null, 2)),
   ]);
   // El manifest se escribe el último: solo existe si todo lo anterior ha ido bien.
@@ -189,6 +211,7 @@ async function main(): Promise<void> {
   console.log(
     `Datos ${manifest.dataVersion}: ${counts.lines} líneas, ${counts.stops} paradas, ` +
       `${counts.shapes} trazados (${counts.approximateShapes} aproximados), ${counts.zones} zonas, ${counts.departures} salidas, ${counts.streets} calles, ${traffic?.items.length ?? 0} cortes e incidencias, ` +
+      `red peatonal ${walk ? `${walk.edges} tramos (${walk.reused ? 'reutilizada' : 'nueva'})` : 'no disponible'}, ` +
       `${dataset.report.stopConflicts.length} conflictos de paradas.`,
   );
 }

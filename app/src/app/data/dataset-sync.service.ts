@@ -23,6 +23,8 @@ import {
   parseTimetables,
   parseStreets,
   parseTraffic,
+  parseWalkGraph,
+  WalkGraphFile,
   parseZones,
 } from './published-format';
 
@@ -33,7 +35,8 @@ const KEYS = {
 } as const;
 
 /** Ficheros que se descargan bajo demanda (no al arrancar). */
-type AuxFile = 'shapesOverview' | 'shapesDetail' | 'zones' | 'timetables' | 'streets' | 'traffic';
+type AuxFile =
+  'shapesOverview' | 'shapesDetail' | 'zones' | 'timetables' | 'streets' | 'traffic' | 'walkGraph';
 
 interface StoredDataset {
   manifest: unknown;
@@ -104,6 +107,11 @@ export class DatasetSyncService extends DataStatusService {
   /** Cortes de tráfico e incidencias (mapa). */
   getTrafficFile(): Promise<TrafficFile> {
     return this.getAuxFile('traffic', parseTraffic);
+  }
+
+  /** Red peatonal para las rutas andando de "Cómo llegar". */
+  getWalkGraphFile(): Promise<WalkGraphFile> {
+    return this.getAuxFile('walkGraph', parseWalkGraph);
   }
 
   /** Salidas programadas (próximos buses según horario y "Cómo llegar"). */

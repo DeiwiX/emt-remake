@@ -9,6 +9,7 @@ import {
   TrafficItem,
   Zone,
 } from '../models/network.model';
+import { WalkGraph } from '../walking/walk-graph';
 import { Timetables } from '../schedule/schedule';
 import { DataStatus } from './data-status';
 
@@ -49,6 +50,19 @@ export abstract class StreetRepository {
 @Injectable({ providedIn: 'root', useFactory: () => ({ getTraffic: () => Promise.resolve([]) }) })
 export abstract class TrafficRepository {
   abstract getTraffic(): Promise<readonly TrafficItem[]>;
+}
+
+/**
+ * Red peatonal para las rutas andando (opción 2B). Se descarga al abrir
+ * "Cómo llegar". Sin configurar (pruebas) o si no se publica, no hay: se
+ * siguen usando distancias en línea recta.
+ */
+@Injectable({
+  providedIn: 'root',
+  useFactory: () => ({ getWalkGraph: () => Promise.resolve(null) }),
+})
+export abstract class WalkGraphRepository {
+  abstract getWalkGraph(): Promise<WalkGraph | null>;
 }
 
 export abstract class ScheduleRepository {

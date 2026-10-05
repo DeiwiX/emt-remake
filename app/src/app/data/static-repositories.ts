@@ -6,9 +6,11 @@ import {
   ShapeRepository,
   StreetRepository,
   TrafficRepository,
+  WalkGraphRepository,
   ZoneRepository,
 } from '../core/data/repositories';
 import { Timetables } from '../core/schedule/schedule';
+import { WalkGraph } from '../core/walking/walk-graph';
 import {
   LatLon,
   Line,
@@ -109,6 +111,22 @@ export class StaticTrafficRepository extends TrafficRepository {
   async getTraffic(): Promise<readonly TrafficItem[]> {
     const file = await this.sync.getTrafficFile();
     return file.items.map((item) => ({ ...item, points: decodePolyline(item.points) }));
+  }
+}
+
+/** Red peatonal: descarga bajo demanda y la prepara para buscar rutas. */
+@Injectable()
+export class StaticWalkGraphRepository extends WalkGraphRepository {
+  private readonly sync = inject(DatasetSyncService);
+
+  async getWalkGraph(): Promise<WalkGraph | null> {
+    const file = await this.sync.getWalkGraphFile();
+    return new WalkGraph(
+      decodePolyline(file.nodes),
+      file.edges.map(([a, b, cost, shape]) =>
+        shape === undefined ? { a, b, cost } : { a, b, cost, shape: decodePolyline(shape) },
+      ),
+    );
   }
 }
 

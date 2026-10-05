@@ -48,6 +48,7 @@ import {
 import { ServiceClock, dayOffsetOf, formatClock } from '../../core/schedule/schedule';
 import { ScheduleClockService } from '../../core/schedule/schedule-clock.service';
 import { SimpleModeService } from '../../core/settings/simple-mode.service';
+import { WalkingService } from '../../core/walking/walking.service';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
 import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component';
 import { MapViewComponent } from '../../shared/map-view/map-view.component';
@@ -182,9 +183,14 @@ export class PlanPage {
   /** Paradas cercanas entre sí, para transbordos a pie; se recalcula solo si cambia la red. */
   private readonly nearbyStops = computed(() => buildNearbyStops(this.network.stops()));
 
+  /** Rutas andando por las calles (2B): minutos reales a cada parada y camino en el mapa. */
+  private readonly walking = inject(WalkingService);
+  private readonly plannedOrigin = computed(() => this.walking.refine(this.origin()));
+  private readonly plannedDestination = computed(() => this.walking.refine(this.destination()));
+
   private readonly options = computed<readonly JourneyOption[]>(() => {
-    const origin = this.origin();
-    const destination = this.destination();
+    const origin = this.plannedOrigin();
+    const destination = this.plannedDestination();
     return origin && destination
       ? planJourneys(this.network.lines(), origin, destination, {
           isSecondary: isNightLine,
@@ -278,8 +284,8 @@ export class PlanPage {
 
   /**
    * Tramo a pie entre el lugar (calle, dirección o tu ubicación) y una parada: línea
-   * discontinua gris con los minutos. Es en línea recta: el camino real por las
-   * calles queda para más adelante (decisión del desarrollador, opción 2B).
+   * discontinua gris con los minutos, por las calles (opción 2B) o en línea recta
+   * mientras no se haya cargado la red peatonal.
    */
   private walkRoute(
     id: string,
@@ -296,9 +302,14 @@ export class PlanPage {
       color: WALK_COLOR,
       textColor: '#FFFFFF',
       approximate: true,
-      points: id === 'walk-in' ? [point, [stop.lat, stop.lon]] : [[stop.lat, stop.lon], point],
+      points: this.walkPoints(id === 'walk-in', point, [stop.lat, stop.lon]),
     };
   }
+  private walkPoints(toStop: boolean, place: LatLon, stop: LatLon): readonly LatLon[] {
+    const [from, to] = toStop ? [place, stop] : [stop, place];
+    return this.walking.path(from, to)?.points ?? [from, to];
+  }
+
   protected readonly mapStops = computed(() =>
     toMapStops(
       (this.selected()?.option.legs ?? []).flatMap((leg) => [
@@ -327,6 +338,7 @@ export class PlanPage {
 
   constructor() {
     void this.schedule.load();
+    void this.walking.load();
     // Sin zonas se puede planificar igualmente entre paradas.
     void this.zonesStore.load();
     inject(ShapeRepository)

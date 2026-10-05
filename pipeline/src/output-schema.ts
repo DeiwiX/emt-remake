@@ -111,6 +111,20 @@ export interface TrafficFile {
 }
 
 /**
+ * Red peatonal de OpenStreetMap para las rutas andando (opción 2B). Se renueva
+ * cada semana y no cuenta en dataVersion.
+ */
+export interface WalkGraphFile {
+  schemaVersion: number;
+  /** Cuándo se descargó de OpenStreetMap (ISO 8601). */
+  builtAt: string;
+  /** Todos los nodos (cruces y extremos), como polilínea codificada. */
+  nodes: string;
+  /** Tramos [nodo, nodo, coste en metros, dibujo intermedio codificado si no es recto]. */
+  edges: ([number, number, number] | [number, number, number, string])[];
+}
+
+/**
  * Salidas programadas (GTFS) por sentido de línea y día de servicio. La hora de
  * paso por cada parada = salida + minutos del sentido en esa parada (aproximado).
  */
@@ -158,6 +172,8 @@ export interface Manifest {
     streets: FileEntry;
     /** Opcional: si sus fuentes fallan, se publica el resto igualmente. */
     traffic?: FileEntry;
+    /** Opcional: red peatonal (OpenStreetMap). */
+    walkGraph?: FileEntry;
   };
   sources: {
     name: string;

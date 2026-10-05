@@ -44,8 +44,10 @@ jobs:
         uses: actions/configure-pages@v6
       - name: Descargar el manifest publicado (para detectar caídas bruscas)
         run: curl -fsS "${{ steps.pages.outputs.base_url }}/data/v1/manifest.json" -o previous-manifest.json || echo "Sin publicación anterior"
+      - name: Descargar la red peatonal publicada (se reutiliza si tiene menos de una semana)
+        run: curl -fsS "${{ steps.pages.outputs.base_url }}/data/v1/walk-graph.json" -o previous-walk-graph.json || echo "Sin red peatonal anterior"
       - name: Generar datos
-        run: npm run build-data -- --out ../site/data/v1 --previous previous-manifest.json
+        run: npm run build-data -- --out ../site/data/v1 --previous previous-manifest.json --previous-walk previous-walk-graph.json
       - run: touch ../site/.nojekyll
       - uses: actions/upload-pages-artifact@v5
         with:

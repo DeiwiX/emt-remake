@@ -16,6 +16,9 @@ import { buildZones, insidePolygon, stopsInZone } from '../build/build-zones.ts'
 import { buildStreets } from '../build/build-streets.ts';
 import { parseStreets } from '../sources/streets.ts';
 import { buildTraffic } from '../build/build-traffic.ts';
+import { STEPS_FACTOR, buildWalkGraph } from '../build/build-walk-graph.ts';
+import { resolveWalkGraph } from '../build/walk-graph-source.ts';
+import { parseOsmWalk, walkQuery } from '../sources/osm-walk.ts';
 import { localDate, parseDgtSituations, parseMunicipalCuts } from '../sources/traffic.ts';
 import { parseWktPolygons, parseZonesCsv, titleCase } from '../sources/zones.ts';
 import { parseCsv } from '../sources/csv.ts';
@@ -570,5 +573,77 @@ describe('tráfico', () => {
       items.map((i) => [i.id, i.kind, i.effect, i.from]),
       [['dgt-a', 'roadMaintenance', 'MA-20', '2026-10-04T10:00']],
     );
+  });
+});
+
+describe('red peatonal (2B)', () => {
+  // Un cruce en "T": A–B–C en línea y B–D hacia arriba, más un trozo aislado E–F.
+  const osm = {
+    elements: [
+      { type: 'node', id: 1, lat: 36.72, lon: -4.42 },
+      { type: 'node', id: 2, lat: 36.72, lon: -4.419 },
+      { type: 'node', id: 3, lat: 36.72, lon: -4.418 },
+      { type: 'node', id: 4, lat: 36.721, lon: -4.419 },
+      { type: 'node', id: 5, lat: 36.73, lon: -4.4 },
+      { type: 'node', id: 6, lat: 36.731, lon: -4.4 },
+      { type: 'node', id: 7, lat: 36.7205, lon: -4.4192 },
+      { type: 'way', id: 10, nodes: [1, 2, 3], tags: { highway: 'residential' } },
+      { type: 'way', id: 11, nodes: [2, 7, 4], tags: { highway: 'steps' } },
+      { type: 'way', id: 12, nodes: [5, 6], tags: { highway: 'footway' } },
+      { type: 'way', id: 13, nodes: [99, 1] },
+    ],
+  };
+
+  it('lee las vías de Overpass y marca las escaleras', () => {
+    const ways = parseOsmWalk(osm);
+    assert.equal(ways.length, 3); // la 13 apunta a un nodo que no existe
+    assert.deepEqual(
+      ways.map((w) => w.steps),
+      [false, true, false],
+    );
+  });
+
+  it('parte las vías en los cruces, se queda con la parte conectada y encarece las escaleras', () => {
+    const graph = buildWalkGraph(parseOsmWalk(osm), new Date('2026-10-05T00:00:00Z'));
+    const nodes = decodePolyline(graph.nodes);
+    assert.equal(nodes.length, 4); // 1, 2, 3 y 4; el trozo 5–6 queda fuera
+    assert.equal(graph.edges.length, 3);
+    const stepsEdge = graph.edges.find((e) => e.length === 4)!; // 2–7–4 no es recto
+    const straight =
+      distanceM([36.72, -4.419], [36.7205, -4.4192]) +
+      distanceM([36.7205, -4.4192], [36.721, -4.419]);
+    assert.equal(stepsEdge[2], Math.round(straight * STEPS_FACTOR));
+    assert.equal(graph.builtAt, '2026-10-05T00:00:00.000Z');
+  });
+
+  it('reutiliza la red publicada si tiene menos de una semana y si no la descarga', async () => {
+    const stops = [{ lat: 36.72, lon: -4.42 }];
+    const recent = JSON.stringify({
+      schemaVersion: 1,
+      builtAt: '2026-10-01T00:00:00Z',
+      nodes: '',
+      edges: [[0, 1, 5]],
+    });
+    let calls = 0;
+    const fetchFn = async () => {
+      calls++;
+      throw new Error('sin red');
+    };
+    const now = new Date('2026-10-05T00:00:00Z');
+    const kept = await resolveWalkGraph(recent, stops, now, fetchFn);
+    assert.equal(kept?.reused, true);
+    assert.equal(calls, 0);
+    // Vieja y con la descarga fallando: se mantiene la vieja.
+    const old = await resolveWalkGraph(recent, stops, new Date('2026-10-20T00:00:00Z'), fetchFn);
+    assert.equal(old?.reused, true);
+    assert.equal(calls, 1);
+    // Sin anterior y con la descarga fallando: no hay red peatonal.
+    assert.equal(await resolveWalkGraph(null, stops, now, fetchFn), null);
+  });
+
+  it('la consulta excluye autopistas y vías privadas', () => {
+    const query = walkQuery([36.6, -4.6, 36.8, -4.3]);
+    assert.match(query, /motorway/);
+    assert.match(query, /\(36\.6,-4\.6,36\.8,-4\.3\)/);
   });
 });
