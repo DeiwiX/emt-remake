@@ -5,6 +5,7 @@ import { LatLon } from '../models/network.model';
 import { MAX_AGE_MINUTES, madridInstant } from './realtime';
 import { RealtimeService } from './realtime.service';
 import { LiveContextService } from './live-context.service';
+import { dwellMinutes } from './dwell';
 import { vehicleProgress } from './live-estimate';
 import {
   RouteTrack,
@@ -30,6 +31,8 @@ export interface TrackedVehicle {
   readonly ageMinutes: number;
   /** Próxima parada según la estimación (código), si se sabe. */
   readonly nextStopId: string | null;
+  /** Parada en la que está parado ahora (subiendo y bajando viajeros), si lo está. */
+  readonly stoppedAtId: string | null;
   /** true si la posición se ha podido estimar sobre el recorrido (si no, es la publicada). */
   readonly estimated: boolean;
   /** Retraso frente a su viaje del horario, en minutos (null si no se sabe). */
@@ -85,6 +88,7 @@ export class VehicleTrackerService {
             bearing: 0,
             ageMinutes: age,
             nextStopId: null,
+            stoppedAtId: null,
             estimated: false,
             delayMinutes:
               progress?.delay === undefined || progress?.delay === null
@@ -100,6 +104,7 @@ export class VehicleTrackerService {
         lastStop,
         reported,
         age * progress.pace,
+        this.dwellFor(key, direction.stopIds),
       );
       // …y sin saltos cuando llega un dato nuevo.
       const previous = this.smooth.get(vehicle.id);
@@ -114,6 +119,8 @@ export class VehicleTrackerService {
           bearing: shown.bearing,
           ageMinutes: age,
           nextStopId: next === null ? null : (direction.stopIds[next] ?? null),
+          stoppedAtId:
+            target.stoppedAt === null ? null : (direction.stopIds[target.stoppedAt] ?? null),
           estimated: true,
           delayMinutes: progress.delay === null ? null : Math.round(progress.delay),
         },
@@ -139,6 +146,32 @@ export class VehicleTrackerService {
         this.timer = null;
       }
     });
+  }
+
+  /** Cuántas líneas paran en cada parada (para estimar cuánto se para allí). */
+  private readonly linesAtStop = computed(() => {
+    const count = new Map<string, Set<string>>();
+    for (const line of this.network.lines()) {
+      for (const direction of line.directions) {
+        for (const id of direction.stopIds) {
+          const lines = count.get(id) ?? new Set<string>();
+          lines.add(line.id);
+          count.set(id, lines);
+        }
+      }
+    }
+    return count;
+  });
+  private readonly dwells = new Map<string, number[]>();
+
+  private dwellFor(key: string, stopIds: readonly string[]): number[] {
+    let dwell = this.dwells.get(key);
+    if (!dwell) {
+      const lines = this.linesAtStop();
+      dwell = dwellMinutes(stopIds, (id) => lines.get(id)?.size ?? 1);
+      this.dwells.set(key, dwell);
+    }
+    return dwell;
   }
 
   private trackFor(

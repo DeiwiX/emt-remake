@@ -48,6 +48,14 @@ export class RealtimeService {
   readonly failed = this.failedSignal.asReadonly();
   readonly hasData = computed(() => this.vehiclesSignal().length > 0);
   readonly previous = this.previousSignal.asReadonly();
+  private readonly refreshingSignal = signal(false);
+  /** true mientras se descarga (para el botón "Actualizar"). */
+  readonly refreshing = this.refreshingSignal.asReadonly();
+
+  /** Pide ya las posiciones, sin esperar al siguiente minuto (botón "Actualizar"). */
+  refreshNow(): Promise<void> {
+    return this.available ? this.refresh() : Promise.resolve();
+  }
 
   /**
    * Empieza a recibir posiciones mientras viva quien llama (componente o
@@ -70,6 +78,8 @@ export class RealtimeService {
   }
 
   private async refresh(): Promise<void> {
+    if (this.refreshingSignal()) return;
+    this.refreshingSignal.set(true);
     try {
       const vehicles = parseVehicles(await this.source.fetchVehicles());
       this.previousSignal.set(
@@ -81,6 +91,7 @@ export class RealtimeService {
       console.warn('No se pudieron descargar las posiciones en tiempo real', error);
       this.failedSignal.set(true);
     } finally {
+      this.refreshingSignal.set(false);
       this.nowSignal.set(madridInstant(new Date()));
     }
   }

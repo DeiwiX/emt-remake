@@ -19,6 +19,7 @@ import {
   IonCheckbox,
   IonContent,
   IonHeader,
+  IonIcon,
   IonItem,
   IonLabel,
   IonList,
@@ -110,6 +111,7 @@ const DETAIL_ZOOM = 14;
     IonCheckbox,
     IonContent,
     IonHeader,
+    IonIcon,
     IonItem,
     IonLabel,
     IonList,
@@ -304,6 +306,7 @@ export class MapPage {
       ...vehicle,
       headsign: direction?.headsign ?? '',
       nextStop: vehicle.nextStopId ? this.network.getStop(vehicle.nextStopId) : undefined,
+      stoppedAt: vehicle.stoppedAtId ? this.network.getStop(vehicle.stoppedAtId) : undefined,
       age: Math.round(vehicle.ageMinutes),
     };
   });
@@ -406,6 +409,14 @@ export class MapPage {
       }
     });
     if (this.street()) void this.streetsStore.load();
+  }
+
+  protected readonly realtimeAvailable = this.realtime.available;
+  protected readonly refreshingVehicles = this.realtime.refreshing;
+
+  /** Botón "Actualizar": pide ya las posiciones de todos los autobuses. */
+  protected refreshVehicles(): void {
+    void this.realtime.refreshNow();
   }
 
   /** "Va 3 min tarde", "Va en hora" o "Va 2 min adelantado". */

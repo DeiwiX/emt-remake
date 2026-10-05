@@ -252,7 +252,9 @@
     "onMap": "{{count}} autobuses en el mapa en tiempo real · dato de hace {{age}} min",
     "onTime": "Va en hora",
     "late": "Va {{minutes}} min tarde",
-    "early": "Va {{minutes}} min adelantado"
+    "early": "Va {{minutes}} min adelantado",
+    "refresh": "Actualizar",
+    "refreshing": "Actualizando…"
   },
   "traffic": {
     "show": "Mostrar cortes de tráfico",
@@ -277,7 +279,8 @@
     "estimated": "Posición estimada a partir de un dato de hace {{age}} min",
     "reported": "Posición publicada hace {{age}} min",
     "follow": "Seguir",
-    "unfollow": "Dejar de seguir"
+    "unfollow": "Dejar de seguir",
+    "stoppedAt": "Parado en {{stop}} ({{code}}): suben y bajan viajeros"
   },
   "alert": {
     "notifyMe": "Avísame",

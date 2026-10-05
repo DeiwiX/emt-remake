@@ -56,36 +56,52 @@ export function buildTrack(points: readonly LatLon[], stops: readonly LatLon[]):
   return { points, cumulative, stopDistances };
 }
 
+/** Dónde está el autobús sobre el trazado, y si está parado en una parada. */
+export interface TrackedPlace extends TrackedPosition {
+  /** Índice de la parada en la que está parado (subiendo y bajando viajeros), o null. */
+  readonly stoppedAt: number | null;
+}
+
+/** Parte del tramo que, como mucho, se puede pasar parado en la parada. */
+const MAX_DWELL_SHARE = 0.5;
+
 /**
  * Dónde está el autobús: salió de la parada `fromStop` hace `elapsedMinutes` y
  * avanza al ritmo de `stopMinutes` (minutos desde el inicio en cada parada).
- * Si se le acabara el tiempo, se queda al final del trazado.
+ * En cada parada se queda parado `dwellMinutes[k]` (subida y bajada de
+ * viajeros) y luego recorre el tramo; el horario ya incluye ese tiempo. Si se
+ * le acabara el tiempo, se queda al final del trazado.
  */
 export function positionOnTrack(
   track: RouteTrack,
   stopMinutes: readonly number[],
   fromStop: number,
   elapsedMinutes: number,
-): TrackedPosition {
+  dwellMinutes: readonly number[] = [],
+): TrackedPlace {
   const target = stopMinutes[fromStop]! + Math.max(0, elapsedMinutes);
   let k = fromStop;
   while (k < stopMinutes.length - 1 && stopMinutes[k + 1]! <= target) k++;
-  let along: number;
   if (k >= stopMinutes.length - 1) {
-    along = track.stopDistances[stopMinutes.length - 1] ?? track.cumulative.at(-1)!;
-  } else {
-    const span = stopMinutes[k + 1]! - stopMinutes[k]!;
-    const fraction = span > 0 ? (target - stopMinutes[k]!) / span : 0;
-    along =
-      track.stopDistances[k]! + fraction * (track.stopDistances[k + 1]! - track.stopDistances[k]!);
+    const end = track.stopDistances[stopMinutes.length - 1] ?? track.cumulative.at(-1)!;
+    return { ...pointAt(track, end), stoppedAt: null };
   }
-  return pointAt(track, along);
+  const span = stopMinutes[k + 1]! - stopMinutes[k]!;
+  const dwell = Math.min(dwellMinutes[k] ?? 0, span * MAX_DWELL_SHARE);
+  const inSegment = target - stopMinutes[k]!;
+  if (inSegment < dwell) {
+    return { ...pointAt(track, track.stopDistances[k]!), stoppedAt: k };
+  }
+  const fraction = span - dwell > 0 ? (inSegment - dwell) / (span - dwell) : 0;
+  const along =
+    track.stopDistances[k]! + fraction * (track.stopDistances[k + 1]! - track.stopDistances[k]!);
+  return { ...pointAt(track, along), stoppedAt: null };
 }
 
 /**
  * Posición a partir de lo que publica la fuente: el punto donde estaba el bus
  * hace `elapsedMinutes` (proyectado sobre el trazado, a partir de su última
- * parada) y el avance desde entonces al ritmo del horario.
+ * parada) y el avance desde entonces al ritmo del horario, con sus paradas.
  */
 export function positionFromReport(
   track: RouteTrack,
@@ -93,26 +109,31 @@ export function positionFromReport(
   lastStop: number,
   reported: LatLon,
   elapsedMinutes: number,
-): TrackedPosition {
+  dwellMinutes: readonly number[] = [],
+): TrackedPlace {
   const last = stopMinutes.length - 1;
   const from = track.stopDistances[lastStop]!;
   const to = track.stopDistances[Math.min(last, lastStop + 2)] ?? track.cumulative.at(-1)!;
   // Dónde estaba al publicarse el dato (no antes de su última parada).
   const along = Math.max(from, nearestAlong(track, reported, from, to));
-  // Ese punto, en "minutos de horario" desde el inicio, más lo transcurrido.
+  // Ese punto, en "minutos de horario" desde el inicio, más lo transcurrido. Si
+  // estaba ya entre paradas, había terminado de parar en la anterior.
   let k = lastStop;
   while (k < last && track.stopDistances[k + 1]! <= along) k++;
-  const span = k < last ? track.stopDistances[k + 1]! - track.stopDistances[k]! : 0;
-  const fraction = span > 0 ? (along - track.stopDistances[k]!) / span : 0;
-  const atReport =
-    k < last
-      ? stopMinutes[k]! + fraction * (stopMinutes[k + 1]! - stopMinutes[k]!)
-      : stopMinutes[last]!;
+  const length = k < last ? track.stopDistances[k + 1]! - track.stopDistances[k]! : 0;
+  const fraction = length > 0 ? (along - track.stopDistances[k]!) / length : 0;
+  let atReport = stopMinutes[last]!;
+  if (k < last) {
+    const span = stopMinutes[k + 1]! - stopMinutes[k]!;
+    const dwell = Math.min(dwellMinutes[k] ?? 0, span * MAX_DWELL_SHARE);
+    atReport = stopMinutes[k]! + (fraction > 0 ? dwell + fraction * (span - dwell) : 0);
+  }
   return positionOnTrack(
     track,
     stopMinutes,
     k,
     atReport - stopMinutes[k]! + Math.max(0, elapsedMinutes),
+    dwellMinutes,
   );
 }
 

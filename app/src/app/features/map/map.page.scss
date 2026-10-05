@@ -103,3 +103,12 @@ app-line-badge {
     background: #c4440a;
   }
 }
+
+/* Tiempo real: el aviso de cuántos autobuses hay y el botón "Actualizar". */
+.live-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 8px 0;
+}

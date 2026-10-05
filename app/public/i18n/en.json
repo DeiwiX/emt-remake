@@ -252,7 +252,9 @@
     "onMap": "{{count}} buses on the map in real time · data from {{age}} min ago",
     "onTime": "On time",
     "late": "{{minutes}} min late",
-    "early": "{{minutes}} min early"
+    "early": "{{minutes}} min early",
+    "refresh": "Refresh",
+    "refreshing": "Refreshing…"
   },
   "traffic": {
     "show": "Show traffic closures",
@@ -277,7 +279,8 @@
     "estimated": "Estimated position from data {{age}} min old",
     "reported": "Position reported {{age}} min ago",
     "follow": "Follow",
-    "unfollow": "Stop following"
+    "unfollow": "Stop following",
+    "stoppedAt": "Stopped at {{stop}} ({{code}}): passengers boarding"
   },
   "alert": {
     "notifyMe": "Notify me",

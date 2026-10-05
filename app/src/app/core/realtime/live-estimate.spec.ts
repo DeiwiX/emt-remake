@@ -2,7 +2,8 @@ import { Direction } from '../models/network.model';
 import { minutesToStop, vehicleProgress } from './live-estimate';
 import { Vehicle } from './realtime';
 import { previousReports } from './realtime.service';
-import { smoothAlong } from './vehicle-position';
+import { dwellMinutes, dwellSeconds } from './dwell';
+import { buildTrack, positionOnTrack, smoothAlong } from './vehicle-position';
 
 const direction: Direction = {
   id: 1,
@@ -86,5 +87,39 @@ describe('Fase 6: retraso real y ritmo', () => {
     expect(state.shown).toBeCloseTo(1300, 0);
     // Un salto enorme (otro viaje) se coloca directamente.
     expect(smoothAlong(state, 5000).shown).toBe(5000);
+  });
+});
+
+describe('Fase 6: tiempo parado en las paradas', () => {
+  it('más líneas, más tiempo parado, con un tope; sin parar en cabecera ni en la última', () => {
+    expect(dwellSeconds(1)).toBe(12);
+    expect(dwellSeconds(4)).toBe(30);
+    expect(dwellSeconds(20)).toBe(45);
+    expect(dwellMinutes(['a', 'b', 'c'], () => 1)).toEqual([0, 0.2, 0]);
+  });
+
+  it('el autobús se queda parado en la parada y después recorre el tramo', () => {
+    // Recta de unos 900 m con tres paradas; 0,5 min parado en "b".
+    const track = buildTrack(
+      [
+        [36.72, -4.43],
+        [36.72, -4.42],
+      ],
+      [
+        [36.72, -4.43],
+        [36.72, -4.425],
+        [36.72, -4.42],
+      ],
+    )!;
+    const minutes = [0, 2, 4];
+    const dwell = [0, 0.5, 0];
+    const stopped = positionOnTrack(track, minutes, 1, 0.3, dwell);
+    expect(stopped.stoppedAt).toBe(1);
+    expect(stopped.along).toBeCloseTo(track.stopDistances[1]!, 0);
+    const moving = positionOnTrack(track, minutes, 1, 1.25, dwell);
+    expect(moving.stoppedAt).toBeNull();
+    // A mitad del tiempo de marcha (0,75 de 1,5 min): a mitad del tramo.
+    const middle = (track.stopDistances[1]! + track.stopDistances[2]!) / 2;
+    expect(moving.along).toBeCloseTo(middle, 0);
   });
 });

@@ -70,12 +70,24 @@
           </ion-button>
         }
       </div>
-      @if (vehiclesAge() !== null) {
-        <p class="live-note ion-padding-horizontal">
-          <ion-note>{{
-            'realtime.onMap' | transloco: { count: vehicles().length, age: vehiclesAge() }
-          }}</ion-note>
-        </p>
+      @if (realtimeAvailable) {
+        <!-- Tiempo real: cuántos autobuses hay, de cuándo es el dato y "Actualizar". -->
+        <div class="live-note ion-padding-horizontal">
+          @if (vehiclesAge() !== null) {
+            <ion-note>{{
+              'realtime.onMap' | transloco: { count: vehicles().length, age: vehiclesAge() }
+            }}</ion-note>
+          }
+          <ion-button
+            size="small"
+            fill="outline"
+            [disabled]="refreshingVehicles()"
+            (click)="refreshVehicles()"
+          >
+            <ion-icon slot="start" name="refresh" aria-hidden="true" />
+            {{ (refreshingVehicles() ? 'realtime.refreshing' : 'realtime.refresh') | transloco }}
+          </ion-button>
+        </div>
       }
 
       @if (searching()) {
@@ -166,7 +178,9 @@
               <app-line-badge [code]="bus.lineId" />
               <h2>{{ 'vehicle.towards' | transloco: { headsign: bus.headsign } }}</h2>
             </div>
-            @if (bus.nextStop; as stop) {
+            @if (bus.stoppedAt; as stop) {
+              <p>{{ 'vehicle.stoppedAt' | transloco: { stop: stop.name, code: stop.id } }}</p>
+            } @else if (bus.nextStop; as stop) {
               <p>{{ 'vehicle.nextStop' | transloco: { stop: stop.name, code: stop.id } }}</p>
             }
             @if (bus.delayMinutes !== null) {
