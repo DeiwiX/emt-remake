@@ -33,19 +33,15 @@
         [debounce]="150"
         (ionInput)="setQuery($event.detail.value ?? '')"
       />
+      <!-- Borde en ola del Mediterráneo hacia el fondo arena (decorativo): dentro
+           de la cabecera, sin franjas, para que no quede ninguna raya. -->
+      <svg class="waves" viewBox="0 0 390 22" preserveAspectRatio="none" aria-hidden="true">
+        <path
+          d="M0 11 C 48 2, 97 2, 146 11 S 244 20, 292 11 S 365 2, 390 8 V22 H0Z"
+          fill="var(--ion-background-color)"
+        />
+      </svg>
     </div>
-    <!-- Olas del Mediterráneo hacia el fondo arena (decorativo). -->
-    <svg class="waves" viewBox="0 0 390 14" preserveAspectRatio="none" aria-hidden="true">
-      <path
-        d="M0 6 C 48 3, 97 3, 146 6 S 244 9, 292 6 S 365 3, 390 5 V14 H0Z"
-        fill="var(--ion-color-primary)"
-        opacity="0.18"
-      />
-      <path
-        d="M0 9 C 48 7, 97 7, 146 9 S 244 11, 292 9 S 365 7, 390 8 V14 H0Z"
-        fill="var(--ion-background-color)"
-      />
-    </svg>
 
     <app-data-status-banner />
 
