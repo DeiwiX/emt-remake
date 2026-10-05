@@ -126,10 +126,10 @@
     "dataDate": "Datos del {{date}}.",
     "dataDisclaimer": "Los datos pueden contener errores o estar desactualizados. Los recorridos marcados como aproximados unen las paradas en línea recta.",
     "mapTitle": "Mapa",
-    "mapData": "Datos del mapa:",
+    "mapData": "Datos del mapa y de las rutas andando:",
     "mapTiles": "Teselas:",
     "privacyTitle": "Privacidad",
-    "privacy": "No hay cuentas ni analítica. Solo guarda en este dispositivo tus ajustes, tus favoritos y la última copia de los datos. Tu ubicación solo se pide cuando abres \"Cerca de mí\" o la eliges como origen, y no se guarda ni se envía. Para descargar los datos y el mapa se conecta a GitHub Pages y a OpenFreeMap, que pueden ver tu dirección IP como cualquier web.",
+    "privacy": "No hay cuentas ni analítica. Solo guarda en este dispositivo tus ajustes, tus favoritos y la última copia de los datos. Tu ubicación solo se pide cuando abres \"Cerca de mí\" o la eliges como origen, y no se guarda ni se envía. Para descargar los datos y el mapa se conecta a GitHub Pages y a OpenFreeMap y, en la app del móvil, al portal de datos abiertos del Ayuntamiento para el tiempo real; pueden ver tu dirección IP como cualquier web.",
     "codeTitle": "Código fuente",
     "mapSatellite": "Foto aérea:"
   },
@@ -249,7 +249,10 @@
     "inMinutes": "en ~{{minutes}} min",
     "then": "el siguiente en ~{{minutes}} min",
     "estimated": "estimado en tiempo real · dato de hace {{age}} min",
-    "onMap": "{{count}} autobuses en el mapa en tiempo real · dato de hace {{age}} min"
+    "onMap": "{{count}} autobuses en el mapa en tiempo real · dato de hace {{age}} min",
+    "onTime": "Va en hora",
+    "late": "Va {{minutes}} min tarde",
+    "early": "Va {{minutes}} min adelantado"
   },
   "traffic": {
     "show": "Mostrar cortes de tráfico",

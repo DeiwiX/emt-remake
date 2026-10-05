@@ -126,10 +126,10 @@
     "dataDate": "Data from {{date}}.",
     "dataDisclaimer": "The data may contain errors or be out of date. Routes marked as approximate join the stops with straight lines.",
     "mapTitle": "Map",
-    "mapData": "Map data:",
+    "mapData": "Map and walking-route data:",
     "mapTiles": "Tiles:",
     "privacyTitle": "Privacy",
-    "privacy": "No accounts or analytics. Only your settings, your favourites and the latest copy of the data are stored on this device. Your location is only requested when you open \"Near me\" or choose it as the starting point, and it is never stored or sent. To download the data and the map the app connects to GitHub Pages and OpenFreeMap, which can see your IP address like any website.",
+    "privacy": "No accounts or analytics. Only your settings, your favourites and the latest copy of the data are stored on this device. Your location is only requested when you open \"Near me\" or choose it as the starting point, and it is never stored or sent. To download the data and the map the app connects to GitHub Pages and OpenFreeMap and, in the mobile app, to the Málaga City Council open data portal for real-time data; they can see your IP address like any website.",
     "codeTitle": "Source code",
     "mapSatellite": "Aerial imagery:"
   },
@@ -249,7 +249,10 @@
     "inMinutes": "in ~{{minutes}} min",
     "then": "next one in ~{{minutes}} min",
     "estimated": "real-time estimate · data from {{age}} min ago",
-    "onMap": "{{count}} buses on the map in real time · data from {{age}} min ago"
+    "onMap": "{{count}} buses on the map in real time · data from {{age}} min ago",
+    "onTime": "On time",
+    "late": "{{minutes}} min late",
+    "early": "{{minutes}} min early"
   },
   "traffic": {
     "show": "Show traffic closures",

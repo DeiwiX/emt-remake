@@ -5,6 +5,7 @@ import { IonIcon } from '@ionic/angular';
 import { NetworkRepository } from '../../core/data/repositories';
 import { estimateArrivals } from '../../core/realtime/realtime';
 import { RealtimeService } from '../../core/realtime/realtime.service';
+import { LiveContextService } from '../../core/realtime/live-context.service';
 import { ScheduleClockService } from '../../core/schedule/schedule-clock.service';
 import { dateKeyOf, dayOffsetOf, formatClock } from '../../core/schedule/schedule';
 import { ArrivalAlertPickerComponent } from '../arrival-alert-picker/arrival-alert-picker.component';
@@ -122,6 +123,9 @@ interface Passing {
             · {{ 'realtime.then' | transloco: { minutes: live.second } }}
           }
         </span>
+        @if (live.delay !== null) {
+          <small class="delay">{{ delayText(live.delay) }}</small>
+        }
         <small>{{ 'realtime.estimated' | transloco: { age: live.age } }}</small>
       </p>
     }
@@ -164,6 +168,7 @@ export class NextBusComponent {
   private readonly transloco = inject(TranslocoService);
   private readonly network = inject(NetworkRepository);
   private readonly realtime = inject(RealtimeService);
+  private readonly liveContext = inject(LiveContextService);
 
   readonly lineId = input.required<string>();
   readonly directionId = input.required<number>();
@@ -186,6 +191,7 @@ export class NextBusComponent {
       direction,
       direction.stopIds.indexOf(this.stopId()),
       this.realtime.now(),
+      this.liveContext.context(),
     );
     const [first, second] = arrivals;
     if (!first) return null;
@@ -193,8 +199,17 @@ export class NextBusComponent {
       first: first.minutes,
       second: second?.minutes ?? null,
       age: first.ageMinutes,
+      delay: first.delayMinutes,
     };
   });
+
+  /** "Va 3 min tarde", "Va en hora" o "Va 2 min adelantado" (frente a su viaje del horario). */
+  protected delayText(delay: number): string {
+    if (Math.abs(delay) < 2) return this.transloco.translate('realtime.onTime');
+    return this.transloco.translate(delay > 0 ? 'realtime.late' : 'realtime.early', {
+      minutes: Math.abs(delay),
+    });
+  }
 
   protected readonly view = computed(() => {
     const result = this.schedule.nextBuses(this.lineId(), this.directionId(), this.stopId(), COUNT);

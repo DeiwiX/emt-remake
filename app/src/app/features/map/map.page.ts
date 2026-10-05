@@ -408,6 +408,16 @@ export class MapPage {
     if (this.street()) void this.streetsStore.load();
   }
 
+  /** "Va 3 min tarde", "Va en hora" o "Va 2 min adelantado". */
+  protected delayKey(delay: number): string {
+    if (delay >= 2) return 'realtime.late';
+    return delay <= -2 ? 'realtime.early' : 'realtime.onTime';
+  }
+
+  protected abs(value: number): number {
+    return Math.abs(value);
+  }
+
   /** Toca un autobús: su ficha arriba del panel (sin seguirlo todavía). */
   protected selectVehicle(id: string | null): void {
     this.selectedVehicleId.set(id);

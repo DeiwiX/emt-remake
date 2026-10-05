@@ -56,8 +56,8 @@ describe('Tiempo real', () => {
       record('5', '1.0', '2', 'a', '2026-10-04 15:45:00'),
     ]);
     expect(estimateArrivals(vehicles, '1', direction, 2, now)).toEqual([
-      { vehicleId: '2', minutes: 4, ageMinutes: 2 },
-      { vehicleId: '1', minutes: 8, ageMinutes: 2 },
+      { vehicleId: '2', minutes: 4, ageMinutes: 2, delayMinutes: null },
+      { vehicleId: '1', minutes: 8, ageMinutes: 2, delayMinutes: null },
     ]);
   });
 

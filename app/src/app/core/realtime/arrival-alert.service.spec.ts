@@ -2,7 +2,7 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { TranslocoService } from '@jsverse/transloco';
 
-import { NetworkRepository } from '../data/repositories';
+import { NetworkRepository, ScheduleRepository } from '../data/repositories';
 import { Line } from '../models/network.model';
 import { ArrivalAlertService } from './arrival-alert.service';
 import { ArrivalNotifier } from './arrival-notifier';
@@ -59,6 +59,11 @@ describe('ArrivalAlertService', () => {
           useValue: { available: true, fetchVehicles: () => Promise.resolve(records) },
         },
         { provide: ArrivalNotifier, useValue: notifier },
+        // Sin horario: el aviso se ajusta solo con los minutos típicos.
+        {
+          provide: ScheduleRepository,
+          useValue: { getTimetables: () => new Promise(() => undefined) },
+        },
         { provide: TranslocoService, useValue: { translate: (key: string) => key } },
       ],
     });
@@ -81,7 +86,13 @@ describe('ArrivalAlertService', () => {
 
   afterEach(() => vi.useRealTimers());
 
-  const target = (at: number) => ({ stopId: 'c', lineId: '1', directionId: 1, at, vehicleId: null });
+  const target = (at: number) => ({
+    stopId: 'c',
+    lineId: '1',
+    directionId: 1,
+    at,
+    vehicleId: null,
+  });
 
   it('programa un aviso del horario para mañana sin autobuses ahora y lo guarda', async () => {
     const service = setup();

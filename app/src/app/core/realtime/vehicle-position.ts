@@ -21,6 +21,8 @@ export interface TrackedPosition {
   readonly point: LatLon;
   /** Rumbo en grados (0 = norte, 90 = este), para girar el icono. */
   readonly bearing: number;
+  /** Metros recorridos sobre el trazado desde su inicio. */
+  readonly along: number;
 }
 
 /**
@@ -146,7 +148,37 @@ export function pointAt(track: RouteTrack, along: number): TrackedPosition {
   return {
     point: [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t],
     bearing: bearingOf(a, b),
+    along: distance,
   };
+}
+
+/** Suavizado: fracción de la diferencia con la estimación que se corrige cada segundo. */
+const SMOOTHING = 0.15;
+/** Si la estimación salta más que esto (otro viaje, dato muy distinto), se coloca sin más. */
+const MAX_SMOOTH_METRES = 1_500;
+/** Lo más que avanza un autobús en un segundo (~70 km/h). */
+const MAX_METRES_PER_TICK = 20;
+
+/** Lo que se dibujó en el instante anterior para un autobús. */
+export interface SmoothState {
+  readonly shown: number;
+  readonly target: number;
+}
+
+/**
+ * Fase 6: cuando llega un dato nuevo la estimación puede saltar hacia delante o
+ * hacia atrás. En vez de teletransportar el autobús, se sigue su avance y se
+ * corrige la diferencia poco a poco (~15 s), así se mueve con suavidad.
+ */
+export function smoothAlong(previous: SmoothState | undefined, target: number): SmoothState {
+  if (!previous || Math.abs(target - previous.target) > MAX_SMOOTH_METRES) {
+    return { shown: target, target };
+  }
+  // El avance normal de un segundo (como mucho lo que corre un autobús); el resto es
+  // un salto de la estimación, que se corrige poco a poco.
+  const step = Math.min(Math.max(target - previous.target, 0), MAX_METRES_PER_TICK);
+  const advanced = previous.shown + step;
+  return { shown: advanced + (target - advanced) * SMOOTHING, target };
 }
 
 /** Rumbo aproximado entre dos puntos cercanos (plano local). */

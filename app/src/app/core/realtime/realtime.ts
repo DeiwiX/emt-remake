@@ -1,4 +1,5 @@
 import { Direction } from '../models/network.model';
+import { LiveContext, minutesToStop, vehicleProgress } from './live-estimate';
 
 /**
  * Tiempo real (Fase 3): posiciones de los autobuses publicadas por el
@@ -31,6 +32,8 @@ export interface EstimatedArrival {
   readonly minutes: number;
   /** Antigüedad del dato en minutos: cuanto mayor, menos fiable. */
   readonly ageMinutes: number;
+  /** Retraso frente a su viaje del horario (min, negativo si va adelantado); null si no se sabe. */
+  readonly delayMinutes: number | null;
 }
 
 /** Instante en hora de Madrid con segundos, para comparar con los datos. */
@@ -117,7 +120,8 @@ export function ageMinutes(vehicle: Vehicle, now: MadridInstant): number | null 
 
 /**
  * Autobuses de una línea y sentido que aún no han pasado por la parada `stopIndex`
- * del sentido, con su llegada estimada, del más cercano al más lejano.
+ * del sentido, con su llegada estimada, del más cercano al más lejano. Con
+ * `context` (Fase 6) se usa el viaje concreto de cada autobús y su ritmo real.
  */
 export function estimateArrivals(
   vehicles: readonly Vehicle[],
@@ -125,9 +129,9 @@ export function estimateArrivals(
   direction: Direction,
   stopIndex: number,
   now: MadridInstant,
+  context: LiveContext = {},
 ): EstimatedArrival[] {
-  const minutes = direction.minutes;
-  if (!minutes || stopIndex < 0) return [];
+  if (!direction.minutes || stopIndex < 0) return [];
   return vehicles
     .flatMap((vehicle): EstimatedArrival[] => {
       if (vehicle.lineId !== lineId || vehicle.directionId !== direction.id) return [];
@@ -136,13 +140,16 @@ export function estimateArrivals(
       // La última parada antes de la pedida (las circulares pueden repetir paradas).
       const last = direction.stopIds.lastIndexOf(vehicle.lastStopId, stopIndex - 1);
       if (last === -1) return [];
-      const remaining = minutes[stopIndex]! - minutes[last]! - age;
+      const progress = vehicleProgress(vehicle, direction, last, context);
+      if (!progress) return [];
+      const remaining = minutesToStop(progress, last, stopIndex, age);
       if (remaining > MAX_ESTIMATE_MINUTES) return [];
       return [
         {
           vehicleId: vehicle.id,
           minutes: Math.max(0, Math.round(remaining)),
           ageMinutes: Math.round(age),
+          delayMinutes: progress.delay === null ? null : Math.round(progress.delay),
         },
       ];
     })

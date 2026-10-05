@@ -169,6 +169,11 @@
             @if (bus.nextStop; as stop) {
               <p>{{ 'vehicle.nextStop' | transloco: { stop: stop.name, code: stop.id } }}</p>
             }
+            @if (bus.delayMinutes !== null) {
+              <p>
+                {{ delayKey(bus.delayMinutes) | transloco: { minutes: abs(bus.delayMinutes) } }}
+              </p>
+            }
             <p>
               <ion-note>{{
                 (bus.estimated ? 'vehicle.estimated' : 'vehicle.reported')

@@ -35,6 +35,8 @@ export class RealtimeService {
   private readonly vehiclesSignal = signal<readonly Vehicle[]>([]);
   private readonly nowSignal = signal<MadridInstant>(madridInstant(new Date()));
   private readonly failedSignal = signal(false);
+  /** Dato anterior (distinto) de cada autobús, para medir a qué ritmo avanza (Fase 6). */
+  private readonly previousSignal = signal<ReadonlyMap<string, Vehicle>>(new Map());
   private watchers = 0;
   private timer: ReturnType<typeof setInterval> | null = null;
 
@@ -45,6 +47,7 @@ export class RealtimeService {
   /** true si la última descarga falló (sin conexión, fuente caída...). */
   readonly failed = this.failedSignal.asReadonly();
   readonly hasData = computed(() => this.vehiclesSignal().length > 0);
+  readonly previous = this.previousSignal.asReadonly();
 
   /**
    * Empieza a recibir posiciones mientras viva quien llama (componente o
@@ -68,7 +71,11 @@ export class RealtimeService {
 
   private async refresh(): Promise<void> {
     try {
-      this.vehiclesSignal.set(parseVehicles(await this.source.fetchVehicles()));
+      const vehicles = parseVehicles(await this.source.fetchVehicles());
+      this.previousSignal.set(
+        previousReports(this.vehiclesSignal(), vehicles, this.previousSignal()),
+      );
+      this.vehiclesSignal.set(vehicles);
       this.failedSignal.set(false);
     } catch (error) {
       console.warn('No se pudieron descargar las posiciones en tiempo real', error);
@@ -77,4 +84,24 @@ export class RealtimeService {
       this.nowSignal.set(madridInstant(new Date()));
     }
   }
+}
+
+/**
+ * Para cada autobús, su dato anterior: el actual si el nuevo es distinto (la
+ * fuente repite el mismo dato durante ~5 min) y si no, el que ya se guardaba.
+ */
+export function previousReports(
+  current: readonly Vehicle[],
+  next: readonly Vehicle[],
+  previous: ReadonlyMap<string, Vehicle>,
+): ReadonlyMap<string, Vehicle> {
+  const byId = new Map(current.map((v) => [v.id, v]));
+  const result = new Map<string, Vehicle>();
+  for (const vehicle of next) {
+    const old = byId.get(vehicle.id);
+    const changed = old && (old.seconds !== vehicle.seconds || old.dateKey !== vehicle.dateKey);
+    const kept = changed ? old : previous.get(vehicle.id);
+    if (kept) result.set(vehicle.id, kept);
+  }
+  return result;
 }

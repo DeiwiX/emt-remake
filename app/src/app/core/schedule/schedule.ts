@@ -198,3 +198,41 @@ export function madridInstantOf(dateKey: string, minutes: number): number {
   }
   return instant;
 }
+
+/** Un viaje programado: su salida y, con horario exacto, sus minutos en cada parada. */
+export interface ScheduledTrip {
+  /** Salida en minutos desde la medianoche de `dateKey` (negativa si salió el día anterior). */
+  readonly start: number;
+  readonly profile: readonly number[] | null;
+}
+
+/**
+ * Viajes de un sentido que circulan el día `dateKey` (incluidos los del día
+ * anterior que pasan de medianoche), para casar un autobús en tiempo real con
+ * el viaje que está haciendo.
+ */
+export function scheduledTrips(
+  timetables: Timetables,
+  lineId: string,
+  directionId: number,
+  dateKey: string,
+): ScheduledTrip[] {
+  const key = departuresKey(lineId, directionId);
+  const byService = timetables.departures.get(key);
+  if (!byService) return [];
+  const profiles = timetables.profiles?.get(key);
+  const profileOf = timetables.departureProfiles?.get(key);
+  const trips: ScheduledTrip[] = [];
+  for (const dayOffset of [-1, 0]) {
+    const day = addDays(dateKey, dayOffset);
+    for (const [service, starts] of byService) {
+      if (!timetables.services.get(service)?.has(day)) continue;
+      const indexes = profileOf?.get(service);
+      starts.forEach((start, i) => {
+        const profile = indexes ? (profiles?.[indexes[i]!] ?? null) : null;
+        trips.push({ start: dayOffset * MINUTES_PER_DAY + start, profile });
+      });
+    }
+  }
+  return trips;
+}
