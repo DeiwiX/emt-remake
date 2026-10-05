@@ -49,6 +49,20 @@ describe('sliceBetween', () => {
   it('recorta el trazado entre las paradas de subida y bajada', () => {
     const points: LatLon[] = [0, 1, 2, 3, 4].map((i): LatLon => [36.7, -4.4 + i * 0.01]);
     const slice = sliceBetween(points, { lat: 36.7, lon: -4.389 }, { lat: 36.7, lon: -4.371 });
-    expect(slice).toEqual(points.slice(1, 4));
+    // Empieza y acaba justo a la altura de cada parada, no en el vértice más cercano.
+    expect(slice[0]![1]).toBeCloseTo(-4.389, 6);
+    expect(slice.at(-1)![1]).toBeCloseTo(-4.371, 6);
+    expect(slice.slice(1, -1)).toEqual(points.slice(2, 3));
+  });
+
+  it('con un trazado de pocos puntos, no se queda corto antes de las paradas', () => {
+    const points: LatLon[] = [
+      [36.7, -4.4],
+      [36.7, -4.3],
+    ];
+    const slice = sliceBetween(points, { lat: 36.7005, lon: -4.37 }, { lat: 36.6995, lon: -4.33 });
+    expect(slice).toHaveLength(2);
+    expect(slice[0]![1]).toBeCloseTo(-4.37, 6);
+    expect(slice[1]![1]).toBeCloseTo(-4.33, 6);
   });
 });

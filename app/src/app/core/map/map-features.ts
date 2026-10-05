@@ -38,9 +38,10 @@ export function toMapStops(stops: readonly (Stop | undefined)[]): MapStop[] {
 }
 
 /**
- * Tramo de un recorrido entre dos paradas: desde el punto del trazado más
- * cercano a la de subida hasta el más cercano a la de bajada (siempre hacia
- * delante, para que funcione en las circulares).
+ * Tramo de un recorrido entre dos paradas: empieza y acaba justo en el punto del
+ * trazado más cercano a cada parada (proyectado sobre su segmento, no en el
+ * vértice más próximo, que con trazados simplificados puede quedar lejos) y
+ * avanza siempre hacia delante, para que funcione en las circulares.
  */
 export function sliceBetween(
   points: readonly LatLon[],
@@ -48,16 +49,32 @@ export function sliceBetween(
   to: { lat: number; lon: number },
 ): LatLon[] {
   if (points.length < 2) return [...points];
-  const distance = (p: LatLon, q: { lat: number; lon: number }) =>
-    (p[0] - q.lat) ** 2 + ((p[1] - q.lon) * Math.cos((q.lat * Math.PI) / 180)) ** 2;
-  const nearest = (target: { lat: number; lon: number }, start: number) => {
-    let best = start;
-    for (let i = start; i < points.length; i++) {
-      if (distance(points[i]!, target) < distance(points[best]!, target)) best = i;
-    }
-    return best;
-  };
-  const start = nearest(from, 0);
-  const end = nearest(to, start);
-  return points.slice(start, Math.max(end, start + 1) + 1);
+  const start = nearestOnSegments(points, from, 0);
+  const end = nearestOnSegments(points, to, start.segment, start.fraction);
+  const inner = points.slice(start.segment + 1, end.segment + 1);
+  return [start.point, ...inner, end.point];
+}
+
+/** Punto del trazado más cercano a `target`, a partir del segmento `first` (y de su fracción). */
+function nearestOnSegments(
+  points: readonly LatLon[],
+  target: { lat: number; lon: number },
+  first: number,
+  minFraction = 0,
+): { segment: number; fraction: number; point: LatLon } {
+  const k = Math.cos((target.lat * Math.PI) / 180);
+  let best = { segment: first, fraction: minFraction, point: points[first]!, distance: Infinity };
+  for (let i = first; i < points.length - 1; i++) {
+    const a = points[i]!;
+    const b = points[i + 1]!;
+    const dx = (b[1] - a[1]) * k;
+    const dy = b[0] - a[0];
+    const length2 = dx * dx + dy * dy;
+    let t = length2 > 0 ? ((target.lon - a[1]) * k * dx + (target.lat - a[0]) * dy) / length2 : 0;
+    t = Math.min(1, Math.max(i === first ? minFraction : 0, t));
+    const point: LatLon = [a[0] + dy * t, a[1] + (b[1] - a[1]) * t];
+    const distance = (point[0] - target.lat) ** 2 + ((point[1] - target.lon) * k) ** 2;
+    if (distance < best.distance) best = { segment: i, fraction: t, point, distance };
+  }
+  return best;
 }

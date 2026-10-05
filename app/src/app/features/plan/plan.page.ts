@@ -259,6 +259,17 @@ export class PlanPage {
         legs.at(-1)!.toStopId,
         row.option.egressMinutes,
       ),
+      // Transbordo andando entre la parada de bajada y la de subida (si son distintas).
+      ...legs.slice(1).map((leg, i) => {
+        const from = this.network.getStop(legs[i]!.toStopId);
+        if (!from || from.id === leg.fromStopId) return null;
+        return this.walkRoute(
+          `walk-transfer-${i}`,
+          [from.lat, from.lon],
+          leg.fromStopId,
+          row.option.walkMinutes,
+        );
+      }),
     ].filter((route): route is MapRoute => route !== null);
     const rides = row.option.legs.flatMap((leg, i) => {
       const line = this.network.getLine(leg.lineId);
@@ -302,7 +313,7 @@ export class PlanPage {
       color: WALK_COLOR,
       textColor: '#FFFFFF',
       approximate: true,
-      points: this.walkPoints(id === 'walk-in', point, [stop.lat, stop.lon]),
+      points: this.walkPoints(id !== 'walk-out', point, [stop.lat, stop.lon]),
     };
   }
   private walkPoints(toStop: boolean, place: LatLon, stop: LatLon): readonly LatLon[] {
