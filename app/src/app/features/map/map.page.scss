@@ -112,3 +112,34 @@ app-line-badge {
   gap: 4px 12px;
   margin: 8px 0;
 }
+
+/* Fichas de líneas: encendidas (en el mapa) a color; apagadas, atenuadas. */
+.line-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px 16px 24px;
+}
+
+.line-chip {
+  display: grid;
+  place-items: center;
+  min-width: 48px;
+  min-height: 44px;
+  padding: 4px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: var(--app-card, transparent);
+  opacity: 0.45;
+  cursor: pointer;
+
+  &.on {
+    border-color: var(--ion-color-primary);
+    opacity: 1;
+  }
+
+  &:focus-visible {
+    outline: 3px solid var(--ion-color-primary);
+    outline-offset: 2px;
+  }
+}

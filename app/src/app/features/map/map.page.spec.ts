@@ -211,25 +211,28 @@ describe('MapPage', () => {
     expect(view.highlighted).toBeNull();
   });
 
-  it('oculta y muestra líneas desde el panel', async () => {
-    const { page } = await open('/map');
+  it('empieza sin líneas y las muestra u oculta al tocar sus fichas', async () => {
+    const { harness, page } = await open('/map');
     const actions = page as unknown as {
-      setVisible(id: string, visible: boolean): void;
+      toggleLine(id: string): void;
       showAll(): void;
       hideAll(): void;
     };
+    expect([...(view.visible ?? [])]).toEqual([]);
 
-    actions.setVisible('10', false);
+    actions.toggleLine('2');
     TestBed.tick();
     expect([...(view.visible ?? [])]).toEqual(['2']);
-
-    actions.hideAll();
-    TestBed.tick();
-    expect([...(view.visible ?? [])]).toEqual([]);
+    const chips = (harness.routeNativeElement as HTMLElement).querySelectorAll('.line-chip');
+    expect([...chips].map((c) => c.getAttribute('aria-pressed'))).toContain('true');
 
     actions.showAll();
     TestBed.tick();
     expect(view.visible).toBeNull();
+
+    actions.hideAll();
+    TestBed.tick();
+    expect([...(view.visible ?? [])]).toEqual([]);
   });
 
   it('busca líneas y paradas y, al elegir una parada, la marca y la encuadra', async () => {

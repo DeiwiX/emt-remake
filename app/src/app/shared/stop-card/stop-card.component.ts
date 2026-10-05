@@ -1,9 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { IonButton } from '@ionic/angular';
+import { IonButton, IonIcon } from '@ionic/angular';
 
 import { NetworkRepository } from '../../core/data/repositories';
+import { LiveContextService } from '../../core/realtime/live-context.service';
+import { estimateArrivals } from '../../core/realtime/realtime';
+import { RealtimeService } from '../../core/realtime/realtime.service';
 import { Stop } from '../../core/models/network.model';
 import { FavoriteButtonComponent } from '../favorite-button/favorite-button.component';
 import { LineBadgeComponent } from '../line-badge/line-badge.component';
@@ -16,6 +19,7 @@ import { NextBusComponent } from '../next-bus/next-bus.component';
 @Component({
   selector: 'app-stop-card',
   imports: [
+    IonIcon,
     RouterLink,
     TranslocoPipe,
     IonButton,
@@ -95,6 +99,13 @@ import { NextBusComponent } from '../next-bus/next-bus.component';
         }
       </ul>
       <div class="actions">
+        <!-- Lleva al mapa siguiendo el autobús que antes llega (tiempo real). -->
+        @if (nearestBus(); as bus) {
+          <ion-button [routerLink]="['/map']" [queryParams]="{ bus: bus.vehicleId }">
+            <ion-icon slot="start" name="bus-outline" aria-hidden="true" />
+            {{ 'near.locateBus' | transloco: { line: bus.lineId, minutes: bus.minutes } }}
+          </ion-button>
+        }
         <ion-button [routerLink]="['/stops', stop().id]">{{
           'map.openStopDetail' | transloco
         }}</ion-button>
@@ -110,6 +121,33 @@ export class StopCardComponent {
 
   readonly stop = input.required<Stop>();
   readonly closed = output();
+
+  private readonly realtime = inject(RealtimeService);
+  private readonly live = inject(LiveContextService);
+
+  /** El autobús (de cualquier línea de la parada) que antes llega, según el tiempo real. */
+  protected readonly nearestBus = computed(() => {
+    const stop = this.stop();
+    let best: { vehicleId: string; lineId: string; minutes: number } | null = null;
+    for (const service of stop.services) {
+      const direction = this.network
+        .getLine(service.lineId)
+        ?.directions.find((d) => d.id === service.directionId);
+      if (!direction) continue;
+      const [first] = estimateArrivals(
+        this.realtime.vehicles(),
+        service.lineId,
+        direction,
+        direction.stopIds.indexOf(stop.id),
+        this.realtime.now(),
+        this.live.context(),
+      );
+      if (first && (!best || first.minutes < best.minutes)) {
+        best = { vehicleId: first.vehicleId, lineId: service.lineId, minutes: first.minutes };
+      }
+    }
+    return best;
+  });
 
   /** Líneas que pasan por la parada, con el destino de cada sentido. */
   protected readonly services = computed(() =>

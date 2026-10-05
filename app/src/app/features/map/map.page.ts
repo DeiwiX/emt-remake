@@ -7,6 +7,7 @@ import {
   inject,
   input,
   linkedSignal,
+  untracked,
   signal,
   viewChild,
 } from '@angular/core';
@@ -137,9 +138,17 @@ export class MapPage {
   /** Calle a marcar al abrir (/map?street=...&n=5), p. ej. desde la búsqueda del inicio. */
   readonly street = input<string>();
   readonly n = input<string>();
+  /** Autobús que seguir al abrir (/map?bus=640), p. ej. desde "Ubicar bus más cercano". */
+  readonly bus = input<string>();
 
   protected readonly lines = this.network.lines;
-  protected readonly hiddenLines = signal<ReadonlySet<string>>(new Set());
+  /**
+   * Líneas ocultas. El mapa empieza sin ninguna para no saturarlo (petición del
+   * desarrollador, 05/10/2026): se eligen tocando sus números en el panel.
+   */
+  protected readonly hiddenLines = linkedSignal<ReadonlySet<string>>(
+    () => new Set(this.lines().map((l) => l.id)),
+  );
   protected readonly highlightedId = linkedSignal(() => this.line() ?? null);
   protected readonly highlightedLine = computed(() => {
     this.lines();
@@ -240,7 +249,8 @@ export class MapPage {
 
   /** Cortes de tráfico (Ayuntamiento y DGT): los activos y los de los próximos 7 días. */
   private readonly trafficItems = signal<readonly TrafficItem[]>([]);
-  protected readonly showTraffic = signal(true);
+  // Ocultos al abrir para no saturar el mapa (05/10/2026); un botón los muestra.
+  protected readonly showTraffic = signal(false);
   protected readonly selectedTrafficId = signal<string | null>(null);
   private readonly clock = inject(ScheduleClockService).clock;
   /** "AAAA-MM-DDTHH:mm" en hora de Madrid, como las fechas de los cortes. */
@@ -353,7 +363,16 @@ export class MapPage {
     if (this.searching()) return toMapStops(this.allStopResults());
     if (this.selectedArea()) return toMapStops(this.zoneStops());
     const line = this.highlightedLine();
-    if (!line) return toMapStops(this.network.stops());
+    if (!line) {
+      const visible = this.visibleLines();
+      if (visible === null) return toMapStops(this.network.stops());
+      const ids = new Set(
+        this.lines()
+          .filter((l) => visible.has(l.id))
+          .flatMap((l) => l.directions.flatMap((d) => d.stopIds)),
+      );
+      return toMapStops([...ids].map((id) => this.network.getStop(id)));
+    }
     const ids = new Set(line.directions.flatMap((d) => d.stopIds));
     return toMapStops([...ids].map((id) => this.network.getStop(id)));
   });
@@ -409,6 +428,24 @@ export class MapPage {
       }
     });
     if (this.street()) void this.streetsStore.load();
+    // Abrir siguiendo un autobús: se selecciona, se ve aunque su línea esté oculta y se sigue.
+    effect(() => {
+      const bus = this.bus();
+      if (!bus) return;
+      untracked(() => {
+        this.selectedVehicleId.set(bus);
+        this.following.set(true);
+      });
+    });
+    // …y, en cuanto aparece, se muestra su línea (una sola vez: luego manda el usuario).
+    let shownLineFor: string | null = null;
+    effect(() => {
+      const bus = this.bus();
+      const vehicle = bus ? this.tracker.vehicles().find((v) => v.id === bus) : undefined;
+      if (!vehicle || shownLineFor === vehicle.id) return;
+      shownLineFor = vehicle.id;
+      untracked(() => this.setVisible(vehicle.lineId, true));
+    });
   }
 
   protected readonly realtimeAvailable = this.realtime.available;
@@ -452,6 +489,11 @@ export class MapPage {
 
   protected isVisible(lineId: string): boolean {
     return !this.hiddenLines().has(lineId);
+  }
+
+  /** Ficha de una línea: la muestra u oculta en el mapa. */
+  protected toggleLine(lineId: string): void {
+    this.setVisible(lineId, !this.isVisible(lineId));
   }
 
   protected setVisible(lineId: string, visible: boolean): void {

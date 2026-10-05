@@ -257,9 +257,9 @@ ion-content {
   padding: 0 16px 16px;
 }
 
-/* Modo sencillo en el móvil: sin la tarjeta del mapa, "Cerca de mí" ocupa la fila entera. */
+/* En el móvil (con mapa) quedan tres tarjetas: "Cerca de mí" ocupa la fila entera. */
 @media (max-width: 767px) {
-  .tile-grid.simple .tile-near {
+  .tile-grid:not(.simple) .tile-near {
     grid-column: 1 / -1;
   }
 }

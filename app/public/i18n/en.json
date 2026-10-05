@@ -69,7 +69,7 @@
     "approximate": "approximate route",
     "openDetail": "View line details",
     "clearHighlight": "Clear highlight",
-    "hint": "Search for a line or stop, tap a route on the map or press “Highlight” in the list.",
+    "hint": "Tap the line numbers to see them on the map with their stops and buses, or search for a line, stop or street.",
     "showAll": "Show all",
     "hideAll": "Hide all",
     "showLine": "Show line {{id}} on the map",
@@ -92,7 +92,8 @@
     "clearZone": "Clear area",
     "zoneStops": "Stops in the area",
     "simpleTitle": "Areas, lines and stops",
-    "simpleHint": "Search for a neighbourhood, line or stop. You are in simple mode, without the map."
+    "simpleHint": "Search for a neighbourhood, line or stop. You are in simple mode, without the map.",
+    "lineChip": "Line {{id}}: {{name}}. Show or hide on the map"
   },
   "settings": {
     "title": "Settings",
@@ -242,7 +243,8 @@
     "none": "No stops within {{radius}} m.",
     "rough": "Approximate location (±{{accuracy}} m).",
     "distance": "{{metres}} m · {{minutes}} min walk",
-    "privacy": "Your location is only used on this device and is never stored or sent anywhere."
+    "privacy": "Your location is only used on this device and is never stored or sent anywhere.",
+    "locateBus": "Locate nearest bus (line {{line}}, ~{{minutes}} min)"
   },
   "realtime": {
     "arrives": "Arrives",

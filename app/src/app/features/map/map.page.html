@@ -349,31 +349,22 @@
             }}</ion-button>
           </div>
 
-          <ion-list [attr.aria-label]="'lines.title' | transloco">
+          <!-- Líneas como fichas: tocar un número la muestra u oculta en el mapa. -->
+          <div class="line-chips" role="group" [attr.aria-label]="'lines.title' | transloco">
             @for (line of lines(); track line.id) {
-              <ion-item [class.is-highlighted]="highlightedId() === line.id">
-                <ion-checkbox
-                  slot="start"
-                  [checked]="isVisible(line.id)"
-                  [attr.aria-label]="'map.showLine' | transloco: { id: line.id }"
-                  (ionChange)="setVisible(line.id, $event.detail.checked)"
-                />
-                <app-line-badge slot="start" [code]="line.id" />
-                <ion-label class="ion-text-wrap">{{ line.name }}</ion-label>
-                <ion-button
-                  slot="end"
-                  fill="clear"
-                  [attr.aria-pressed]="highlightedId() === line.id"
-                  (click)="highlight(highlightedId() === line.id ? null : line.id)"
-                >
-                  {{ 'map.highlight' | transloco }}
-                  <span class="visually-hidden">{{
-                    'lines.line' | transloco: { id: line.id }
-                  }}</span>
-                </ion-button>
-              </ion-item>
+              <button
+                type="button"
+                class="line-chip"
+                [class.on]="isVisible(line.id)"
+                [attr.aria-pressed]="isVisible(line.id)"
+                [attr.aria-label]="'map.lineChip' | transloco: { id: line.id, name: line.name }"
+                [title]="line.name"
+                (click)="toggleLine(line.id)"
+              >
+                <app-line-badge [code]="line.id" />
+              </button>
             }
-          </ion-list>
+          </div>
         }
       }
     </section>

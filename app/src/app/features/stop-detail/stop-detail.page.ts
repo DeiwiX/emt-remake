@@ -24,6 +24,7 @@ import {
 import { LineColorsService } from '../../core/map/line-colors.service';
 import { toMapRoutes, toMapStops } from '../../core/map/map-features';
 import { SimpleModeService } from '../../core/settings/simple-mode.service';
+import { VehicleTrackerService } from '../../core/realtime/vehicle-tracker.service';
 import { LatLon, Line } from '../../core/models/network.model';
 import { MapViewComponent } from '../../shared/map-view/map-view.component';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
@@ -78,6 +79,7 @@ import { NextBusComponent } from '../../shared/next-bus/next-bus.component';
                 [label]="'stopDetail.mapLabel' | transloco: { name: stop.name }"
                 [routes]="mapRoutes()"
                 [stops]="mapStops()"
+                [vehicles]="vehicles()"
                 [fitPoints]="fitPoints()"
                 (stopSelected)="openStop($event)"
               />
@@ -183,6 +185,27 @@ export class StopDetailPage {
     );
   });
   protected readonly mapStops = computed(() => toMapStops([this.stop()]));
+
+  /** Autobuses en tiempo real de las líneas y sentidos que pasan por la parada (solo en el móvil). */
+  private readonly tracker = inject(VehicleTrackerService);
+  protected readonly vehicles = computed(() => {
+    const services = this.stop()?.services ?? [];
+    return this.tracker
+      .vehicles()
+      .filter((v) => services.some((s) => s.lineId === v.lineId && s.directionId === v.directionId))
+      .map((v) => {
+        const color = this.colors.colorFor(v.lineId);
+        return {
+          id: v.id,
+          lineId: v.lineId,
+          lat: v.point[0],
+          lon: v.point[1],
+          bearing: v.bearing,
+          color: color.line,
+          textColor: color.text,
+        };
+      });
+  });
   protected readonly fitPoints = computed<LatLon[]>(() => {
     const stop = this.stop();
     return stop ? [[stop.lat, stop.lon]] : [];

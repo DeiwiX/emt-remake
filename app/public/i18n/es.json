@@ -69,7 +69,7 @@
     "approximate": "recorrido aproximado",
     "openDetail": "Ver detalle de la línea",
     "clearHighlight": "Quitar resaltado",
-    "hint": "Busca una línea o parada, toca un recorrido en el mapa o pulsa «Resaltar» en la lista.",
+    "hint": "Toca los números de las líneas para verlas en el mapa con sus paradas y autobuses, o busca una línea, parada o calle.",
     "showAll": "Mostrar todas",
     "hideAll": "Ocultar todas",
     "showLine": "Mostrar la línea {{id}} en el mapa",
@@ -92,7 +92,8 @@
     "clearZone": "Quitar zona",
     "zoneStops": "Paradas de la zona",
     "simpleTitle": "Barrios, líneas y paradas",
-    "simpleHint": "Busca un barrio, una línea o una parada. Estás en modo sencillo, sin mapa."
+    "simpleHint": "Busca un barrio, una línea o una parada. Estás en modo sencillo, sin mapa.",
+    "lineChip": "Línea {{id}}: {{name}}. Mostrar u ocultar en el mapa"
   },
   "settings": {
     "title": "Ajustes",
@@ -242,7 +243,8 @@
     "none": "No hay paradas a menos de {{radius}} m.",
     "rough": "Ubicación aproximada (±{{accuracy}} m).",
     "distance": "{{metres}} m · {{minutes}} min andando",
-    "privacy": "Tu ubicación solo se usa en este dispositivo y no se guarda ni se envía a ningún sitio."
+    "privacy": "Tu ubicación solo se usa en este dispositivo y no se guarda ni se envía a ningún sitio.",
+    "locateBus": "Ubicar bus más cercano (línea {{line}}, ~{{minutes}} min)"
   },
   "realtime": {
     "arrives": "Llega",
