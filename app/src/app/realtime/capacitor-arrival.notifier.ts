@@ -16,7 +16,10 @@ interface BusTrackerPlugin {
   stop(): Promise<void>;
 }
 
-type CapacitorGlobal = { isNativePlatform?: () => boolean; getPlatform?: () => string };
+interface CapacitorGlobal {
+  isNativePlatform?: () => boolean;
+  getPlatform?: () => string;
+}
 
 /**
  * Avisos de llegada en el móvil.
