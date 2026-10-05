@@ -244,7 +244,9 @@
     "rough": "Ubicación aproximada (±{{accuracy}} m).",
     "distance": "{{metres}} m · {{minutes}} min andando",
     "privacy": "Tu ubicación solo se usa en este dispositivo y no se guarda ni se envía a ningún sitio.",
-    "locateBus": "Ubicar bus más cercano (línea {{line}}, ~{{minutes}} min)"
+    "locateBus": "Ubicar bus más cercano (línea {{line}}, ~{{minutes}} min)",
+    "locateBusNear": "Ubicar bus más cercano (línea {{line}}, a {{metres}} m)",
+    "noBus": "Ahora no hay buses de estas líneas en tiempo real"
   },
   "realtime": {
     "arrives": "Llega",

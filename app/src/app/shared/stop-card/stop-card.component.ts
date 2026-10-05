@@ -5,7 +5,8 @@ import { IonButton, IonIcon } from '@ionic/angular';
 
 import { NetworkRepository } from '../../core/data/repositories';
 import { LiveContextService } from '../../core/realtime/live-context.service';
-import { estimateArrivals } from '../../core/realtime/realtime';
+import { MAX_AGE_MINUTES, ageMinutes, estimateArrivals } from '../../core/realtime/realtime';
+import { metresBetween } from '../../core/location/geo';
 import { RealtimeService } from '../../core/realtime/realtime.service';
 import { Stop } from '../../core/models/network.model';
 import { FavoriteButtonComponent } from '../favorite-button/favorite-button.component';
@@ -100,11 +101,19 @@ import { NextBusComponent } from '../next-bus/next-bus.component';
       </ul>
       <div class="actions">
         <!-- Lleva al mapa siguiendo el autobús que antes llega (tiempo real). -->
-        @if (nearestBus(); as bus) {
-          <ion-button [routerLink]="['/map']" [queryParams]="{ bus: bus.vehicleId }">
-            <ion-icon slot="start" name="bus-outline" aria-hidden="true" />
-            {{ 'near.locateBus' | transloco: { line: bus.lineId, minutes: bus.minutes } }}
-          </ion-button>
+        @if (realtimeAvailable) {
+          @if (nearestBus(); as bus) {
+            <ion-button [routerLink]="['/map']" [queryParams]="{ bus: bus.vehicleId }">
+              <ion-icon slot="start" name="bus-outline" aria-hidden="true" />
+              @if (bus.minutes !== null) {
+                {{ 'near.locateBus' | transloco: { line: bus.lineId, minutes: bus.minutes } }}
+              } @else {
+                {{ 'near.locateBusNear' | transloco: { line: bus.lineId, metres: bus.metres } }}
+              }
+            </ion-button>
+          } @else if (realtimeLoaded()) {
+            <ion-button disabled>{{ 'near.noBus' | transloco }}</ion-button>
+          }
         }
         <ion-button [routerLink]="['/stops', stop().id]">{{
           'map.openStopDetail' | transloco
@@ -125,10 +134,22 @@ export class StopCardComponent {
   private readonly realtime = inject(RealtimeService);
   private readonly live = inject(LiveContextService);
 
-  /** El autobús (de cualquier línea de la parada) que antes llega, según el tiempo real. */
+  protected readonly realtimeAvailable = this.realtime.available;
+  protected readonly realtimeLoaded = this.realtime.hasData;
+
+  /**
+   * El autobús que antes llega a la parada (de cualquiera de sus líneas) según el
+   * tiempo real. Si ninguno viene de camino (p. ej. en una parada de cabecera o
+   * cuando acaban de pasar), el de sus líneas que está más cerca.
+   */
   protected readonly nearestBus = computed(() => {
     const stop = this.stop();
-    let best: { vehicleId: string; lineId: string; minutes: number } | null = null;
+    let best: {
+      vehicleId: string;
+      lineId: string;
+      minutes: number | null;
+      metres: number;
+    } | null = null;
     for (const service of stop.services) {
       const direction = this.network
         .getLine(service.lineId)
@@ -142,8 +163,25 @@ export class StopCardComponent {
         this.realtime.now(),
         this.live.context(),
       );
-      if (first && (!best || first.minutes < best.minutes)) {
-        best = { vehicleId: first.vehicleId, lineId: service.lineId, minutes: first.minutes };
+      if (first && (best?.minutes == null || first.minutes < best.minutes)) {
+        best = {
+          vehicleId: first.vehicleId,
+          lineId: service.lineId,
+          minutes: first.minutes,
+          metres: 0,
+        };
+      }
+    }
+    if (best) return best;
+    const lines = new Set(stop.services.map((s) => s.lineId));
+    const now = this.realtime.now();
+    for (const vehicle of this.realtime.vehicles()) {
+      if (!lines.has(vehicle.lineId)) continue;
+      const age = ageMinutes(vehicle, now);
+      if (age === null || age > MAX_AGE_MINUTES) continue;
+      const metres = Math.round(metresBetween([stop.lat, stop.lon], [vehicle.lat, vehicle.lon]));
+      if (!best || metres < best.metres) {
+        best = { vehicleId: vehicle.id, lineId: vehicle.lineId, minutes: null, metres };
       }
     }
     return best;
