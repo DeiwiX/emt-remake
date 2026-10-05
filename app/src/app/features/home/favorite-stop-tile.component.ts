@@ -18,6 +18,7 @@ import { Stop } from '../../core/models/network.model';
 import { dayOffsetOf, formatClock } from '../../core/schedule/schedule';
 import { ScheduleClockService } from '../../core/schedule/schedule-clock.service';
 import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component';
+import { LocateBusButtonComponent } from '../../shared/locate-bus-button/locate-bus-button.component';
 import { NextBusComponent } from '../../shared/next-bus/next-bus.component';
 
 /** Hasta este margen se dice lo que falta ("4 min"); después, la hora. */
@@ -31,7 +32,15 @@ const COUNTDOWN_MINUTES = 60;
  */
 @Component({
   selector: 'app-favorite-stop-tile',
-  imports: [RouterLink, TranslocoPipe, IonButton, IonIcon, LineBadgeComponent, NextBusComponent],
+  imports: [
+    RouterLink,
+    TranslocoPipe,
+    IonButton,
+    IonIcon,
+    LineBadgeComponent,
+    LocateBusButtonComponent,
+    NextBusComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '[class.expanded]': 'expanded()' },
   styles: `
@@ -253,6 +262,8 @@ const COUNTDOWN_MINUTES = 60;
           </form>
         } @else {
           <div class="actions">
+            <!-- Abre el Mapa siguiendo el autobús que antes llega a esta parada. -->
+            <app-locate-bus-button [stop]="stop()" size="small" />
             <ion-button size="small" [routerLink]="['/stops', stop().id]">
               {{ 'map.openStopDetail' | transloco }}
             </ion-button>
