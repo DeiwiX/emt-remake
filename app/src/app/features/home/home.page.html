@@ -116,7 +116,9 @@
       <nav class="sections" [attr.aria-label]="'home.menuLabel' | transloco">
         <!-- Aviso activo y tu parada favorita más cercana, lo primero. -->
         <app-active-alert-strip />
-        <app-nearest-favorite />
+        @if (hasFavorites()) {
+          <app-favorites-section [nearestFirst]="true" />
+        }
 
         <!-- Acción principal: planificar un viaje. -->
         <a class="plan-card" routerLink="/plan">

@@ -158,7 +158,7 @@ describe('Pantallas con datos', () => {
     expect(stop.querySelector('app-map-view, .detail-map')).toBeNull();
   });
 
-  it('el inicio muestra tu parada favorita desplegada con sus próximos buses', async () => {
+  it('el inicio muestra todas las favoritas, con la primera desplegada y plegable', async () => {
     localStorage.setItem(
       'emt-remake.favorites.v1',
       JSON.stringify([
@@ -171,12 +171,18 @@ describe('Pantallas con datos', () => {
       ]),
     );
     TestBed.inject(FavoritesService);
-    // Inicio: la favorita (sin ubicación, la primera) desplegada con sus próximos buses.
+    // Inicio: todas las favoritas; la primera desplegada, y se puede cerrar.
     const home = await open('/');
-    const featured = home.querySelector('app-nearest-favorite');
-    expect(featured?.textContent).toContain('Tu parada');
-    expect(featured?.textContent).toContain('Alameda');
-    expect(featured?.querySelectorAll('app-next-bus').length).toBeGreaterThan(0);
+    const section = home.querySelector('app-favorites-section');
+    const tile = section?.querySelector('app-favorite-stop-tile');
+    expect(tile?.textContent).toContain('Alameda');
+    expect(tile?.querySelectorAll('app-next-bus').length).toBeGreaterThan(0);
+    const toggle = tile?.querySelector<HTMLButtonElement>('button.toggle');
+    toggle?.click();
+    TestBed.tick();
+    expect(toggle?.getAttribute('aria-expanded')).toBe('false');
+    expect(tile?.querySelector('app-next-bus')).toBeNull();
+    expect(section?.querySelector('a[href^="/plan"]')).not.toBeNull();
   });
 
   it('Favoritos lista las paradas (plegadas) y los trayectos guardados', async () => {

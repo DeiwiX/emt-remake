@@ -32,7 +32,7 @@ import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-
 import { LineListComponent } from '../../shared/line-list/line-list.component';
 import { StopListComponent } from '../../shared/stop-list/stop-list.component';
 import { ActiveAlertStripComponent } from './active-alert-strip.component';
-import { NearestFavoriteComponent } from './nearest-favorite.component';
+import { FavoritesSectionComponent } from './favorites-section.component';
 
 const MAX_STOP_RESULTS = 30;
 
@@ -46,7 +46,7 @@ const MAX_STOP_RESULTS = 30;
     LineListComponent,
     StopListComponent,
     ActiveAlertStripComponent,
-    NearestFavoriteComponent,
+    FavoritesSectionComponent,
     IonContent,
     IonIcon,
     IonItem,

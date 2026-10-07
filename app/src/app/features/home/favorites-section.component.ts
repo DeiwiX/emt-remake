@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { IonIcon } from '@ionic/angular';
@@ -6,6 +6,8 @@ import { IonIcon } from '@ionic/angular';
 import { NetworkRepository } from '../../core/data/repositories';
 import { placeParam } from '../../core/favorites/favorites';
 import { FavoritesService } from '../../core/favorites/favorites.service';
+import { metresBetween } from '../../core/location/geo';
+import { LocationService } from '../../core/location/location.service';
 import { Stop } from '../../core/models/network.model';
 import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component';
 import { FavoriteStopTileComponent } from './favorite-stop-tile.component';
@@ -34,6 +36,23 @@ import { FavoriteStopTileComponent } from './favorite-stop-tile.component';
     }
     h2 ion-icon {
       color: var(--app-accent);
+    }
+    .stops-title {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 4px 12px;
+    }
+    .nearest {
+      min-height: 44px;
+      padding: 0 4px;
+      border: 0;
+      background: transparent;
+      color: var(--ion-color-primary);
+      font: inherit;
+      font-weight: 600;
+      text-decoration: underline;
+      cursor: pointer;
     }
     h3 {
       margin: 4px 0 0;
@@ -99,12 +118,19 @@ import { FavoriteStopTileComponent } from './favorite-stop-tile.component';
     <h2><ion-icon name="star" aria-hidden="true" />{{ 'favorites.title' | transloco }}</h2>
 
     @if (stops().length > 0) {
-      <h3>{{ 'favorites.stops' | transloco }}</h3>
+      <h3 class="stops-title">
+        {{ 'favorites.stops' | transloco }}
+        @if (nearestFirst() && location && stops().length > 1 && !located()) {
+          <button type="button" class="nearest" (click)="locate()">
+            {{ 'home.whichIsNearest' | transloco }}
+          </button>
+        }
+      </h3>
       <div class="stop-grid">
         @for (stop of stops(); track stop.id) {
           <app-favorite-stop-tile
             [stop]="stop"
-            [expanded]="expandedId() === stop.id"
+            [expanded]="openId() === stop.id"
             (toggled)="toggle(stop.id)"
           />
         }
@@ -147,20 +173,46 @@ export class FavoritesSectionComponent {
   private readonly network = inject(NetworkRepository);
   private readonly favorites = inject(FavoritesService);
 
+  /**
+   * En el inicio: la más cercana primero (si se ha pedido la ubicación) y
+   * desplegada al abrir; se puede cerrar y abrir cualquiera.
+   */
+  readonly nearestFirst = input(false);
+  protected readonly location = inject(LocationService, { optional: true });
+  protected readonly located = computed(() => this.location?.state().status === 'ready');
+
   /** Paradas guardadas que siguen existiendo en los datos actuales. */
   protected readonly stops = computed(() => {
     this.network.stops();
-    return this.favorites
+    const stops = this.favorites
       .stops()
       .map((id) => this.network.getStop(id))
       .filter((stop): stop is Stop => !!stop);
+    const state = this.location?.state();
+    if (!this.nearestFirst() || state?.status !== 'ready') return stops;
+    const distance = (stop: Stop) => metresBetween(state.point, [stop.lat, stop.lon]);
+    return [...stops].sort((a, b) => distance(a) - distance(b));
   });
 
-  /** Parada desplegada (solo una a la vez, para no alargar el inicio). */
-  protected readonly expandedId = signal<string | null>(null);
+  /**
+   * Parada desplegada (solo una a la vez, para no alargar el inicio). Sin elegir
+   * ninguna todavía (undefined), en el inicio se despliega la primera.
+   */
+  private readonly expandedId = signal<string | null | undefined>(undefined);
+  protected readonly openId = computed(() => {
+    const chosen = this.expandedId();
+    if (chosen !== undefined) return chosen;
+    return this.nearestFirst() ? (this.stops()[0]?.id ?? null) : null;
+  });
 
   protected toggle(stopId: string): void {
-    this.expandedId.update((id) => (id === stopId ? null : stopId));
+    this.expandedId.set(this.openId() === stopId ? null : stopId);
+  }
+
+  /** "¿Cuál tengo más cerca?": pide la ubicación y despliega la más cercana. */
+  protected locate(): void {
+    this.expandedId.set(undefined);
+    void this.location?.locate();
   }
 
   protected readonly lines = computed(() => {
