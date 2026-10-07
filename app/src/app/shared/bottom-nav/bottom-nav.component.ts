@@ -30,22 +30,27 @@ interface Tab {
   imports: [TranslocoPipe, IonIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
+    /*
+     * La ola va dentro de la barra (sobre el fondo de la app), no encima de la
+     * pantalla: así no tapa lo último de cada página.
+     */
     :host {
       position: relative;
       display: block;
       flex: none;
-      background: var(--app-header, #1c2b4a);
+      background: var(--ion-background-color);
       color: #fff;
-      padding-bottom: env(safe-area-inset-bottom, 0px);
     }
-    /* Borde superior en ola, del fondo de la pantalla al azul noche. */
     .edge {
-      position: absolute;
-      top: -11px;
-      left: 0;
+      display: block;
       width: 100%;
-      height: 12px;
+      height: 22px;
+      margin-bottom: -1px;
       pointer-events: none;
+    }
+    .bar {
+      background: var(--app-header, #1c2b4a);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
     }
     nav {
       position: relative;
@@ -130,31 +135,33 @@ interface Tab {
     }
   `,
   template: `
-    <svg class="edge" viewBox="0 0 390 12" preserveAspectRatio="none" aria-hidden="true">
+    <svg class="edge" viewBox="0 0 390 22" preserveAspectRatio="none" aria-hidden="true">
       <path
-        d="M0 6 C 48 0, 97 0, 146 6 S 244 12, 292 6 S 365 0, 390 4 V12 H0Z"
+        d="M0 11 C 48 0, 97 0, 146 11 S 244 22, 292 11 S 365 0, 390 6 V22 H0Z"
         fill="var(--app-header, #1c2b4a)"
       />
     </svg>
-    <nav [attr.aria-label]="'nav.label' | transloco">
-      @if (activeIndex() !== -1) {
-        <span class="bubble" [style.--index]="activeIndex()" aria-hidden="true">
-          @for (k of [activeIndex()]; track k) {
-            <span class="ripple"></span><span class="ripple second"></span>
-          }
-        </span>
-      }
-      @for (tab of tabs(); track tab.path; let i = $index) {
-        <a
-          [attr.href]="tab.path"
-          [class.active]="i === activeIndex()"
-          [attr.aria-current]="i === activeIndex() ? 'page' : null"
-          (click)="go($event, i)"
-        >
-          <ion-icon [name]="tab.icon" aria-hidden="true" />{{ tab.label | transloco }}
-        </a>
-      }
-    </nav>
+    <div class="bar">
+      <nav [attr.aria-label]="'nav.label' | transloco">
+        @if (activeIndex() !== -1) {
+          <span class="bubble" [style.--index]="activeIndex()" aria-hidden="true">
+            @for (k of [activeIndex()]; track k) {
+              <span class="ripple"></span><span class="ripple second"></span>
+            }
+          </span>
+        }
+        @for (tab of tabs(); track tab.path; let i = $index) {
+          <a
+            [attr.href]="tab.path"
+            [class.active]="i === activeIndex()"
+            [attr.aria-current]="i === activeIndex() ? 'page' : null"
+            (click)="go($event, i)"
+          >
+            <ion-icon [name]="tab.icon" aria-hidden="true" />{{ tab.label | transloco }}
+          </a>
+        }
+      </nav>
+    </div>
   `,
 })
 export class BottomNavComponent {
