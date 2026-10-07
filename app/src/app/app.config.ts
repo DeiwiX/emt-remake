@@ -9,6 +9,7 @@ import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { provideIonicAngular } from '@ionic/angular';
 
 import { routes } from './app.routes';
+import { pageTransition } from './core/theme/page-transition';
 import { provideI18n } from './core/i18n/i18n.providers';
 import { provideData } from './data/provide-data';
 import { provideSettings } from './core/settings/provide-settings';
@@ -30,7 +31,7 @@ export const appConfig: ApplicationConfig = {
     // Sin precarga: las pantallas se descargan solo al visitarlas (RNF-02).
     provideRouter(routes, withComponentInputBinding()),
     // Sin animaciones de transición si el sistema pide reducir el movimiento (RNF-05).
-    provideIonicAngular({ animated: !prefersReducedMotion() }),
+    provideIonicAngular({ animated: !prefersReducedMotion(), navAnimation: pageTransition }),
     provideI18n(),
     provideSettings(),
     provideData(),

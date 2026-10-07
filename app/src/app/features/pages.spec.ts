@@ -158,7 +158,7 @@ describe('Pantallas con datos', () => {
     expect(stop.querySelector('app-map-view, .detail-map')).toBeNull();
   });
 
-  it('el inicio muestra todas las favoritas, con la primera desplegada y plegable', async () => {
+  it('el inicio muestra todas las favoritas cerradas, y se abren y cierran', async () => {
     localStorage.setItem(
       'emt-remake.favorites.v1',
       JSON.stringify([
@@ -171,17 +171,20 @@ describe('Pantallas con datos', () => {
       ]),
     );
     TestBed.inject(FavoritesService);
-    // Inicio: todas las favoritas; la primera desplegada, y se puede cerrar.
+    // Inicio: todas las favoritas, cerradas; se abren y se cierran al tocarlas.
     const home = await open('/');
     const section = home.querySelector('app-favorites-section');
     const tile = section?.querySelector('app-favorite-stop-tile');
     expect(tile?.textContent).toContain('Alameda');
-    expect(tile?.querySelectorAll('app-next-bus').length).toBeGreaterThan(0);
+    expect(tile?.querySelector('app-next-bus')).toBeNull();
     const toggle = tile?.querySelector<HTMLButtonElement>('button.toggle');
     toggle?.click();
     TestBed.tick();
+    expect(toggle?.getAttribute('aria-expanded')).toBe('true');
+    expect(tile?.querySelectorAll('app-next-bus').length).toBeGreaterThan(0);
+    toggle?.click();
+    TestBed.tick();
     expect(toggle?.getAttribute('aria-expanded')).toBe('false');
-    expect(tile?.querySelector('app-next-bus')).toBeNull();
     expect(section?.querySelector('a[href^="/plan"]')).not.toBeNull();
   });
 

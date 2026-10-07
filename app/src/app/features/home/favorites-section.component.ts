@@ -174,8 +174,8 @@ export class FavoritesSectionComponent {
   private readonly favorites = inject(FavoritesService);
 
   /**
-   * En el inicio: la más cercana primero (si se ha pedido la ubicación) y
-   * desplegada al abrir; se puede cerrar y abrir cualquiera.
+   * En el inicio: la más cercana primero (si se ha pedido la ubicación). Todas
+   * empiezan cerradas y cualquiera se abre y se cierra.
    */
   readonly nearestFirst = input(false);
   protected readonly location = inject(LocationService, { optional: true });
@@ -194,16 +194,15 @@ export class FavoritesSectionComponent {
     return [...stops].sort((a, b) => distance(a) - distance(b));
   });
 
-  /**
-   * Parada desplegada (solo una a la vez, para no alargar el inicio). Sin elegir
-   * ninguna todavía (undefined), en el inicio se despliega la primera.
-   */
+  /** Parada desplegada (solo una a la vez, para no alargar el inicio). */
   private readonly expandedId = signal<string | null | undefined>(undefined);
   protected readonly openId = computed(() => {
     const chosen = this.expandedId();
     if (chosen !== undefined) return chosen;
-    return this.nearestFirst() ? (this.stops()[0]?.id ?? null) : null;
+    // Tras "¿Cuál tengo más cerca?" se abre la más cercana; al entrar, todas cerradas.
+    return this.nearestFirst() && this.nearestRequested() ? (this.stops()[0]?.id ?? null) : null;
   });
+  private readonly nearestRequested = signal(false);
 
   protected toggle(stopId: string): void {
     this.expandedId.set(this.openId() === stopId ? null : stopId);
@@ -212,6 +211,7 @@ export class FavoritesSectionComponent {
   /** "¿Cuál tengo más cerca?": pide la ubicación y despliega la más cercana. */
   protected locate(): void {
     this.expandedId.set(undefined);
+    this.nearestRequested.set(true);
     void this.location?.locate();
   }
 
