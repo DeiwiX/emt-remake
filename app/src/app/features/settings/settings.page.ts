@@ -18,6 +18,7 @@ import {
   IonToggle,
   IonToolbar,
 } from '@ionic/angular';
+import { DataDateComponent } from '../../shared/data-date/data-date.component';
 
 import { AVAILABLE_LANGS, AppLang } from '../../core/i18n/i18n.config';
 import { BusSize, SettingsService, ThemePreference } from '../../core/settings/settings.service';
@@ -32,6 +33,7 @@ const BUS_SIZES: readonly BusSize[] = ['small', 'normal', 'large'];
 @Component({
   selector: 'app-settings',
   imports: [
+    DataDateComponent,
     RouterLink,
     TranslocoPipe,
     IonBackButton,
@@ -57,6 +59,7 @@ const BUS_SIZES: readonly BusSize[] = ['small', 'normal', 'large'];
           <ion-back-button defaultHref="/" [text]="'common.back' | transloco" />
         </ion-buttons>
         <ion-title>{{ 'settings.title' | transloco }}</ion-title>
+        <app-data-date slot="end" />
       </ion-toolbar>
     </ion-header>
     <ion-content>

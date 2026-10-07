@@ -1,6 +1,6 @@
 import { Direction } from '../models/network.model';
 import { minutesToStop, vehicleProgress } from './live-estimate';
-import { Vehicle } from './realtime';
+import { Vehicle, estimateArrivals } from './realtime';
 import { previousReports } from './realtime.service';
 import { dwellMinutes, dwellSeconds } from './dwell';
 import { buildTrack, positionOnTrack, smoothAlong } from './vehicle-position';
@@ -121,5 +121,33 @@ describe('Fase 6: tiempo parado en las paradas', () => {
     // A mitad del tiempo de marcha (0,75 de 1,5 min): a mitad del tramo.
     const middle = (track.stopDistances[1]! + track.stopDistances[2]!) / 2;
     expect(moving.along).toBeCloseTo(middle, 0);
+  });
+});
+
+describe('Fase 6: posición y llegada cuadran', () => {
+  it('con el avance del mapa, la llegada sale de él y un bus ya pasado no cuenta', () => {
+    const now = { dateKey: '20261005', seconds: 8 * 3600 + 10 * 60 };
+    const progressOf = (minutes: number) => () => ({
+      directionKey: '1|1',
+      profile: [0, 4, 10, 15],
+      minutes,
+      pace: 1,
+    });
+    // Va por el minuto 9 de su horario: a "c" (minuto 10) le falta 1 min.
+    const [arrival] = estimateArrivals([bus('b', '08:09')], '1', direction, 2, now, {
+      progressOf: progressOf(9),
+    });
+    expect(arrival?.minutes).toBe(1);
+    // Por el minuto 11: ya ha pasado "c".
+    expect(
+      estimateArrivals([bus('b', '08:09')], '1', direction, 2, now, { progressOf: progressOf(11) }),
+    ).toEqual([]);
+  });
+
+  it('el autobús dibujado nunca va por delante de la estimación', () => {
+    let state = smoothAlong(undefined, 1000);
+    // La estimación retrocede (dato nuevo): el dibujo no se queda por delante.
+    state = smoothAlong(state, 900);
+    expect(state.shown).toBeLessThanOrEqual(900);
   });
 });

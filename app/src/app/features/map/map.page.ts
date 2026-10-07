@@ -46,6 +46,7 @@ import { LineColorsService } from '../../core/map/line-colors.service';
 import { toMapRoutes, toMapStops } from '../../core/map/map-features';
 import { LatLon, Polygon, ShapeDetail, Zone } from '../../core/models/network.model';
 import { searchLines, searchStops, searchStreets, searchZones } from '../../core/search/search';
+import { DataDateComponent } from '../../shared/data-date/data-date.component';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
 import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component';
 import { MapViewComponent } from '../../shared/map-view/map-view.component';
@@ -100,6 +101,7 @@ const DETAIL_ZOOM = 14;
 @Component({
   selector: 'app-map',
   imports: [
+    DataDateComponent,
     RouterLink,
     TranslocoPipe,
     DataStatusBannerComponent,

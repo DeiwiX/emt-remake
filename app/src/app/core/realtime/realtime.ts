@@ -142,7 +142,15 @@ export function estimateArrivals(
       if (last === -1) return [];
       const progress = vehicleProgress(vehicle, direction, last, context);
       if (!progress) return [];
-      const remaining = minutesToStop(progress, last, stopIndex, age);
+      // Si el mapa ya sabe por dónde va (posición dibujada), la llegada sale de ahí.
+      const live = context.progressOf?.(vehicle.id);
+      const sameDirection = live?.directionKey === `${lineId}|${direction.id}`;
+      const remaining =
+        live && sameDirection
+          ? (live.profile[stopIndex]! - live.minutes) / live.pace
+          : minutesToStop(progress, last, stopIndex, age);
+      // Ya ha pasado por la parada (con medio minuto de margen mientras para).
+      if (remaining < -0.5) return [];
       if (remaining > MAX_ESTIMATE_MINUTES) return [];
       return [
         {

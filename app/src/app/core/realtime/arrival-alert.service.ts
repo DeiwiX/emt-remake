@@ -7,7 +7,7 @@ import { ArrivalNotifier, NotificationText, TrackingRequest } from './arrival-no
 import { formatClock, madridClock } from '../schedule/schedule';
 import { estimateArrivals } from './realtime';
 import { RealtimeService } from './realtime.service';
-import { LiveContextService } from './live-context.service';
+import { ArrivalContextService } from './arrival-context.service';
 
 const STORAGE_KEY = 'emt-remake.arrival-alert.v1';
 const MINUTE_MS = 60_000;
@@ -32,7 +32,7 @@ export interface AlertTarget {
 @Injectable({ providedIn: 'root' })
 export class ArrivalAlertService {
   private readonly realtime = inject(RealtimeService);
-  private readonly live = inject(LiveContextService);
+  private readonly arrivalContext = inject(ArrivalContextService);
   private readonly network = inject(NetworkRepository);
   private readonly notifier = inject(ArrivalNotifier);
   private readonly transloco = inject(TranslocoService);
@@ -88,7 +88,7 @@ export class ArrivalAlertService {
       direction,
       direction.stopIds.indexOf(alert.stopId),
       this.realtime.now(),
-      this.live.context(),
+      this.arrivalContext.context(),
     ).map((a) => ({ vehicleId: a.vehicleId, at: now + a.minutes * MINUTE_MS }));
   }
 

@@ -5,7 +5,7 @@ import { IonIcon } from '@ionic/angular';
 import { NetworkRepository } from '../../core/data/repositories';
 import { estimateArrivals } from '../../core/realtime/realtime';
 import { RealtimeService } from '../../core/realtime/realtime.service';
-import { LiveContextService } from '../../core/realtime/live-context.service';
+import { ArrivalContextService } from '../../core/realtime/arrival-context.service';
 import { ScheduleClockService } from '../../core/schedule/schedule-clock.service';
 import { dateKeyOf, dayOffsetOf, formatClock } from '../../core/schedule/schedule';
 import { ArrivalAlertPickerComponent } from '../arrival-alert-picker/arrival-alert-picker.component';
@@ -22,12 +22,15 @@ interface Passing {
   readonly main: string;
   readonly sub: string;
   readonly spoken: string;
+  /** true si es una llegada estimada en tiempo real (si no, del horario). */
+  readonly live?: boolean;
 }
 
 /**
  * Próximos buses de una línea por una parada, de un vistazo: tres cápsulas con
- * lo que falta (o la hora, si es tarde) y la hora de paso. Siempre se indica
- * que es horario programado: el tiempo real llegará en la Fase 3.
+ * lo que falta (o la hora, si es tarde) y la hora de paso. Las primeras, si las
+ * hay, son llegadas en tiempo real (con un punto verde); el resto, del horario.
+ * Debajo se dice de dónde sale cada una.
  */
 @Component({
   selector: 'app-next-bus',
@@ -78,27 +81,31 @@ interface Passing {
       font-size: 0.8rem;
       white-space: nowrap;
     }
-    /* Tiempo real estimado (solo en la app del móvil): encima del horario. */
-    .live {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 6px;
-      margin-bottom: 6px;
-      color: var(--ion-text-color);
+    .passing.live {
+      border-color: #1e8e3e;
+    }
+    .passing.live:first-child {
+      background: #17703a;
+      border-color: #17703a;
+      color: #fff;
     }
     .live-dot {
-      width: 10px;
-      height: 10px;
+      display: inline-block;
+      flex: none;
+      width: 9px;
+      height: 9px;
       border-radius: 50%;
       background: #1e8e3e;
       box-shadow: 0 0 0 3px rgba(30, 142, 62, 0.2);
     }
-    .live strong {
-      font-size: 1.05rem;
+    .passing.live:first-child .live-dot {
+      background: #fff;
+      box-shadow: none;
     }
-    .live small {
-      color: var(--ion-color-step-600, var(--ion-text-color-step-400, #666));
+    .main {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
     }
     .source {
       display: flex;
@@ -109,26 +116,6 @@ interface Passing {
     }
   `,
   template: `
-    @if (live(); as live) {
-      <p class="live" role="status">
-        <span class="live-dot" aria-hidden="true"></span>
-        <span>
-          {{ 'realtime.arrives' | transloco }}
-          <strong>{{
-            live.first === 0
-              ? ('nextBus.now' | transloco)
-              : ('realtime.inMinutes' | transloco: { minutes: live.first })
-          }}</strong>
-          @if (live.second !== null) {
-            · {{ 'realtime.then' | transloco: { minutes: live.second } }}
-          }
-        </span>
-        @if (live.delay !== null) {
-          <small class="delay">{{ delayText(live.delay) }}</small>
-        }
-        <small>{{ 'realtime.estimated' | transloco: { age: live.age } }}</small>
-      </p>
-    }
     @switch (view().kind) {
       @case ('loading') {
         <span class="status">
@@ -136,24 +123,45 @@ interface Passing {
         </span>
       }
       @case ('unavailable') {
-        <span class="status">
-          <ion-icon name="time-outline" aria-hidden="true" />{{ 'nextBus.unavailable' | transloco }}
-        </span>
+        @if (view().passings.length === 0) {
+          <span class="status">
+            <ion-icon name="time-outline" aria-hidden="true" />{{
+              'nextBus.unavailable' | transloco
+            }}
+          </span>
+        }
       }
-      @case ('ready') {
-        <span class="visually-hidden">{{ spoken() }}</span>
-        <ul class="passings" aria-hidden="true">
-          @for (passing of view().passings; track $index) {
-            <li class="passing">
-              <span class="main">{{ passing.main }}</span>
-              <span class="sub">{{ passing.sub }}</span>
-            </li>
+    }
+    @if (view().passings.length > 0) {
+      <span class="visually-hidden" role="status">{{ spoken() }}</span>
+      <ul class="passings" aria-hidden="true">
+        @for (passing of view().passings; track $index) {
+          <li class="passing" [class.live]="passing.live">
+            <span class="main">
+              @if (passing.live) {
+                <span class="live-dot"></span>
+              }
+              {{ passing.main }}
+            </span>
+            <span class="sub">{{ passing.sub }}</span>
+          </li>
+        }
+      </ul>
+      <!-- De dónde sale cada tiempo: tiempo real (y antigüedad del dato) y horario. -->
+      <span class="source" aria-hidden="true">
+        @if (live(); as live) {
+          <span class="live-dot"></span>
+          {{ 'realtime.source' | transloco: { age: live.age } }}
+          @if (live.delay !== null) {
+            · {{ delayText(live.delay) }}
           }
-        </ul>
-        <span class="source" aria-hidden="true">
+          @if (view().scheduled > 0) {
+            · {{ 'nextBus.restScheduled' | transloco }}
+          }
+        } @else {
           <ion-icon name="time-outline" />{{ 'nextBus.scheduled' | transloco }}
-        </span>
-      }
+        }
+      </span>
     }
     <!-- "Avísame": sobre un bus en tiempo real o del horario (solo en la app del móvil). -->
     <app-arrival-alert-picker
@@ -168,7 +176,7 @@ export class NextBusComponent {
   private readonly transloco = inject(TranslocoService);
   private readonly network = inject(NetworkRepository);
   private readonly realtime = inject(RealtimeService);
-  private readonly liveContext = inject(LiveContextService);
+  private readonly arrivalContext = inject(ArrivalContextService);
 
   readonly lineId = input.required<string>();
   readonly directionId = input.required<number>();
@@ -191,13 +199,12 @@ export class NextBusComponent {
       direction,
       direction.stopIds.indexOf(this.stopId()),
       this.realtime.now(),
-      this.liveContext.context(),
+      this.arrivalContext.context(),
     );
-    const [first, second] = arrivals;
+    const [first] = arrivals;
     if (!first) return null;
     return {
-      first: first.minutes,
-      second: second?.minutes ?? null,
+      minutes: arrivals.slice(0, COUNT - 1).map((a) => a.minutes),
       age: first.ageMinutes,
       delay: first.delayMinutes,
     };
@@ -211,19 +218,53 @@ export class NextBusComponent {
     });
   }
 
+  /**
+   * Cápsulas: primero las llegadas en tiempo real (como mucho dos) y después los
+   * pasos del horario que van detrás de ellas (para no contar dos veces el mismo
+   * autobús), hasta tres en total.
+   */
   protected readonly view = computed(() => {
-    const result = this.schedule.nextBuses(this.lineId(), this.directionId(), this.stopId(), COUNT);
-    if (result.state !== 'ready') return { kind: result.state, passings: [] as Passing[] };
-    const now = result.clock.minutes;
+    const result = this.schedule.nextBuses(
+      this.lineId(),
+      this.directionId(),
+      this.stopId(),
+      COUNT + 2,
+    );
+    const now = this.schedule.clock().minutes;
+    const liveMinutes = this.live()?.minutes ?? [];
+    const live = liveMinutes.map((minutes) => this.livePassing(minutes, now));
+    if (result.state !== 'ready') {
+      return { kind: result.state, passings: live, scheduled: 0 };
+    }
+    const after = liveMinutes.length > 0 ? now + liveMinutes.at(-1)! + 2 : -Infinity;
+    const scheduled = result.times
+      .filter((minutes) => minutes > after)
+      .slice(0, COUNT - live.length)
+      .map((minutes) =>
+        this.passing(minutes, result.clock.minutes, dateKeyOf(result.clock.dateKey, minutes)),
+      );
     return {
       kind: 'ready' as const,
-      passings: result.times.map((minutes) =>
-        this.passing(minutes, now, dateKeyOf(result.clock.dateKey, minutes)),
-      ),
+      passings: [...live, ...scheduled],
+      scheduled: scheduled.length,
     };
   });
 
-  /** "Próximos buses según horario: 18:12, en 4 min; 18:27, en 19 min…" */
+  private livePassing(minutes: number, now: number): Passing {
+    const time = formatClock(now + minutes);
+    const main =
+      minutes === 0
+        ? this.transloco.translate('nextBus.now')
+        : this.transloco.translate('realtime.pill', { minutes });
+    return {
+      main,
+      sub: time,
+      spoken: `${this.transloco.translate('realtime.liveLabel')}: ${main}`,
+      live: true,
+    };
+  }
+
+  /** "Próximos buses: en tiempo real, en ~4 min; 18:27, en 19 min…" */
   protected readonly spoken = computed(() =>
     this.transloco.translate('nextBus.spoken', {
       list: this.view()

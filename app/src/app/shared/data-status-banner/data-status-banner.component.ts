@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { IonButton, IonNote } from '@ionic/angular';
 
 import { DataStatusService } from '../../core/data/repositories';
+import { shortDate } from '../data-date/short-date';
 
 /**
  * Estado de los datos visible en pantalla (RF-08, RF-09): carga, ausencia de
@@ -57,27 +57,20 @@ import { DataStatusService } from '../../core/data/repositories';
             </ion-button>
           </div>
         }
-        @case ('current') {
-          <p class="ion-padding-horizontal">
-            <ion-note>{{ 'data.updatedOn' | transloco: { date: view().date } }}</ion-note>
-          </p>
-        }
+        <!-- Con los datos al día no se dice nada: la fecha va en la cabecera. -->
       }
     </div>
   `,
 })
 export class DataStatusBannerComponent {
   private readonly dataStatus = inject(DataStatusService);
-  private readonly lang = toSignal(inject(TranslocoService).langChanges$, { requireSync: true });
 
   protected readonly view = computed(() => {
     const status = this.dataStatus.status();
     if (status.state === 'loading') return { kind: 'loading' as const, date: '', checking: true };
     if (status.state === 'unavailable')
       return { kind: 'unavailable' as const, date: '', checking: false };
-    const date = new Intl.DateTimeFormat(this.lang(), { dateStyle: 'long' }).format(
-      status.generatedAt,
-    );
+    const date = shortDate(status.generatedAt);
     return {
       kind: status.updateFailed ? ('outdated' as const) : ('current' as const),
       date,

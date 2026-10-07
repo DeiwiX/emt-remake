@@ -49,6 +49,7 @@ import { ServiceClock, dayOffsetOf, formatClock } from '../../core/schedule/sche
 import { ScheduleClockService } from '../../core/schedule/schedule-clock.service';
 import { SimpleModeService } from '../../core/settings/simple-mode.service';
 import { WalkingService } from '../../core/walking/walking.service';
+import { DataDateComponent } from '../../shared/data-date/data-date.component';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
 import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component';
 import { MapViewComponent } from '../../shared/map-view/map-view.component';
@@ -91,6 +92,7 @@ interface Row {
 @Component({
   selector: 'app-plan',
   imports: [
+    DataDateComponent,
     RouterLink,
     TranslocoPipe,
     DataStatusBannerComponent,

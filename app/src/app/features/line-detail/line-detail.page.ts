@@ -33,6 +33,7 @@ import { SimpleModeService } from '../../core/settings/simple-mode.service';
 import { VehicleTrackerService } from '../../core/realtime/vehicle-tracker.service';
 import { LatLon } from '../../core/models/network.model';
 import { MapViewComponent } from '../../shared/map-view/map-view.component';
+import { DataDateComponent } from '../../shared/data-date/data-date.component';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
 import { FavoriteButtonComponent } from '../../shared/favorite-button/favorite-button.component';
 import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component';
@@ -41,6 +42,7 @@ import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component
 @Component({
   selector: 'app-line-detail',
   imports: [
+    DataDateComponent,
     RouterLink,
     TranslocoPipe,
     DataStatusBannerComponent,

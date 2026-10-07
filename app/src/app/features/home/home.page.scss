@@ -91,6 +91,12 @@ ion-content {
   font-size: 1.2rem;
 }
 
+/* Fecha de los datos, discreta, junto a Ajustes. */
+.data-date {
+  margin-inline-start: auto;
+  color: #fff;
+}
+
 .round-button {
   display: grid;
   place-items: center;

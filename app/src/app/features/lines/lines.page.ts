@@ -10,6 +10,7 @@ import {
 } from '@ionic/angular';
 
 import { NetworkRepository } from '../../core/data/repositories';
+import { DataDateComponent } from '../../shared/data-date/data-date.component';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
 import { LineListComponent } from '../../shared/line-list/line-list.component';
 
@@ -17,6 +18,7 @@ import { LineListComponent } from '../../shared/line-list/line-list.component';
 @Component({
   selector: 'app-lines',
   imports: [
+    DataDateComponent,
     TranslocoPipe,
     DataStatusBannerComponent,
     LineListComponent,
@@ -35,6 +37,7 @@ import { LineListComponent } from '../../shared/line-list/line-list.component';
           <ion-back-button defaultHref="/" [text]="'common.back' | transloco" />
         </ion-buttons>
         <ion-title>{{ 'lines.title' | transloco }}</ion-title>
+        <app-data-date slot="end" />
       </ion-toolbar>
     </ion-header>
     <ion-content>

@@ -27,6 +27,7 @@ import { toMapRoutes, toMapStops } from '../../core/map/map-features';
 import { LatLon, Line, Stop } from '../../core/models/network.model';
 import { searchStops } from '../../core/search/search';
 import { SimpleModeService } from '../../core/settings/simple-mode.service';
+import { DataDateComponent } from '../../shared/data-date/data-date.component';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
 import { MapViewComponent } from '../../shared/map-view/map-view.component';
 import { StopCardComponent } from '../../shared/stop-card/stop-card.component';
@@ -49,6 +50,7 @@ const MAX_FIT_RESULTS = 200;
 @Component({
   selector: 'app-stops',
   imports: [
+    DataDateComponent,
     TranslocoPipe,
     DataStatusBannerComponent,
     MapViewComponent,
@@ -74,6 +76,7 @@ const MAX_FIT_RESULTS = 200;
           <ion-back-button defaultHref="/" [text]="'common.back' | transloco" />
         </ion-buttons>
         <ion-title>{{ 'stops.title' | transloco }}</ion-title>
+        <app-data-date slot="end" />
       </ion-toolbar>
       <ion-toolbar>
         <ion-searchbar

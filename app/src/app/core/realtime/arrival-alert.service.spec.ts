@@ -2,7 +2,7 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { TranslocoService } from '@jsverse/transloco';
 
-import { NetworkRepository, ScheduleRepository } from '../data/repositories';
+import { NetworkRepository, ScheduleRepository, ShapeRepository } from '../data/repositories';
 import { Line } from '../models/network.model';
 import { ArrivalAlertService } from './arrival-alert.service';
 import { ArrivalNotifier } from './arrival-notifier';
@@ -59,6 +59,7 @@ describe('ArrivalAlertService', () => {
           useValue: { available: true, fetchVehicles: () => Promise.resolve(records) },
         },
         { provide: ArrivalNotifier, useValue: notifier },
+        { provide: ShapeRepository, useValue: { getShapes: () => Promise.resolve(new Map()) } },
         // Sin horario: el aviso se ajusta solo con los minutos típicos.
         {
           provide: ScheduleRepository,

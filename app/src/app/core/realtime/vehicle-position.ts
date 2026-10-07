@@ -62,6 +62,16 @@ export interface TrackedPlace extends TrackedPosition {
   readonly stoppedAt: number | null;
 }
 
+/** Posición a partir del dato publicado, con su avance en "minutos de horario". */
+export interface ReportedPlace extends TrackedPlace {
+  /**
+   * Minutos de horario (desde la salida) en los que va ahora el autobús. Con este
+   * mismo valor se calcula lo que le falta a cada parada, así la posición del
+   * mapa y la llegada estimada siempre cuadran.
+   */
+  readonly progressMinutes: number;
+}
+
 /** Parte del tramo que, como mucho, se puede pasar parado en la parada. */
 const MAX_DWELL_SHARE = 0.5;
 
@@ -110,7 +120,7 @@ export function positionFromReport(
   reported: LatLon,
   elapsedMinutes: number,
   dwellMinutes: readonly number[] = [],
-): TrackedPlace {
+): ReportedPlace {
   const last = stopMinutes.length - 1;
   const from = track.stopDistances[lastStop]!;
   const to = track.stopDistances[Math.min(last, lastStop + 2)] ?? track.cumulative.at(-1)!;
@@ -128,13 +138,15 @@ export function positionFromReport(
     const dwell = Math.min(dwellMinutes[k] ?? 0, span * MAX_DWELL_SHARE);
     atReport = stopMinutes[k]! + (fraction > 0 ? dwell + fraction * (span - dwell) : 0);
   }
-  return positionOnTrack(
+  const progressMinutes = atReport + Math.max(0, elapsedMinutes);
+  const place = positionOnTrack(
     track,
     stopMinutes,
     k,
-    atReport - stopMinutes[k]! + Math.max(0, elapsedMinutes),
+    progressMinutes - stopMinutes[k]!,
     dwellMinutes,
   );
+  return { ...place, progressMinutes };
 }
 
 /** Distancia sobre el trazado del punto más cercano a `p`, buscando entre `from` y `to` metros. */
@@ -199,7 +211,9 @@ export function smoothAlong(previous: SmoothState | undefined, target: number): 
   // un salto de la estimación, que se corrige poco a poco.
   const step = Math.min(Math.max(target - previous.target, 0), MAX_METRES_PER_TICK);
   const advanced = previous.shown + step;
-  return { shown: advanced + (target - advanced) * SMOOTHING, target };
+  // Nunca por delante de la estimación: el autobús no puede verse pasada una
+  // parada a la que aún le falta llegar.
+  return { shown: Math.min(target, advanced + (target - advanced) * SMOOTHING), target };
 }
 
 /** Rumbo aproximado entre dos puntos cercanos (plano local). */

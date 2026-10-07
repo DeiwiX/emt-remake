@@ -27,15 +27,18 @@ import { SimpleModeService } from '../../core/settings/simple-mode.service';
 import { VehicleTrackerService } from '../../core/realtime/vehicle-tracker.service';
 import { LatLon, Line } from '../../core/models/network.model';
 import { MapViewComponent } from '../../shared/map-view/map-view.component';
+import { DataDateComponent } from '../../shared/data-date/data-date.component';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
 import { FavoriteButtonComponent } from '../../shared/favorite-button/favorite-button.component';
 import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component';
 import { NextBusComponent } from '../../shared/next-bus/next-bus.component';
+import { LocateBusButtonComponent } from '../../shared/locate-bus-button/locate-bus-button.component';
 
 /** Detalle de parada en texto (RF-04): datos, ubicación y líneas con su sentido. */
 @Component({
   selector: 'app-stop-detail',
   imports: [
+    DataDateComponent,
     RouterLink,
     TranslocoPipe,
     DataStatusBannerComponent,
@@ -43,6 +46,7 @@ import { NextBusComponent } from '../../shared/next-bus/next-bus.component';
     LineBadgeComponent,
     MapViewComponent,
     NextBusComponent,
+    LocateBusButtonComponent,
     IonBackButton,
     IonButton,
     IonButtons,
@@ -65,6 +69,7 @@ import { NextBusComponent } from '../../shared/next-bus/next-bus.component';
           <ion-back-button defaultHref="/stops" [text]="'common.back' | transloco" />
         </ion-buttons>
         <ion-title>{{ 'stopDetail.title' | transloco: { id: stopId() } }}</ion-title>
+        <app-data-date slot="end" />
       </ion-toolbar>
     </ion-header>
     <ion-content [scrollY]="false">
@@ -101,6 +106,8 @@ import { NextBusComponent } from '../../shared/next-bus/next-bus.component';
                 [label]="'favorites.stopLabel' | transloco: { name: stop.name }"
                 [showText]="true"
               />
+              <!-- Abre el Mapa siguiendo el autobús que antes llega a esta parada. -->
+              <app-locate-bus-button [stop]="stop" />
               @if (stop.address) {
                 <p>{{ 'stopDetail.address' | transloco: { address: stop.address } }}</p>
               }
@@ -212,6 +219,7 @@ export class StopDetailPage {
   });
 
   constructor() {
+    this.tracker.watch();
     inject(ShapeRepository)
       .getShapes('detail')
       .then((shapes) => this.geometries.set(shapes))

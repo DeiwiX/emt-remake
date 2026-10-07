@@ -6,15 +6,15 @@ import { IonButton, IonIcon } from '@ionic/angular';
 import { NetworkRepository } from '../../core/data/repositories';
 import { metresBetween } from '../../core/location/geo';
 import { Stop } from '../../core/models/network.model';
-import { LiveContextService } from '../../core/realtime/live-context.service';
+import { ArrivalContextService } from '../../core/realtime/arrival-context.service';
 import { MAX_AGE_MINUTES, ageMinutes, estimateArrivals } from '../../core/realtime/realtime';
 import { RealtimeService } from '../../core/realtime/realtime.service';
 
 /**
  * "Ubicar bus más cercano": abre el Mapa siguiendo el autobús que antes llega a
- * la parada (de cualquiera de sus líneas), según el tiempo real. Si ninguno
- * viene de camino (p. ej. en una parada de cabecera o cuando acaban de pasar),
- * el de sus líneas que está más cerca. Solo en la app del móvil.
+ * la parada (de cualquiera de sus líneas, en el sentido que pasa por ella),
+ * según el tiempo real. Solo autobuses que van hacia la parada: nunca uno que
+ * ya ha pasado o va en sentido contrario. Solo en la app del móvil.
  */
 @Component({
   selector: 'app-locate-bus-button',
@@ -45,7 +45,7 @@ import { RealtimeService } from '../../core/realtime/realtime.service';
 export class LocateBusButtonComponent {
   private readonly network = inject(NetworkRepository);
   private readonly realtime = inject(RealtimeService);
-  private readonly live = inject(LiveContextService);
+  private readonly arrivalContext = inject(ArrivalContextService);
 
   readonly stop = input.required<Stop>();
   readonly size = input<'small' | 'default'>('default');
@@ -72,7 +72,7 @@ export class LocateBusButtonComponent {
         direction,
         direction.stopIds.indexOf(stop.id),
         this.realtime.now(),
-        this.live.context(),
+        this.arrivalContext.context(),
       );
       if (first && (best?.minutes == null || first.minutes < best.minutes)) {
         best = {
@@ -84,12 +84,21 @@ export class LocateBusButtonComponent {
       }
     }
     if (best) return best;
-    const lines = new Set(stop.services.map((s) => s.lineId));
+    // Sin llegada estimada (p. ej. a más de una hora): el que va hacia la parada
+    // por su mismo sentido y está más cerca. Nunca uno que ya pasó o va al revés.
     const now = this.realtime.now();
     for (const vehicle of this.realtime.vehicles()) {
-      if (!lines.has(vehicle.lineId)) continue;
+      const service = stop.services.find(
+        (s) => s.lineId === vehicle.lineId && s.directionId === vehicle.directionId,
+      );
+      if (!service) continue;
       const age = ageMinutes(vehicle, now);
       if (age === null || age > MAX_AGE_MINUTES) continue;
+      const stopIds =
+        this.network.getLine(vehicle.lineId)?.directions.find((d) => d.id === vehicle.directionId)
+          ?.stopIds ?? [];
+      const stopIndex = stopIds.indexOf(stop.id);
+      if (stopIds.lastIndexOf(vehicle.lastStopId, stopIndex - 1) === -1) continue;
       const metres = Math.round(metresBetween([stop.lat, stop.lon], [vehicle.lat, vehicle.lon]));
       if (!best || metres < best.metres) {
         best = { vehicleId: vehicle.id, lineId: vehicle.lineId, minutes: null, metres };

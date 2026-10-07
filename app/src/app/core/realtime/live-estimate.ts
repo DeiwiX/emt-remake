@@ -23,6 +23,19 @@ export interface LiveContext {
   ) => readonly ScheduledTrip[];
   /** Dato anterior (distinto) del mismo autobús. */
   readonly previous?: (vehicleId: string) => Vehicle | undefined;
+  /**
+   * Avance actual de cada autobús que se está dibujando en el mapa (Fase 6). Si
+   * se conoce, la llegada sale de él: así coincide con la posición dibujada.
+   */
+  readonly progressOf?: (vehicleId: string) => LiveProgress | undefined;
+}
+
+/** Avance de un autobús ahora: minutos de horario recorridos, con su perfil y ritmo. */
+export interface LiveProgress {
+  readonly directionKey: string;
+  readonly profile: readonly number[];
+  readonly minutes: number;
+  readonly pace: number;
 }
 
 export interface VehicleProgress {

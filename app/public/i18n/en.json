@@ -205,11 +205,12 @@
     "unavailable": "No timetable published for this line",
     "tomorrow": "tomorrow",
     "scheduled": "From the published timetable",
-    "spoken": "Next buses from the timetable: {{list}}.",
+    "spoken": "Next buses: {{list}}.",
     "now": "now",
     "inMinutes": "{{minutes}} min",
     "inHours": "in {{hours}} h {{minutes}} min",
-    "today": "today"
+    "today": "today",
+    "restScheduled": "the rest from the timetable"
   },
   "favorites": {
     "save": "Save",
@@ -246,7 +247,7 @@
     "privacy": "Your location is only used on this device and is never stored or sent anywhere.",
     "locateBus": "Locate nearest bus (line {{line}}, ~{{minutes}} min)",
     "locateBusNear": "Locate nearest bus (line {{line}}, {{metres}} m away)",
-    "noBus": "No buses of these lines in real time right now"
+    "noBus": "No bus is heading to this stop right now"
   },
   "realtime": {
     "arrives": "Arrives",
@@ -258,7 +259,10 @@
     "late": "{{minutes}} min late",
     "early": "{{minutes}} min early",
     "refresh": "Refresh",
-    "refreshing": "Refreshing…"
+    "refreshing": "Refreshing…",
+    "liveLabel": "Real time",
+    "source": "Real time (data from {{age}} min ago)",
+    "pill": "~{{minutes}} min"
   },
   "traffic": {
     "show": "Show traffic closures",

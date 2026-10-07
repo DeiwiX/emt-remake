@@ -4,6 +4,7 @@
       <ion-back-button defaultHref="/" [text]="'common.back' | transloco" />
     </ion-buttons>
     <ion-title>{{ 'near.title' | transloco }}</ion-title>
+    <app-data-date slot="end" />
     <ion-buttons slot="end">
       <ion-button
         [disabled]="state().status === 'locating'"

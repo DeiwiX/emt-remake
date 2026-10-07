@@ -7,7 +7,7 @@ import { alertOptions } from '../../core/realtime/arrival-alert';
 import { AlertTarget, ArrivalAlertService } from '../../core/realtime/arrival-alert.service';
 import { estimateArrivals } from '../../core/realtime/realtime';
 import { RealtimeService } from '../../core/realtime/realtime.service';
-import { LiveContextService } from '../../core/realtime/live-context.service';
+import { ArrivalContextService } from '../../core/realtime/arrival-context.service';
 import { ScheduleClockService } from '../../core/schedule/schedule-clock.service';
 import {
   addDays,
@@ -121,7 +121,7 @@ export class ArrivalAlertPickerComponent {
   protected readonly alerts = inject(ArrivalAlertService);
   private readonly schedule = inject(ScheduleClockService);
   private readonly realtime = inject(RealtimeService);
-  private readonly live = inject(LiveContextService);
+  private readonly arrivalContext = inject(ArrivalContextService);
   private readonly network = inject(NetworkRepository);
   private readonly transloco = inject(TranslocoService);
 
@@ -181,7 +181,7 @@ export class ArrivalAlertPickerComponent {
           direction,
           direction.stopIds.indexOf(this.stopId()),
           this.realtime.now(),
-          this.live.context(),
+          this.arrivalContext.context(),
         ).map((a) => ({
           key: `v${a.vehicleId}`,
           label: { key: 'alert.liveOption', params: { minutes: a.minutes } },

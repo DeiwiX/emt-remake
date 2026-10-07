@@ -9,6 +9,7 @@ import {
   IonTitle,
   IonToolbar,
 } from '@ionic/angular';
+import { DataDateComponent } from '../../shared/data-date/data-date.component';
 
 import { APP_INFO } from '../../core/app-info';
 import { DataStatusService } from '../../core/data/repositories';
@@ -16,7 +17,16 @@ import { DataStatusService } from '../../core/data/repositories';
 /** Acerca de (RF-11): aviso de app no oficial, origen y licencia de los datos, mapa y privacidad. */
 @Component({
   selector: 'app-about',
-  imports: [TranslocoPipe, IonBackButton, IonButtons, IonContent, IonHeader, IonTitle, IonToolbar],
+  imports: [
+    DataDateComponent,
+    TranslocoPipe,
+    IonBackButton,
+    IonButtons,
+    IonContent,
+    IonHeader,
+    IonTitle,
+    IonToolbar,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
     section {
@@ -34,6 +44,7 @@ import { DataStatusService } from '../../core/data/repositories';
           <ion-back-button defaultHref="/settings" [text]="'common.back' | transloco" />
         </ion-buttons>
         <ion-title>{{ 'about.title' | transloco }}</ion-title>
+        <app-data-date slot="end" />
       </ion-toolbar>
     </ion-header>
     <ion-content>

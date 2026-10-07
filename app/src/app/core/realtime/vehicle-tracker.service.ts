@@ -6,7 +6,7 @@ import { MAX_AGE_MINUTES, madridInstant } from './realtime';
 import { RealtimeService } from './realtime.service';
 import { LiveContextService } from './live-context.service';
 import { dwellMinutes } from './dwell';
-import { vehicleProgress } from './live-estimate';
+import { LiveProgress, vehicleProgress } from './live-estimate';
 import {
   RouteTrack,
   SmoothState,
@@ -37,6 +37,8 @@ export interface TrackedVehicle {
   readonly estimated: boolean;
   /** Retraso frente a su viaje del horario, en minutos (null si no se sabe). */
   readonly delayMinutes: number | null;
+  /** Avance en minutos de horario (solo si la posición se ha estimado sobre el recorrido). */
+  readonly progress?: LiveProgress;
 }
 
 /**
@@ -59,6 +61,16 @@ export class VehicleTrackerService {
   private smooth = new Map<string, SmoothState & { key: string }>();
 
   readonly available = this.realtime.available;
+  private readonly activeSignal = signal(false);
+  /** true mientras alguna pantalla sigue a los autobuses (hay posiciones dibujadas). */
+  readonly active = this.activeSignal.asReadonly();
+  /** Avance de cada autobús dibujado, para que la llegada estimada cuadre con el mapa. */
+  readonly progress = computed(() => {
+    const map = new Map<string, LiveProgress>();
+    for (const vehicle of this.vehicles())
+      if (vehicle.progress) map.set(vehicle.id, vehicle.progress);
+    return map;
+  });
 
   /** Autobuses de la red publicada con su posición estimada ahora. */
   readonly vehicles = computed<readonly TrackedVehicle[]>(() => {
@@ -122,6 +134,12 @@ export class VehicleTrackerService {
           stoppedAtId:
             target.stoppedAt === null ? null : (direction.stopIds[target.stoppedAt] ?? null),
           estimated: true,
+          progress: {
+            directionKey: key,
+            profile: progress.profile,
+            minutes: target.progressMinutes,
+            pace: progress.pace,
+          },
           delayMinutes: progress.delay === null ? null : Math.round(progress.delay),
         },
       ];
@@ -136,11 +154,13 @@ export class VehicleTrackerService {
     this.realtime.watch(destroyRef);
     void this.loadShapes();
     this.watchers++;
+    this.activeSignal.set(true);
     if (this.watchers === 1) {
       this.timer = setInterval(() => this.nowSignal.set(madridInstant(new Date())), TICK_MS);
     }
     destroyRef.onDestroy(() => {
       this.watchers--;
+      if (this.watchers === 0) this.activeSignal.set(false);
       if (this.watchers === 0 && this.timer) {
         clearInterval(this.timer);
         this.timer = null;

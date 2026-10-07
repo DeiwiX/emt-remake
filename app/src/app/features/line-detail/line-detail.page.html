@@ -4,6 +4,7 @@
       <ion-back-button defaultHref="/lines" [text]="'common.back' | transloco" />
     </ion-buttons>
     <ion-title>{{ 'lines.line' | transloco: { id: lineId() } }}</ion-title>
+    <app-data-date slot="end" />
   </ion-toolbar>
 </ion-header>
 

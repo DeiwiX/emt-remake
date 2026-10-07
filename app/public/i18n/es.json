@@ -205,11 +205,12 @@
     "unavailable": "Sin horario publicado para esta línea",
     "tomorrow": "mañana",
     "scheduled": "Según el horario programado",
-    "spoken": "Próximos buses según horario: {{list}}.",
+    "spoken": "Próximos buses: {{list}}.",
     "now": "ahora",
     "inMinutes": "{{minutes}} min",
     "inHours": "en {{hours}} h {{minutes}} min",
-    "today": "hoy"
+    "today": "hoy",
+    "restScheduled": "el resto, según horario"
   },
   "favorites": {
     "save": "Guardar",
@@ -246,7 +247,7 @@
     "privacy": "Tu ubicación solo se usa en este dispositivo y no se guarda ni se envía a ningún sitio.",
     "locateBus": "Ubicar bus más cercano (línea {{line}}, ~{{minutes}} min)",
     "locateBusNear": "Ubicar bus más cercano (línea {{line}}, a {{metres}} m)",
-    "noBus": "Ahora no hay buses de estas líneas en tiempo real"
+    "noBus": "Ningún bus va ahora hacia esta parada"
   },
   "realtime": {
     "arrives": "Llega",
@@ -258,7 +259,10 @@
     "late": "Va {{minutes}} min tarde",
     "early": "Va {{minutes}} min adelantado",
     "refresh": "Actualizar",
-    "refreshing": "Actualizando…"
+    "refreshing": "Actualizando…",
+    "liveLabel": "En tiempo real",
+    "source": "Tiempo real (dato de hace {{age}} min)",
+    "pill": "~{{minutes}} min"
   },
   "traffic": {
     "show": "Mostrar cortes de tráfico",

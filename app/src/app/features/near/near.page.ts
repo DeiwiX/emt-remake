@@ -29,6 +29,7 @@ import { LocationService } from '../../core/location/location.service';
 import { toMapStops } from '../../core/map/map-features';
 import { LatLon, Stop } from '../../core/models/network.model';
 import { SimpleModeService } from '../../core/settings/simple-mode.service';
+import { DataDateComponent } from '../../shared/data-date/data-date.component';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
 import { MapViewComponent } from '../../shared/map-view/map-view.component';
 import { StopCardComponent } from '../../shared/stop-card/stop-card.component';
@@ -44,6 +45,7 @@ const ROUGH_ACCURACY_M = 100;
 @Component({
   selector: 'app-near',
   imports: [
+    DataDateComponent,
     TranslocoPipe,
     DataStatusBannerComponent,
     MapViewComponent,

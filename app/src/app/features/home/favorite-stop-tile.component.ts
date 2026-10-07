@@ -15,6 +15,9 @@ import { NetworkRepository } from '../../core/data/repositories';
 import { MAX_ALIAS_LENGTH } from '../../core/favorites/favorites';
 import { FavoritesService } from '../../core/favorites/favorites.service';
 import { Stop } from '../../core/models/network.model';
+import { ArrivalContextService } from '../../core/realtime/arrival-context.service';
+import { estimateArrivals } from '../../core/realtime/realtime';
+import { RealtimeService } from '../../core/realtime/realtime.service';
 import { dayOffsetOf, formatClock } from '../../core/schedule/schedule';
 import { ScheduleClockService } from '../../core/schedule/schedule-clock.service';
 import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component';
@@ -44,6 +47,14 @@ const COUNTDOWN_MINUTES = 60;
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '[class.expanded]': 'expanded()' },
   styles: `
+    .live-dot {
+      flex: none;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #1e8e3e;
+      box-shadow: 0 0 0 3px rgba(30, 142, 62, 0.2);
+    }
     :host {
       display: block;
       border-radius: 16px;
@@ -200,7 +211,11 @@ const COUNTDOWN_MINUTES = 60;
       </span>
       @if (next(); as next) {
         <span class="next">
-          <ion-icon name="time-outline" aria-hidden="true" />
+          @if (next.live) {
+            <span class="live-dot" [attr.aria-label]="'realtime.liveLabel' | transloco"></span>
+          } @else {
+            <ion-icon name="time-outline" aria-hidden="true" />
+          }
           <span>
             {{ 'favorites.nextLine' | transloco: { id: next.lineId } }}:
             <strong>
@@ -278,6 +293,9 @@ const COUNTDOWN_MINUTES = 60;
   `,
 })
 export class FavoriteStopTileComponent {
+  private readonly realtime = inject(RealtimeService);
+  private readonly arrivalContext = inject(ArrivalContextService);
+
   private readonly network = inject(NetworkRepository);
   private readonly schedule = inject(ScheduleClockService);
   private readonly favorites = inject(FavoritesService);
@@ -296,6 +314,7 @@ export class FavoriteStopTileComponent {
 
   constructor() {
     void this.schedule.load();
+    this.realtime.watch();
   }
 
   /** Guarda el nombre propio (vacío lo quita). */
@@ -317,8 +336,29 @@ export class FavoriteStopTileComponent {
     })),
   );
 
-  /** El primer bus que pasa por la parada, de cualquiera de sus líneas. */
+  /**
+   * El primer bus que pasa por la parada, de cualquiera de sus líneas: con
+   * tiempo real si lo hay (el más próximo de todos) y, si no, según el horario.
+   */
   protected readonly next = computed(() => {
+    let live: { lineId: string; minutes: number } | null = null;
+    for (const service of this.stop().services) {
+      const direction = this.network
+        .getLine(service.lineId)
+        ?.directions.find((d) => d.id === service.directionId);
+      if (!direction) continue;
+      const [first] = estimateArrivals(
+        this.realtime.vehicles(),
+        service.lineId,
+        direction,
+        direction.stopIds.indexOf(this.stop().id),
+        this.realtime.now(),
+        this.arrivalContext.context(),
+      );
+      if (first && (!live || first.minutes < live.minutes)) {
+        live = { lineId: service.lineId, minutes: first.minutes };
+      }
+    }
     let best: { lineId: string; minutes: number; now: number } | null = null;
     for (const service of this.stop().services) {
       const result = this.schedule.nextBuses(
@@ -333,14 +373,19 @@ export class FavoriteStopTileComponent {
         best = { lineId: service.lineId, minutes, now: result.clock.minutes };
       }
     }
+    const scheduledWait = best ? Math.max(0, Math.round(best.minutes - best.now)) : Infinity;
+    if (live && live.minutes <= scheduledWait) {
+      return { lineId: live.lineId, wait: live.minutes, time: '', tomorrow: false, live: true };
+    }
     if (!best) return null;
-    const wait = Math.max(0, Math.round(best.minutes - best.now));
+    const wait = scheduledWait;
     return {
       lineId: best.lineId,
       wait: wait < COUNTDOWN_MINUTES ? wait : null,
       time: formatClock(best.minutes),
       /** Pasada la medianoche del día de servicio: "mañana 08:30". */
       tomorrow: dayOffsetOf(best.minutes) > 0 && wait >= COUNTDOWN_MINUTES,
+      live: false,
     };
   });
 }

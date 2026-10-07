@@ -18,6 +18,7 @@ import {
   IonNote,
   IonSearchbar,
 } from '@ionic/angular';
+import { DataDateComponent } from '../../shared/data-date/data-date.component';
 
 import { NetworkRepository } from '../../core/data/repositories';
 import { ZonesStore } from '../../core/data/zones-store.service';
@@ -37,6 +38,7 @@ const MAX_STOP_RESULTS = 30;
 @Component({
   selector: 'app-home',
   imports: [
+    DataDateComponent,
     RouterLink,
     TranslocoPipe,
     DataStatusBannerComponent,
