@@ -158,7 +158,7 @@ describe('Pantallas con datos', () => {
     expect(stop.querySelector('app-map-view, .detail-map')).toBeNull();
   });
 
-  it('las paradas guardadas aparecen en el inicio con sus líneas', async () => {
+  it('el inicio muestra tu parada favorita desplegada con sus próximos buses', async () => {
     localStorage.setItem(
       'emt-remake.favorites.v1',
       JSON.stringify([
@@ -171,10 +171,31 @@ describe('Pantallas con datos', () => {
       ]),
     );
     TestBed.inject(FavoritesService);
+    // Inicio: la favorita (sin ubicación, la primera) desplegada con sus próximos buses.
     const home = await open('/');
-    const section = home.querySelector('app-favorites-section');
+    const featured = home.querySelector('app-nearest-favorite');
+    expect(featured?.textContent).toContain('Tu parada');
+    expect(featured?.textContent).toContain('Alameda');
+    expect(featured?.querySelectorAll('app-next-bus').length).toBeGreaterThan(0);
+  });
+
+  it('Favoritos lista las paradas (plegadas) y los trayectos guardados', async () => {
+    localStorage.setItem(
+      'emt-remake.favorites.v1',
+      JSON.stringify([
+        { kind: 'stop', stopId: '2' },
+        {
+          kind: 'trip',
+          origin: { kind: 'stop', id: '1', name: 'Zapateros' },
+          destination: { kind: 'stop', id: '2', name: 'Alameda' },
+        },
+      ]),
+    );
+    TestBed.inject(FavoritesService);
+    // Plegada con nombre y líneas; al pulsarla se despliega.
+    const page = await open('/favorites');
+    const section = page.querySelector('app-favorites-section');
     expect(section?.textContent).toContain('Mis favoritos');
-    // Plegada: nombre y líneas; al pulsarla se despliega con los próximos buses.
     const tile = section?.querySelector('app-favorite-stop-tile');
     expect(tile?.textContent).toContain('Alameda');
     expect(tile?.querySelectorAll('app-line-badge').length).toBeGreaterThan(0);

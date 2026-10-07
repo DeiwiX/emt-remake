@@ -22,7 +22,10 @@
     "resultCountWithZones": "Encontradas: {{zones}} zonas, {{streets}} calles, {{lines}} líneas y {{stops}} paradas",
     "question": "¿A dónde vas?",
     "linesTile": "Líneas",
-    "streetResults": "Calles"
+    "streetResults": "Calles",
+    "nearestFavorite": "Tu favorita más cercana · a {{metres}} m",
+    "yourStop": "Tu parada",
+    "whichIsNearest": "¿Cuál tengo más cerca?"
   },
   "lines": {
     "title": "Todas las líneas",
@@ -314,6 +317,13 @@
     "dayAt": "{{day}} {{time}}",
     "trackingTitle": "Siguiendo tu bus · Línea {{line}}",
     "trackingText": "Llega a {{stop}} en ~{{minutes}} min · te aviso {{before}} min antes",
-    "trackingWaiting": "Esperando a que aparezca en tiempo real · aviso previsto a las {{time}}"
+    "trackingWaiting": "Esperando a que aparezca en tiempo real · aviso previsto a las {{time}}",
+    "strip": "Te aviso {{minutes}} min antes del {{line}} en {{stop}}",
+    "stripLeft": "llega en ~{{minutes}} min"
+  },
+  "nav": {
+    "label": "Navegación principal",
+    "home": "Inicio",
+    "favorites": "Favoritos"
   }
 }

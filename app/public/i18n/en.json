@@ -22,7 +22,10 @@
     "resultCountWithZones": "Found: {{zones}} areas, {{streets}} streets, {{lines}} lines and {{stops}} stops",
     "question": "Where are you going?",
     "linesTile": "Lines",
-    "streetResults": "Streets"
+    "streetResults": "Streets",
+    "nearestFavorite": "Your nearest favourite · {{metres}} m away",
+    "yourStop": "Your stop",
+    "whichIsNearest": "Which one is nearest?"
   },
   "lines": {
     "title": "All lines",
@@ -314,6 +317,13 @@
     "dayAt": "{{day}} {{time}}",
     "trackingTitle": "Following your bus · Line {{line}}",
     "trackingText": "Arrives at {{stop}} in ~{{minutes}} min · alert {{before}} min before",
-    "trackingWaiting": "Waiting for it to appear in real time · alert due at {{time}}"
+    "trackingWaiting": "Waiting for it to appear in real time · alert due at {{time}}",
+    "strip": "I will notify you {{minutes}} min before the {{line}} at {{stop}}",
+    "stripLeft": "arrives in ~{{minutes}} min"
+  },
+  "nav": {
+    "label": "Main navigation",
+    "home": "Home",
+    "favorites": "Favourites"
   }
 }

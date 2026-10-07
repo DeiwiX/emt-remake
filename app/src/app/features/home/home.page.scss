@@ -263,9 +263,9 @@ ion-content {
   padding: 0 16px 16px;
 }
 
-/* En el móvil (con mapa) quedan tres tarjetas: "Cerca de mí" ocupa la fila entera. */
+/* El Mapa está en la barra inferior: quedan Líneas y Cerca de mí, una al lado de otra. */
 @media (max-width: 767px) {
-  .tile-grid:not(.simple) .tile-near {
+  .tile-grid.never .tile-near {
     grid-column: 1 / -1;
   }
 }

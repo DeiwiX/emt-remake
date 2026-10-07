@@ -114,6 +114,10 @@
       }
     } @else {
       <nav class="sections" [attr.aria-label]="'home.menuLabel' | transloco">
+        <!-- Aviso activo y tu parada favorita más cercana, lo primero. -->
+        <app-active-alert-strip />
+        <app-nearest-favorite />
+
         <!-- Acción principal: planificar un viaje. -->
         <a class="plan-card" routerLink="/plan">
           <span class="tile-icon"><ion-icon name="trail-sign-outline" aria-hidden="true" /></span>
@@ -124,18 +128,7 @@
           <ion-icon class="tile-arrow" name="arrow-forward" aria-hidden="true" />
         </a>
 
-        @if (hasFavorites()) {
-          <app-favorites-section />
-        }
-
         <div class="tile-grid" [class.simple]="simpleMode()">
-          @if (!simpleMode()) {
-            <a class="tile tone-sea" routerLink="/map">
-              <span class="tile-icon"><ion-icon name="map-outline" aria-hidden="true" /></span>
-              <span class="tile-title">{{ 'map.title' | transloco }}</span>
-              <span class="tile-description">{{ 'home.mapDescription' | transloco }}</span>
-            </a>
-          }
           <a class="tile tone-coral" routerLink="/lines">
             <span class="tile-icon"><ion-icon name="bus-outline" aria-hidden="true" /></span>
             <span class="tile-title">{{ 'home.linesTile' | transloco }}</span>

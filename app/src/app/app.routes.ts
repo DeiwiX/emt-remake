@@ -41,6 +41,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/plan/plan.page').then((m) => m.PlanPage),
   },
   {
+    path: 'favorites',
+    loadComponent: () => import('./features/favorites/favorites.page').then((m) => m.FavoritesPage),
+  },
+  {
     path: 'settings',
     loadComponent: () => import('./features/settings/settings.page').then((m) => m.SettingsPage),
   },
