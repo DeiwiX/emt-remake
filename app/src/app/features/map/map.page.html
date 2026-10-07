@@ -39,6 +39,9 @@
           (trafficSelected)="selectTraffic($event)"
           [vehicles]="vehicles()"
           [followPoint]="followPoint()"
+          [refreshButton]="realtimeAvailable"
+          [refreshing]="refreshingVehicles()"
+          (refreshRequested)="refreshVehicles()"
           (vehicleSelected)="selectVehicle($event)"
         />
       </div>
@@ -47,50 +50,6 @@
     <!-- Alternativa en texto de todo lo que muestra el mapa (RNF-01). -->
     <section #panel class="split-panel" [attr.aria-label]="'map.panelLabel' | transloco">
       <app-data-status-banner />
-      <!-- Cortes de tráfico: resumen y botón para mostrarlos u ocultarlos en el mapa. -->
-      <div class="traffic-toggle ion-padding-horizontal">
-        <ion-note>
-          @if (traffic().length > 0) {
-            {{
-              'traffic.summary'
-                | transloco
-                  : { active: activeTraffic(), upcoming: traffic().length - activeTraffic() }
-            }}
-          } @else {
-            {{ 'traffic.none' | transloco }}
-          }
-        </ion-note>
-        @if (traffic().length > 0) {
-          <ion-button
-            size="small"
-            fill="outline"
-            [attr.aria-pressed]="showTraffic()"
-            (click)="showTraffic.set(!showTraffic())"
-          >
-            {{ (showTraffic() ? 'traffic.hide' : 'traffic.show') | transloco }}
-          </ion-button>
-        }
-      </div>
-      @if (realtimeAvailable) {
-        <!-- Tiempo real: cuántos autobuses hay, de cuándo es el dato y "Actualizar". -->
-        <div class="live-note ion-padding-horizontal">
-          @if (vehiclesAge() !== null) {
-            <ion-note>{{
-              'realtime.onMap' | transloco: { count: vehicles().length, age: vehiclesAge() }
-            }}</ion-note>
-          }
-          <ion-button
-            size="small"
-            fill="outline"
-            [disabled]="refreshingVehicles()"
-            (click)="refreshVehicles()"
-          >
-            <ion-icon slot="start" name="refresh" aria-hidden="true" />
-            {{ (refreshingVehicles() ? 'realtime.refreshing' : 'realtime.refresh') | transloco }}
-          </ion-button>
-        </div>
-      }
-
       @if (searching()) {
         <!-- Resultados de búsqueda: elegir uno lo muestra en el mapa sin salir de él. -->
         <p class="ion-padding-horizontal" role="status">
@@ -313,17 +272,35 @@
                 {{ line.name }}
               </h2>
             </div>
-            <ul>
+            <!-- Sentido en el mapa: los dos o uno (recorrido, paradas y autobuses). -->
+            <div
+              class="direction-choice"
+              role="group"
+              [attr.aria-label]="'map.directionLabel' | transloco"
+            >
+              <button
+                type="button"
+                [attr.aria-pressed]="!directionOf().has(line.id)"
+                (click)="chooseDirection(line.id, null)"
+              >
+                {{ 'map.bothDirections' | transloco }}
+              </button>
               @for (d of line.directions; track d.id) {
-                <li>
+                <button
+                  type="button"
+                  [attr.aria-pressed]="directionOf().get(line.id) === d.id"
+                  (click)="chooseDirection(line.id, d.id)"
+                >
                   {{ 'lineDetail.towards' | transloco: { headsign: d.headsign } }}
-                  · {{ 'lineDetail.stopCount' | transloco: { count: d.stopIds.length } }}
-                  @if (d.shapeQuality === 'approximate') {
-                    ({{ 'map.approximate' | transloco }})
-                  }
-                </li>
+                  <small
+                    >{{ 'lineDetail.stopCount' | transloco: { count: d.stopIds.length } }}
+                    @if (d.shapeQuality === 'approximate') {
+                      · {{ 'map.approximate' | transloco }}
+                    }
+                  </small>
+                </button>
               }
-            </ul>
+            </div>
             <div class="actions">
               <ion-button [routerLink]="['/lines', line.id]">{{
                 'map.openDetail' | transloco
@@ -337,6 +314,39 @@
           <p class="ion-padding-horizontal">{{ 'map.simpleHint' | transloco }}</p>
         } @else {
           <p class="ion-padding-horizontal">{{ 'map.hint' | transloco }}</p>
+        }
+
+        <!-- Lo general (cortes y autobuses) va después de lo que el usuario ha elegido. -->
+        <!-- Cortes de tráfico: resumen y botón para mostrarlos u ocultarlos en el mapa. -->
+        <div class="traffic-toggle ion-padding-horizontal">
+          <ion-note>
+            @if (traffic().length > 0) {
+              {{
+                'traffic.summary'
+                  | transloco
+                    : { active: activeTraffic(), upcoming: traffic().length - activeTraffic() }
+              }}
+            } @else {
+              {{ 'traffic.none' | transloco }}
+            }
+          </ion-note>
+          @if (traffic().length > 0) {
+            <ion-button
+              size="small"
+              fill="outline"
+              [attr.aria-pressed]="showTraffic()"
+              (click)="showTraffic.set(!showTraffic())"
+            >
+              {{ (showTraffic() ? 'traffic.hide' : 'traffic.show') | transloco }}
+            </ion-button>
+          }
+        </div>
+        @if (realtimeAvailable && vehiclesAge() !== null) {
+          <p class="live-note ion-padding-horizontal">
+            <ion-note>{{
+              'realtime.onMap' | transloco: { count: vehicles().length, age: vehiclesAge() }
+            }}</ion-note>
+          </p>
         }
 
         <!-- Visibilidad y resaltado de cada línea: solo tienen sentido con mapa. -->

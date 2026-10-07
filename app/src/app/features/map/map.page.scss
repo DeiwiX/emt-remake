@@ -143,3 +143,42 @@ app-line-badge {
     outline-offset: 2px;
   }
 }
+
+/* Sentido de la línea: botones grandes, el elegido relleno. */
+.direction-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0;
+
+  button {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1.5px solid var(--ion-color-primary);
+    border-radius: 12px;
+    background: transparent;
+    color: var(--ion-color-primary);
+    font: inherit;
+    font-weight: 600;
+    text-align: start;
+    cursor: pointer;
+
+    small {
+      font-weight: 400;
+      opacity: 0.85;
+    }
+
+    &[aria-pressed='true'] {
+      background: var(--ion-color-primary);
+      color: var(--ion-color-primary-contrast);
+    }
+
+    &:focus-visible {
+      outline: 3px solid var(--ion-color-primary);
+      outline-offset: 2px;
+    }
+  }
+}

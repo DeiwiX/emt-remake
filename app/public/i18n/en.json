@@ -93,7 +93,10 @@
     "zoneStops": "Stops in the area",
     "simpleTitle": "Areas, lines and stops",
     "simpleHint": "Search for a neighbourhood, line or stop. You are in simple mode, without the map.",
-    "lineChip": "Line {{id}}: {{name}}. Show or hide on the map"
+    "lineChip": "Line {{id}}: {{name}}. Show or hide on the map",
+    "locateMe": "My location",
+    "directionLabel": "Direction on the map",
+    "bothDirections": "Both directions"
   },
   "settings": {
     "title": "Settings",

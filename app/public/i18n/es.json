@@ -93,7 +93,10 @@
     "zoneStops": "Paradas de la zona",
     "simpleTitle": "Barrios, líneas y paradas",
     "simpleHint": "Busca un barrio, una línea o una parada. Estás en modo sencillo, sin mapa.",
-    "lineChip": "Línea {{id}}: {{name}}. Mostrar u ocultar en el mapa"
+    "lineChip": "Línea {{id}}: {{name}}. Mostrar u ocultar en el mapa",
+    "locateMe": "Mi ubicación",
+    "directionLabel": "Sentido en el mapa",
+    "bothDirections": "Los dos sentidos"
   },
   "settings": {
     "title": "Ajustes",

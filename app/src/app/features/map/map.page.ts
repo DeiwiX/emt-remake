@@ -290,7 +290,8 @@ export class MapPage {
       .filter(
         (v) =>
           v.id === selected ||
-          ((visible === null || visible.has(v.lineId)) &&
+          (this.shows(v.lineId, v.directionId) &&
+            (visible === null || visible.has(v.lineId)) &&
             (!highlighted || highlighted.has(v.lineId))),
       )
       .map((v) => {
@@ -338,9 +339,32 @@ export class MapPage {
   private detailLoaded = false;
   private readonly loadingShapes = new Set<ShapeDetail>();
 
-  protected readonly routes = computed(() =>
-    toMapRoutes(this.lines(), this.geometries(), (id) => this.colors.colorFor(id)),
-  );
+  /** Sentido elegido de cada línea (sin elegir: los dos). */
+  protected readonly directionOf = signal<ReadonlyMap<string, number>>(new Map());
+  private shows(lineId: string, directionId: number): boolean {
+    const chosen = this.directionOf().get(lineId);
+    return chosen === undefined || chosen === directionId;
+  }
+
+  protected readonly routes = computed(() => {
+    this.directionOf();
+    return toMapRoutes(
+      this.lines(),
+      this.geometries(),
+      (id) => this.colors.colorFor(id),
+      (line, directionId) => this.shows(line.id, directionId),
+    );
+  });
+
+  /** Elige el sentido de una línea en el mapa (null: los dos). */
+  protected chooseDirection(lineId: string, directionId: number | null): void {
+    this.directionOf.update((current) => {
+      const next = new Map(current);
+      if (directionId === null) next.delete(lineId);
+      else next.set(lineId, directionId);
+      return next;
+    });
+  }
 
   /**
    * Mientras se busca, se resaltan las líneas que coinciden y el resto se atenúa
@@ -371,11 +395,15 @@ export class MapPage {
       const ids = new Set(
         this.lines()
           .filter((l) => visible.has(l.id))
-          .flatMap((l) => l.directions.flatMap((d) => d.stopIds)),
+          .flatMap((l) =>
+            l.directions.filter((d) => this.shows(l.id, d.id)).flatMap((d) => d.stopIds),
+          ),
       );
       return toMapStops([...ids].map((id) => this.network.getStop(id)));
     }
-    const ids = new Set(line.directions.flatMap((d) => d.stopIds));
+    const ids = new Set(
+      line.directions.filter((d) => this.shows(line.id, d.id)).flatMap((d) => d.stopIds),
+    );
     return toMapStops([...ids].map((id) => this.network.getStop(id)));
   });
 
@@ -495,7 +523,13 @@ export class MapPage {
 
   /** Ficha de una línea: la muestra u oculta en el mapa. */
   protected toggleLine(lineId: string): void {
-    this.setVisible(lineId, !this.isVisible(lineId));
+    if (this.isVisible(lineId)) {
+      this.setVisible(lineId, false);
+      if (this.highlightedId() === lineId) this.highlight(null);
+    } else {
+      // Al añadirla se resalta: el mapa la encuadra y su ficha deja elegir el sentido.
+      this.highlight(lineId);
+    }
   }
 
   protected setVisible(lineId: string, visible: boolean): void {

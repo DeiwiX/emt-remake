@@ -10,12 +10,13 @@ import {
   input,
   output,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
-import { IonButton } from '@ionic/angular';
+import { IonButton, IonIcon } from '@ionic/angular';
 
 import {
   MapProvider,
@@ -25,6 +26,7 @@ import {
   MapVehicle,
   MapView,
 } from '../../core/map/map-provider';
+import { LocationService } from '../../core/location/location.service';
 import { LatLon, Polygon } from '../../core/models/network.model';
 import { MapStylePreference, SettingsService } from '../../core/settings/settings.service';
 import { ColorSchemeService, prefersReducedMotion } from '../../core/theme/color-scheme.service';
@@ -52,7 +54,7 @@ const LAYER_CHOICES: readonly Exclude<MapStylePreference, 'auto'>[] = [
  */
 @Component({
   selector: 'app-map-view',
-  imports: [RouterLink, TranslocoPipe, IonButton],
+  imports: [RouterLink, TranslocoPipe, IonButton, IonIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
     :host {
@@ -103,6 +105,49 @@ const LAYER_CHOICES: readonly Exclude<MapStylePreference, 'auto'>[] = [
       outline: 3px solid var(--ion-color-primary);
       outline-offset: 2px;
     }
+    /* Botones redondos a la derecha, bajo el zoom: "Mi ubicación" y "Actualizar". */
+    .side-actions {
+      position: absolute;
+      top: 96px;
+      right: 10px;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .side-actions button {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      border: 0;
+      border-radius: 50%;
+      background: var(--ion-background-color, #fff);
+      color: var(--ion-color-primary);
+      font-size: 1.35rem;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+      cursor: pointer;
+    }
+    .side-actions button:disabled {
+      opacity: 0.6;
+    }
+    .side-actions button:focus-visible {
+      outline: 3px solid var(--ion-color-primary);
+      outline-offset: 2px;
+    }
+    .side-actions button.spinning ion-icon {
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .side-actions button.spinning ion-icon {
+        animation: none;
+      }
+    }
     .message {
       position: absolute;
       inset: 0;
@@ -126,6 +171,31 @@ const LAYER_CHOICES: readonly Exclude<MapStylePreference, 'auto'>[] = [
             (click)="setLayer(choice)"
           >
             {{ layerKey(choice) | transloco }}
+          </button>
+        }
+      </div>
+    }
+    @if (state() === 'ready') {
+      <div class="side-actions">
+        @if (locator) {
+          <button
+            type="button"
+            [attr.aria-label]="'map.locateMe' | transloco"
+            [disabled]="locating()"
+            (click)="locateMe()"
+          >
+            <ion-icon name="locate-outline" aria-hidden="true" />
+          </button>
+        }
+        @if (refreshButton()) {
+          <button
+            type="button"
+            [class.spinning]="refreshing()"
+            [attr.aria-label]="'realtime.refresh' | transloco"
+            [disabled]="refreshing()"
+            (click)="refreshRequested.emit()"
+          >
+            <ion-icon name="refresh" aria-hidden="true" />
           </button>
         }
       </div>
@@ -188,6 +258,20 @@ export class MapViewComponent {
   readonly lineSelected = output<string | null>();
   readonly stopSelected = output<string>();
   readonly zoomChanged = output<number>();
+  /** Botón redondo "Actualizar" (posiciones en tiempo real) en el lateral. */
+  readonly refreshButton = input(false);
+  readonly refreshing = input(false);
+  readonly refreshRequested = output();
+
+  /** "Mi ubicación" en cualquier mapa: pide la posición, la marca y centra el mapa. */
+  protected readonly locator = inject(LocationService, { optional: true });
+  private readonly locateRequested = signal(false);
+  protected readonly locating = computed(() => this.locator?.state().status === 'locating');
+  /** Posición propia pedida desde este mapa (si la pantalla no pasa la suya). */
+  private readonly ownLocation = computed(() => {
+    const state = this.locator?.state();
+    return this.locateRequested() && state?.status === 'ready' ? state : null;
+  });
 
   protected readonly state = signal<MapState>('loading');
   protected readonly layerChoices = LAYER_CHOICES;
@@ -214,7 +298,21 @@ export class MapViewComponent {
     effect(() => this.view()?.setHighlightedLines(this.highlightedLines()));
     effect(() => this.view()?.setHighlightedStop(this.highlightedStop()));
     effect(() => this.view()?.setHighlightedArea(this.highlightedArea()));
-    effect(() => this.view()?.setUserLocation(this.userLocation(), this.userAccuracy()));
+    effect(() => {
+      const own = this.ownLocation();
+      const point = this.userLocation() ?? own?.point ?? null;
+      const accuracy = this.userLocation() ? this.userAccuracy() : (own?.accuracy ?? 0);
+      this.view()?.setUserLocation(point, accuracy);
+    });
+    // Al llegar la posición pedida con el botón, el mapa se centra en ella (una vez).
+    effect(() => {
+      const view = this.view();
+      const own = this.ownLocation();
+      if (view && own && untracked(() => this.pendingCenter)) {
+        this.pendingCenter = false;
+        view.centerOn(own.point);
+      }
+    });
     effect(() => this.view()?.setVehicles(this.vehicles()));
     effect(() => {
       const scale = BUS_SCALES[this.settings.settings().busSize];
@@ -240,6 +338,14 @@ export class MapViewComponent {
       const points = this.fitPoints();
       if (view && points.length > 0) view.fitTo(points);
     });
+  }
+
+  private pendingCenter = false;
+
+  protected locateMe(): void {
+    this.locateRequested.set(true);
+    this.pendingCenter = true;
+    void this.locator?.locate();
   }
 
   protected setLayer(choice: Exclude<MapStylePreference, 'auto'>): void {
