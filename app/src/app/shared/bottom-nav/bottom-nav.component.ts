@@ -19,9 +19,9 @@ interface Tab {
  * toque desde cualquier pantalla. En modo sencillo (sin mapa) el Mapa se cambia
  * por Líneas.
  *
- * Estilo "ola" como la cabecera (07/10/2026): borde superior ondulado en azul
- * noche, la pestaña activa sobre un círculo azul mar que se desliza hasta la
- * nueva al cambiar y suelta unas ondas. También se pasa de una pantalla a otra
+ * Estilo (07/10/2026, mezcla A + B elegida por el desarrollador): píldora azul
+ * noche flotante y la pestaña activa en un "sol" coral que sale por arriba,
+ * viaja hasta la nueva con un rebote y suelta unas ondas. También se pasa de una pantalla a otra
  * deslizando el dedo en horizontal, salvo sobre el mapa (que se arrastra) o
  * sobre algo que se desplaza en horizontal.
  */
@@ -31,78 +31,81 @@ interface Tab {
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
     /*
-     * La ola va dentro de la barra (sobre el fondo de la app), no encima de la
-     * pantalla: así no tapa lo último de cada página.
+     * Píldora azul noche que flota sobre el fondo de la app; la pestaña activa sale
+     * hacia arriba en un "sol" coral (mezcla A + B, 07/10/2026). La barra ocupa su
+     * propio hueco: no tapa lo último de cada pantalla.
      */
     :host {
-      position: relative;
       display: block;
       flex: none;
+      padding: 28px 14px calc(12px + env(safe-area-inset-bottom, 0px));
       background: var(--ion-background-color);
-      color: #fff;
     }
-    .edge {
-      display: block;
-      width: 100%;
-      height: 22px;
-      margin-bottom: -1px;
-      pointer-events: none;
-    }
-    .bar {
+    .pill {
+      position: relative;
+      max-width: 560px;
+      margin-inline: auto;
+      border-radius: 32px;
       background: var(--app-header, #1c2b4a);
-      padding-bottom: env(safe-area-inset-bottom, 0px);
+      box-shadow: 0 10px 22px rgba(28, 43, 74, 0.35);
+    }
+    :host-context(.ion-palette-dark) .pill {
+      background: #22355c;
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.45);
     }
     nav {
       position: relative;
       display: flex;
-      max-width: 760px;
-      margin-inline: auto;
     }
-    /* Círculo de la pestaña activa: se desliza hasta la nueva. */
-    .bubble {
+    /* El sol de la pestaña activa: viaja hasta la nueva con un rebote. */
+    .sun {
       position: absolute;
-      top: 5px;
+      top: -26px;
       left: calc(var(--index) * 25% + 12.5%);
-      width: 40px;
-      height: 40px;
-      margin-left: -20px;
+      display: grid;
+      place-items: center;
+      width: 54px;
+      height: 54px;
+      margin-left: -27px;
       border-radius: 50%;
-      background: var(--ion-color-primary);
-      transition: left 420ms cubic-bezier(0.34, 1.4, 0.64, 1);
+      background: var(--app-sun, #f08a5d);
+      color: #1c2b4a;
+      font-size: 1.45rem;
+      box-shadow: 0 6px 14px rgba(240, 138, 93, 0.45);
+      transition: left 460ms cubic-bezier(0.34, 1.4, 0.64, 1);
       pointer-events: none;
     }
-    /* Ondas que salen del círculo al llegar a una pestaña nueva. */
+    /* Onda que suelta el sol al llegar a una pestaña nueva. */
     .ripple {
       position: absolute;
       inset: 0;
-      border: 2px solid var(--ion-color-primary);
+      border: 2px solid var(--app-sun, #f08a5d);
       border-radius: 50%;
       opacity: 0;
-      animation: wave 900ms ease-out 260ms;
+      animation: wave 900ms ease-out 300ms;
     }
     .ripple.second {
-      animation-delay: 420ms;
+      animation-delay: 460ms;
     }
     @keyframes wave {
       from {
-        opacity: 0.8;
+        opacity: 0.85;
         transform: scale(1);
       }
       to {
         opacity: 0;
-        transform: scale(1.9);
+        transform: scale(1.7);
       }
     }
     a {
-      position: relative;
       flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-start;
-      gap: 2px;
-      min-height: 66px;
-      padding: 13px 2px 6px;
+      justify-content: center;
+      gap: 3px;
+      min-height: 62px;
+      padding: 4px 2px;
       color: rgba(255, 255, 255, 0.78);
       font-size: 0.72rem;
       text-align: center;
@@ -110,23 +113,24 @@ interface Tab {
     }
     a ion-icon {
       font-size: 1.4rem;
-      margin-bottom: 10px;
-      transition: transform 300ms ease;
     }
+    /* La activa: el icono va en el sol; abajo queda su nombre. */
     a.active {
+      justify-content: flex-end;
+      padding-bottom: 10px;
       color: #fff;
       font-weight: 600;
     }
     a.active ion-icon {
-      color: var(--ion-color-primary-contrast);
+      display: none;
     }
     a:focus-visible {
       outline: 3px solid #fff;
       outline-offset: -3px;
+      border-radius: 28px;
     }
     @media (prefers-reduced-motion: reduce) {
-      .bubble,
-      a ion-icon {
+      .sun {
         transition: none;
       }
       .ripple {
@@ -135,16 +139,11 @@ interface Tab {
     }
   `,
   template: `
-    <svg class="edge" viewBox="0 0 390 22" preserveAspectRatio="none" aria-hidden="true">
-      <path
-        d="M0 11 C 48 0, 97 0, 146 11 S 244 22, 292 11 S 365 0, 390 6 V22 H0Z"
-        fill="var(--app-header, #1c2b4a)"
-      />
-    </svg>
-    <div class="bar">
+    <div class="pill">
       <nav [attr.aria-label]="'nav.label' | transloco">
-        @if (activeIndex() !== -1) {
-          <span class="bubble" [style.--index]="activeIndex()" aria-hidden="true">
+        @if (activeTab(); as active) {
+          <span class="sun" [style.--index]="activeIndex()" aria-hidden="true">
+            <ion-icon [name]="active.icon" />
             @for (k of [activeIndex()]; track k) {
               <span class="ripple"></span><span class="ripple second"></span>
             }
@@ -190,6 +189,7 @@ export class BottomNavComponent {
     const path = this.url().split(/[?#]/)[0] || '/';
     return this.tabs().findIndex((t) => t.path === path);
   });
+  protected readonly activeTab = computed(() => this.tabs()[this.activeIndex()] ?? null);
   private start: { x: number; y: number; t: number } | null = null;
 
   constructor() {
