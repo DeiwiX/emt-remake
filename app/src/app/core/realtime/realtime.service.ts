@@ -22,12 +22,15 @@ class NoRealtimeSource extends RealtimeSource {
   }
 }
 
-/** La fuente se actualiza cada ~5 min: pedirla cada minuto basta. */
-const POLL_MS = 60_000;
+/**
+ * Cada cuánto se piden las posiciones (petición del desarrollador, 08/10/2026):
+ * la fuente se renueva cada ~5 min, pero así el dato nuevo se coge antes.
+ */
+const POLL_MS = 30_000;
 
 /**
  * Posiciones de los autobuses (Fase 3). Solo se descargan mientras alguna
- * pantalla las usa (watch()) y la app está abierta; se piden cada minuto.
+ * pantalla las usa (watch()) y la app está abierta; se piden cada 30 s.
  */
 @Injectable({ providedIn: 'root' })
 export class RealtimeService {

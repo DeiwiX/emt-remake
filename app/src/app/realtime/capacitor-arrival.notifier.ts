@@ -24,7 +24,7 @@ interface CapacitorGlobal {
 /**
  * Avisos de llegada en el móvil.
  * - Android: los lleva el servicio nativo "Siguiendo tu bus", que consulta la
- *   posición del autobús cada minuto aunque la app esté cerrada (Fase 6) y
+ *   posición del autobús cada 30 s aunque la app esté cerrada (Fase 6) y
  *   avisa él mismo, así no hay avisos repetidos.
  * - Resto (iOS): notificación local programada con @capacitor/local-notifications,
  *   que se reprograma con cada dato nuevo mientras la app está abierta.

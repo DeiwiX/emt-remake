@@ -23,7 +23,7 @@ import java.nio.charset.StandardCharsets;
 
 /**
  * "Siguiendo tu bus" (Fase 6): servicio en primer plano que, mientras haya un
- * aviso, consulta la posición de los autobuses cada minuto aunque la app esté
+ * aviso, consulta la posición de los autobuses cada 30 s aunque la app esté
  * cerrada, mueve la hora del aviso si el autobús se adelanta o se retrasa y
  * avisa cuando faltan los minutos elegidos. Muestra una notificación fija con
  * lo que falta. Sin datos, avisa a la hora prevista.
@@ -33,7 +33,7 @@ public class BusTrackerService extends Service {
     static final String ALERT_CHANNEL = "bus-alerts";
     private static final int TRACKING_ID = 7001;
     private static final int ALERT_ID = 7002;
-    private static final long POLL_MS = 60_000;
+    private static final long POLL_MS = 30_000;
     /** Pasado este tiempo desde la llegada esperada se deja de seguir. */
     private static final long EXPIRE_MS = 5 * 60_000L;
 
