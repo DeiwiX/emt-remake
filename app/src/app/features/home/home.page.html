@@ -117,7 +117,7 @@
         <!-- Aviso activo y tu parada favorita más cercana, lo primero. -->
         <app-active-alert-strip />
         <!-- Avisos de la EMT generales y los de las líneas de tus favoritas (Fase 7). -->
-        <app-emt-notices [lines]="favoriteLineIds()" [compact]="true" />
+        <app-emt-notices [lines]="favoriteLineIds()" [compact]="true" [dismissible]="true" />
         @if (hasFavorites()) {
           <app-favorites-section [nearestFirst]="true" />
         }

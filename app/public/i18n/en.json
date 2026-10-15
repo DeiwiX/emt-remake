@@ -306,6 +306,8 @@
     "stoppedAt": "Stopped at {{stop}} ({{code}}): passengers boarding"
   },
   "notices": {
+    "close": "Close the notice: {{title}}",
+    "closeAll": "Close all",
     "title": "EMT notices",
     "published": "Published on {{date}}",
     "open": "Open on the EMT website",

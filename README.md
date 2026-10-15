@@ -161,7 +161,7 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
 
 - La app lee las noticias de la web de la EMT (`https://www.emtmalaga.es/rss.xml`), donde publica desvíos, paradas trasladadas y cortes, como mucho cada 15 min y solo en la app del móvil (el servidor no permite CORS). Se guardan en el dispositivo, así no se pierden cuando salen del canal (que solo trae los 6 últimos).
 - Las líneas afectadas se leen del principio del título ("L-15-18-N2: ..."); sin ese prefijo el aviso es general. Cada aviso se ve 60 días desde que se publica (los generales, 7).
-- Dónde se ven: en el detalle de línea y en el de parada (los de sus líneas y los generales), en el inicio (los generales y los de tus favoritas, solo el título) y con un punto naranja en las paradas favoritas afectadas. Al tocar uno se abre su página en la web de la EMT. ADR 0014.
+- Dónde se ven: en el detalle de línea y en el de parada (los de sus líneas y los generales), en el inicio (los generales y los de tus favoritas, solo el título; cada uno se cierra con la ✕ o todos con "Cerrar todos", y cerrados no vuelven a salir ahí aunque siguen en los detalles) y con un punto naranja en las paradas favoritas afectadas. Al tocar uno se abre su página en la web de la EMT. ADR 0014.
 
 ### Atascos estimados (Fase 8)
 

@@ -1,4 +1,4 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 
 import {
   EmtNotice,
@@ -27,6 +27,8 @@ class NoNoticeSource extends NoticeSource {
 }
 
 const STORAGE_KEY = 'emt-remake.notices.v1';
+/** Avisos cerrados en el inicio (petición del desarrollador, 15/10/2026). */
+const DISMISSED_KEY = 'emt-remake.notices-dismissed.v1';
 /** Como mucho una descarga cada 15 min: la EMT publica pocos avisos al día. */
 const REFRESH_MS = 15 * 60_000;
 
@@ -47,6 +49,13 @@ export class NoticesService {
   readonly available = this.source.available;
   /** Avisos que se deben ver, del más reciente al más antiguo. */
   readonly notices = this.noticesSignal.asReadonly();
+  private readonly dismissedSignal = signal<ReadonlySet<string>>(loadDismissed());
+  /** Avisos que el usuario ha cerrado en el inicio (siguen en el detalle de línea y parada). */
+  readonly dismissed = this.dismissedSignal.asReadonly();
+  /** Los que se ven en el inicio: los no cerrados. */
+  private readonly open = computed(() =>
+    this.notices().filter((n) => !this.dismissedSignal().has(n.id)),
+  );
 
   /** Descarga los avisos si hace rato que no se hace. */
   refresh(): Promise<void> {
@@ -56,8 +65,16 @@ export class NoticesService {
   }
 
   /** Los que afectan a estas líneas (y los generales, si se piden). */
-  forLines(lineIds: readonly string[], includeGeneral = true): EmtNotice[] {
-    return noticesFor(this.notices(), lineIds, includeGeneral);
+  forLines(lineIds: readonly string[], includeGeneral = true, hideDismissed = false): EmtNotice[] {
+    return noticesFor(hideDismissed ? this.open() : this.notices(), lineIds, includeGeneral);
+  }
+
+  /** Cierra unos avisos en el inicio. Se recuerda solo mientras el aviso se siga viendo. */
+  dismiss(ids: readonly string[]): void {
+    const visible = new Set(this.notices().map((n) => n.id));
+    const next = new Set([...this.dismissedSignal(), ...ids].filter((id) => visible.has(id)));
+    this.dismissedSignal.set(next);
+    saveDismissed(next);
   }
 
   private async download(): Promise<void> {
@@ -78,6 +95,23 @@ function load(): EmtNotice[] {
     return parseStoredNotices(localStorage.getItem(STORAGE_KEY));
   } catch {
     return [];
+  }
+}
+
+function loadDismissed(): Set<string> {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(DISMISSED_KEY) ?? '[]');
+    return new Set(Array.isArray(value) ? value.filter((id) => typeof id === 'string') : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveDismissed(ids: ReadonlySet<string>): void {
+  try {
+    localStorage.setItem(DISMISSED_KEY, JSON.stringify([...ids]));
+  } catch {
+    // Sin almacenamiento: vale para esta sesión.
   }
 }
 

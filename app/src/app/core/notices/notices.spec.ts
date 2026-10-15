@@ -150,4 +150,20 @@ describe('NoticesService', () => {
     expect(parseStoredNotices(localStorage.getItem('emt-remake.notices.v1'))).toHaveLength(2);
     vi.useRealTimers();
   });
+
+  it('los cerrados no salen en el inicio pero sí en el detalle, y se recuerdan', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(Date.UTC(2026, 9, 15, 12));
+    TestBed.configureTestingModule({
+      providers: [{ provide: NoticeSource, useValue: new FakeSource() }],
+    });
+    const service = TestBed.inject(NoticesService);
+    await service.refresh();
+
+    service.dismiss(['961']);
+    expect(service.forLines(['18'], true, true).map((n) => n.id)).toEqual(['953']);
+    expect(service.forLines(['18'], true).map((n) => n.id)).toEqual(['961', '953']);
+    expect(JSON.parse(localStorage.getItem('emt-remake.notices-dismissed.v1')!)).toEqual(['961']);
+    vi.useRealTimers();
+  });
 });

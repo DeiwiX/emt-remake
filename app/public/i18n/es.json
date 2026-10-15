@@ -306,6 +306,8 @@
     "stoppedAt": "Parado en {{stop}} ({{code}}): suben y bajan viajeros"
   },
   "notices": {
+    "close": "Cerrar el aviso: {{title}}",
+    "closeAll": "Cerrar todos",
     "title": "Avisos de la EMT",
     "published": "Publicado el {{date}}",
     "open": "Ver en la web de la EMT",

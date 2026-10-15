@@ -31,6 +31,48 @@ const DATE_FORMAT = new Intl.DateTimeFormat('es-ES', {
       border-radius: 16px;
       background: var(--app-accent-soft);
     }
+    .head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .close-all,
+    .close {
+      flex: none;
+      min-width: 44px;
+      min-height: 44px;
+      border: 0;
+      border-radius: 12px;
+      background: transparent;
+      color: var(--ion-text-color);
+      font: inherit;
+      cursor: pointer;
+    }
+    .close-all {
+      padding: 0 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: underline;
+    }
+    .close {
+      display: grid;
+      place-items: center;
+      font-size: 1.3rem;
+    }
+    .close-all:focus-visible,
+    .close:focus-visible {
+      outline: 3px solid var(--ion-color-primary);
+      outline-offset: 2px;
+    }
+    li {
+      display: flex;
+      align-items: flex-start;
+      gap: 4px;
+    }
+    li a {
+      flex: 1;
+    }
     h2 {
       display: flex;
       align-items: center;
@@ -98,10 +140,17 @@ const DATE_FORMAT = new Intl.DateTimeFormat('es-ES', {
   template: `
     @if (shown().length > 0) {
       <section [attr.aria-label]="'notices.title' | transloco">
-        <h2>
-          <ion-icon name="warning-outline" aria-hidden="true" />
-          {{ 'notices.title' | transloco }}
-        </h2>
+        <div class="head">
+          <h2>
+            <ion-icon name="warning-outline" aria-hidden="true" />
+            {{ 'notices.title' | transloco }}
+          </h2>
+          @if (dismissible() && shown().length > 1) {
+            <button type="button" class="close-all" (click)="dismissAll()">
+              {{ 'notices.closeAll' | transloco }}
+            </button>
+          }
+        </div>
         <ul>
           @for (notice of shown(); track notice.id) {
             <li>
@@ -120,6 +169,16 @@ const DATE_FORMAT = new Intl.DateTimeFormat('es-ES', {
                   </span>
                 </span>
               </a>
+              @if (dismissible()) {
+                <button
+                  type="button"
+                  class="close"
+                  [attr.aria-label]="'notices.close' | transloco: { title: notice.title }"
+                  (click)="dismiss(notice.id)"
+                >
+                  <ion-icon name="close" aria-hidden="true" />
+                </button>
+              }
             </li>
           }
         </ul>
@@ -136,10 +195,20 @@ export class EmtNoticesComponent {
   readonly includeGeneral = input(true);
   /** Solo títulos (en el inicio, para no empujar hacia abajo tus favoritas). */
   readonly compact = input(false);
+  /** Se pueden cerrar (en el inicio); cerrados no vuelven a salir ahí. */
+  readonly dismissible = input(false);
 
   protected readonly shown = computed(() =>
-    this.notices.forLines(this.lines(), this.includeGeneral()),
+    this.notices.forLines(this.lines(), this.includeGeneral(), this.dismissible()),
   );
+
+  protected dismiss(id: string): void {
+    this.notices.dismiss([id]);
+  }
+
+  protected dismissAll(): void {
+    this.notices.dismiss(this.shown().map((n) => n.id));
+  }
 
   constructor() {
     void this.notices.refresh();
