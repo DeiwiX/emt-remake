@@ -128,6 +128,21 @@ const LAYER_CHOICES: readonly Exclude<MapStylePreference, 'auto'>[] = [
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
       cursor: pointer;
     }
+    /* "Mi ubicación" con texto mientras no se ve tu posición. */
+    .side-actions button.labelled {
+      width: auto;
+      gap: 6px;
+      padding: 0 14px 0 12px;
+      border-radius: 22px;
+      display: flex;
+      align-items: center;
+      font-size: 0.85rem;
+      font-weight: 600;
+      align-self: flex-end;
+    }
+    .side-actions {
+      align-items: flex-end;
+    }
     .side-actions button:disabled {
       opacity: 0.6;
     }
@@ -178,13 +193,18 @@ const LAYER_CHOICES: readonly Exclude<MapStylePreference, 'auto'>[] = [
     @if (state() === 'ready') {
       <div class="side-actions">
         @if (locator) {
+          <!-- Sin tu posición en el mapa, el botón lleva texto para que se vea la opción. -->
           <button
             type="button"
+            [class.labelled]="!located()"
             [attr.aria-label]="'map.locateMe' | transloco"
             [disabled]="locating()"
             (click)="locateMe()"
           >
             <ion-icon name="locate-outline" aria-hidden="true" />
+            @if (!located()) {
+              <span aria-hidden="true">{{ 'map.locateMe' | transloco }}</span>
+            }
           </button>
         }
         @if (refreshButton()) {
@@ -272,6 +292,8 @@ export class MapViewComponent {
     const state = this.locator?.state();
     return this.locateRequested() && state?.status === 'ready' ? state : null;
   });
+  /** Tu posición está en el mapa (la de la pantalla o la pedida aquí). */
+  protected readonly located = computed(() => !!this.userLocation() || !!this.ownLocation());
 
   protected readonly state = signal<MapState>('loading');
   protected readonly layerChoices = LAYER_CHOICES;
@@ -289,7 +311,10 @@ export class MapViewComponent {
   private readonly view = signal<MapView | null>(null);
 
   constructor() {
-    afterNextRender(() => void this.init());
+    afterNextRender(() => {
+      void this.init();
+      void this.showLocationIfAllowed();
+    });
     inject(DestroyRef).onDestroy(() => this.view()?.destroy());
 
     effect(() => this.view()?.setRoutes(this.routes()));
@@ -341,6 +366,18 @@ export class MapViewComponent {
   }
 
   private pendingCenter = false;
+
+  /**
+   * Al abrir el mapa: si ya diste permiso de ubicación, se muestra tu posición
+   * (sin mover el mapa ni preguntar nada). Si no, queda el botón "Mi ubicación".
+   */
+  private async showLocationIfAllowed(): Promise<void> {
+    const locator = this.locator;
+    if (!locator || this.userLocation() || !(await locator.hasPermission())) return;
+    this.locateRequested.set(true);
+    const status = locator.state().status;
+    if (status !== 'ready' && status !== 'locating') void locator.locate();
+  }
 
   protected locateMe(): void {
     this.locateRequested.set(true);

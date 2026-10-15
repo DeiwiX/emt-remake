@@ -148,7 +148,7 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
 - **Inicio:** franja del aviso activo (con "Quitar") y todas las favoritas, cerradas (la más cercana primero si se pide con "¿Cuál tengo más cerca?", que además la abre); cada una se abre y se cierra con sus próximos buses, "Ubicar bus" y "Avísame".
 - **Fecha de los datos** corta (07/10/2026) en la cabecera de cada pantalla; el banner solo aparece si hay un problema con los datos.
 - **Próximos buses:** las cápsulas verdes son llegadas en tiempo real y el resto, del horario (sin la línea aparte "Llega en ~X min").
-- **Mapa:** la ficha de una línea deja elegir los dos sentidos o uno (recorrido, paradas y autobuses); botones redondos "Mi ubicación" (en todos los mapas) y "Actualizar" en el lateral.
+- **Mapa:** la ficha de una línea deja elegir los dos sentidos o uno (recorrido, paradas y autobuses); botones redondos "Mi ubicación" (en todos los mapas) y "Actualizar" en el lateral. Si ya se dio permiso de ubicación, cada mapa muestra tu posición al abrirse (sin preguntar ni moverse); si no, "Mi ubicación" aparece con texto para activarla.
 - **Posición y llegada coherentes:** mientras hay autobuses dibujados, la llegada estimada sale del mismo avance que su posición en el mapa, y el dibujo nunca va por delante de la estimación.
 - **Mapa despejado (05/10/2026):** el Mapa empieza sin líneas ni cortes de tráfico; las líneas se eligen tocando sus números (fichas) y se ven con sus paradas y sus autobuses. "Mostrar todas" sigue disponible.
 - **Ubicar bus más cercano:** en la ficha de una parada (Cerca de mí, Mapa), lleva al Mapa siguiendo el autobús que antes llega a esa parada (`/map?bus=640`).

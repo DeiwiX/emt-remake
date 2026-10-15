@@ -25,4 +25,11 @@ export abstract class LocationService {
   abstract readonly state: Signal<LocationState>;
   /** Pide la posición actual (y el permiso, si hace falta). */
   abstract locate(): Promise<void>;
+  /**
+   * true si el usuario ya dio permiso de ubicación (no pregunta nada). Así los
+   * mapas muestran tu posición al abrirse sin lanzar el aviso del sistema.
+   */
+  hasPermission(): Promise<boolean> {
+    return Promise.resolve(false);
+  }
 }

@@ -25,6 +25,24 @@ export class CapacitorLocationService extends LocationService {
   /** Cancela la escucha en curso (si se pide otra vez la ubicación). */
   private stopCurrent: (() => void) | null = null;
 
+  override async hasPermission(): Promise<boolean> {
+    try {
+      const [{ Capacitor }, { Geolocation }] = await Promise.all([
+        import('@capacitor/core'),
+        import('@capacitor/geolocation'),
+      ]);
+      if (Capacitor.isNativePlatform()) {
+        const permission = await Geolocation.checkPermissions();
+        return permission.location === 'granted' || permission.coarseLocation === 'granted';
+      }
+      // En la web, la API de permisos del navegador (sin preguntar).
+      const status = await navigator.permissions?.query({ name: 'geolocation' });
+      return status?.state === 'granted';
+    } catch {
+      return false;
+    }
+  }
+
   async locate(): Promise<void> {
     this.stopCurrent?.();
     this.stateSignal.set({ status: 'locating' });
