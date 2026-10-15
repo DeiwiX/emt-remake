@@ -315,9 +315,12 @@
   },
   "alert": {
     "notifyMe": "Notify me",
+    "moreTimes": "More times",
+    "notifyForBus": "Notify me about this bus: {{bus}}",
     "notifyMeLine": "Notify me about line {{line}}",
     "chooseBus": "Which bus should I notify you about?",
     "chooseMinutes": "How many minutes before?",
+    "chooseMinutesFor": "How many minutes before the {{time}} bus?",
     "liveOption": "~{{minutes}} min (real time)",
     "tomorrowAt": "tomorrow {{time}}",
     "option": "Notify {{minutes}} minutes before",

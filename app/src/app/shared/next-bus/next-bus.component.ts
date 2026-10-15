@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  viewChild,
+} from '@angular/core';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { IonIcon } from '@ionic/angular';
 
@@ -24,6 +31,8 @@ interface Passing {
   readonly spoken: string;
   /** true si es una llegada estimada en tiempo real (si no, del horario). */
   readonly live?: boolean;
+  /** Clave del paso para el aviso: "v<autobús>" (tiempo real) o "s<minutos>" (horario). */
+  readonly key: string;
 }
 
 /**
@@ -67,7 +76,23 @@ interface Passing {
       color: var(--ion-text-color);
       line-height: 1.15;
     }
-    .passing:first-child {
+    /* Con "Avísame" disponible cada cápsula es un botón: al tocarla se elige ese bus. */
+    button.passing {
+      min-height: 44px;
+      background: transparent;
+      font: inherit;
+      cursor: pointer;
+    }
+    button.passing:focus-visible {
+      outline: 3px solid var(--ion-color-primary);
+      outline-offset: 2px;
+    }
+    .bell {
+      font-size: 0.75rem;
+      opacity: 0.8;
+    }
+    li.passing:first-child,
+    li:first-child > .passing {
       border-color: var(--ion-color-primary);
       background: var(--ion-color-primary);
       color: var(--ion-color-primary-contrast);
@@ -84,7 +109,8 @@ interface Passing {
     .passing.live {
       border-color: #1e8e3e;
     }
-    .passing.live:first-child {
+    li.passing.live:first-child,
+    li:first-child > .passing.live {
       background: #17703a;
       border-color: #17703a;
       color: #fff;
@@ -98,7 +124,8 @@ interface Passing {
       background: #1e8e3e;
       box-shadow: 0 0 0 3px rgba(30, 142, 62, 0.2);
     }
-    .passing.live:first-child .live-dot {
+    li.passing.live:first-child .live-dot,
+    li:first-child > .passing.live .live-dot {
       background: #fff;
       box-shadow: none;
     }
@@ -134,17 +161,41 @@ interface Passing {
     }
     @if (view().passings.length > 0) {
       <span class="visually-hidden" role="status">{{ spoken() }}</span>
-      <ul class="passings" aria-hidden="true">
+      <ul class="passings" [attr.aria-hidden]="selectable().size === 0 ? 'true' : null">
         @for (passing of view().passings; track $index) {
-          <li class="passing" [class.live]="passing.live">
-            <span class="main">
-              @if (passing.live) {
-                <span class="live-dot"></span>
-              }
-              {{ passing.main }}
-            </span>
-            <span class="sub">{{ passing.sub }}</span>
-          </li>
+          @if (selectable().has(passing.key)) {
+            <!-- Tocar una hora abre el aviso para ese bus (no solo para el primero). -->
+            <li>
+              <button
+                type="button"
+                class="passing"
+                [class.live]="passing.live"
+                [attr.aria-label]="'alert.notifyForBus' | transloco: { bus: passing.spoken }"
+                (click)="picker()?.select(passing.key)"
+              >
+                <span class="main">
+                  @if (passing.live) {
+                    <span class="live-dot"></span>
+                  }
+                  {{ passing.main }}
+                </span>
+                <span class="sub"
+                  >{{ passing.sub }}
+                  <ion-icon class="bell" name="notifications-outline" aria-hidden="true"
+                /></span>
+              </button>
+            </li>
+          } @else {
+            <li class="passing" [class.live]="passing.live" aria-hidden="true">
+              <span class="main">
+                @if (passing.live) {
+                  <span class="live-dot"></span>
+                }
+                {{ passing.main }}
+              </span>
+              <span class="sub">{{ passing.sub }}</span>
+            </li>
+          }
         }
       </ul>
       <!-- De dónde sale cada tiempo: tiempo real (y antigüedad del dato) y horario. -->
@@ -182,6 +233,12 @@ export class NextBusComponent {
   readonly directionId = input.required<number>();
   readonly stopId = input.required<string>();
 
+  protected readonly picker = viewChild(ArrivalAlertPickerComponent);
+  /** Pasos que se pueden tocar para "Avísame" (solo en la app del móvil y sin aviso en esta línea). */
+  protected readonly selectable = computed(
+    () => this.picker()?.selectableKeys() ?? new Set<string>(),
+  );
+
   constructor() {
     void this.schedule.load();
     this.realtime.watch();
@@ -204,6 +261,7 @@ export class NextBusComponent {
     const [first] = arrivals;
     if (!first) return null;
     return {
+      arrivals: arrivals.slice(0, COUNT - 1),
       minutes: arrivals.slice(0, COUNT - 1).map((a) => a.minutes),
       age: first.ageMinutes,
       delay: first.delayMinutes,
@@ -232,7 +290,9 @@ export class NextBusComponent {
     );
     const now = this.schedule.clock().minutes;
     const liveMinutes = this.live()?.minutes ?? [];
-    const live = liveMinutes.map((minutes) => this.livePassing(minutes, now));
+    const live = (this.live()?.arrivals ?? []).map((a) =>
+      this.livePassing(a.minutes, now, a.vehicleId),
+    );
     if (result.state !== 'ready') {
       return { kind: result.state, passings: live, scheduled: 0 };
     }
@@ -250,7 +310,7 @@ export class NextBusComponent {
     };
   });
 
-  private livePassing(minutes: number, now: number): Passing {
+  private livePassing(minutes: number, now: number, vehicleId: string): Passing {
     const time = formatClock(now + minutes);
     const main =
       minutes === 0
@@ -261,6 +321,7 @@ export class NextBusComponent {
       sub: time,
       spoken: `${this.transloco.translate('realtime.liveLabel')}: ${main}`,
       live: true,
+      key: `v${vehicleId}`,
     };
   }
 
@@ -281,17 +342,17 @@ export class NextBusComponent {
         wait === 0
           ? this.transloco.translate('nextBus.now')
           : this.transloco.translate('nextBus.inMinutes', { minutes: wait });
-      return { main, sub: time, spoken: `${time}, ${main}` };
+      return { main, sub: time, spoken: `${time}, ${main}`, key: `s${minutes}` };
     }
     if (wait < SAME_DAY_MINUTES) {
       const sub = this.transloco.translate('nextBus.inHours', {
         hours: Math.floor(wait / 60),
         minutes: wait % 60,
       });
-      return { main: time, sub, spoken: `${time}, ${sub}` };
+      return { main: time, sub, spoken: `${time}, ${sub}`, key: `s${minutes}` };
     }
     const day = this.weekday(dateKey, dayOffsetOf(minutes));
-    return { main: time, sub: day, spoken: `${day} ${time}` };
+    return { main: time, sub: day, spoken: `${day} ${time}`, key: `s${minutes}` };
   }
 
   private weekday(dateKey: string, offset: number): string {

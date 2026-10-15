@@ -315,9 +315,12 @@
   },
   "alert": {
     "notifyMe": "Avísame",
+    "moreTimes": "Más horarios",
+    "notifyForBus": "Avísame de este bus: {{bus}}",
     "notifyMeLine": "Avísame de la línea {{line}}",
     "chooseBus": "¿De qué autobús quieres el aviso?",
     "chooseMinutes": "¿Cuántos minutos antes?",
+    "chooseMinutesFor": "¿Cuántos minutos antes del bus de las {{time}}?",
     "liveOption": "~{{minutes}} min (tiempo real)",
     "tomorrowAt": "mañana {{time}}",
     "option": "Avisar {{minutes}} minutos antes",

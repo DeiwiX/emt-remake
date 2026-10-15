@@ -17,8 +17,9 @@ import {
   madridInstantOf,
 } from '../../core/schedule/schedule';
 
-/** Pasos del horario que se ofrecen (los mismos que se ven en la parada). */
+/** Pasos del horario que se ofrecen: los mismos que se ven en la parada y, con "Más horarios", hasta 12. */
 const SCHEDULED_COUNT = 3;
+const MORE_SCHEDULED_COUNT = 12;
 const MINUTE_MS = 60_000;
 
 /** Un paso que se puede elegir para el aviso. */
@@ -76,9 +77,14 @@ interface Candidate {
       } @else if (step() === 'bus') {
         <div class="alert" role="group" [attr.aria-labelledby]="labelId('bus')">
           <span class="question" [id]="labelId('bus')">{{ 'alert.chooseBus' | transloco }}</span>
-          @for (candidate of candidates(); track candidate.key) {
+          @for (candidate of shownCandidates(); track candidate.key) {
             <ion-button size="small" fill="outline" (click)="pick(candidate.target)">{{
               candidate.label.key | transloco: candidate.label.params
+            }}</ion-button>
+          }
+          @if (!showMore() && candidates().length > shownCandidates().length) {
+            <ion-button size="small" fill="clear" (click)="showMore.set(true)">{{
+              'alert.moreTimes' | transloco
             }}</ion-button>
           }
           <ion-button size="small" fill="clear" (click)="reset()">{{
@@ -87,8 +93,9 @@ interface Candidate {
         </div>
       } @else if (step() === 'minutes') {
         <div class="alert" role="group" [attr.aria-labelledby]="labelId('minutes')">
+          <!-- Dice de qué bus es: se puede haber elegido tocando cualquiera de sus horas. -->
           <span class="question" [id]="labelId('minutes')">{{
-            'alert.chooseMinutes' | transloco
+            'alert.chooseMinutesFor' | transloco: { time: targetTime() }
           }}</span>
           @for (minutes of options(); track minutes) {
             <ion-button
@@ -137,6 +144,8 @@ export class ArrivalAlertPickerComponent {
   protected readonly step = signal<'idle' | 'bus' | 'minutes'>('idle');
   private readonly target = signal<AlertTarget | null>(null);
   protected readonly denied = signal(false);
+  /** "Más horarios": se ofrecen hasta 12 pasos del horario en vez de 3. */
+  protected readonly showMore = signal(false);
 
   /** El aviso activo, si es de esta línea, sentido y parada. */
   protected readonly activeAlert = computed(() => {
@@ -197,7 +206,7 @@ export class ArrivalAlertPickerComponent {
       this.lineId(),
       this.directionId(),
       this.stopId(),
-      SCHEDULED_COUNT,
+      MORE_SCHEDULED_COUNT,
     );
     const scheduled =
       result.state === 'ready'
@@ -212,6 +221,37 @@ export class ArrivalAlertPickerComponent {
           }))
         : [];
     return [...live, ...scheduled].filter((c) => alertOptions(c.target.at, now).length > 0);
+  });
+
+  /** Los que se ven: los de tiempo real, 3 del horario o, con "Más horarios", todos. */
+  protected readonly shownCandidates = computed(() => {
+    const all = this.candidates();
+    if (this.showMore()) return all;
+    const live = all.filter((c) => c.target.vehicleId !== null);
+    return [...live, ...all.filter((c) => c.target.vehicleId === null).slice(0, SCHEDULED_COUNT)];
+  });
+
+  /** Claves de los pasos que se pueden elegir ("v<autobús>" o "s<minutos>"). */
+  readonly selectableKeys = computed(
+    () =>
+      new Set(
+        this.alerts.available() && !this.activeAlert() ? this.candidates().map((c) => c.key) : [],
+      ),
+  );
+
+  /**
+   * Elige un paso desde fuera (al tocar su hora en los próximos buses) y pasa
+   * directamente a cuántos minutos antes avisar.
+   */
+  select(key: string): void {
+    const candidate = this.candidates().find((c) => c.key === key);
+    if (candidate) this.pick(candidate.target);
+  }
+
+  /** Hora del bus elegido ("06:50"). */
+  protected readonly targetTime = computed(() => {
+    const target = this.target();
+    return target ? formatClock(madridClock(new Date(target.at)).minutes) : '';
   });
 
   protected readonly options = computed(() => {
@@ -231,6 +271,7 @@ export class ArrivalAlertPickerComponent {
   protected reset(): void {
     this.target.set(null);
     this.step.set('idle');
+    this.showMore.set(false);
   }
 
   protected async start(minutes: number): Promise<void> {
