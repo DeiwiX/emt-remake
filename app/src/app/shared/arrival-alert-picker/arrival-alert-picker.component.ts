@@ -231,6 +231,25 @@ export class ArrivalAlertPickerComponent {
     return [...live, ...all.filter((c) => c.target.vehicleId === null).slice(0, SCHEDULED_COUNT)];
   });
 
+  /**
+   * Claves del bus elegido (mientras se eligen los minutos) o del aviso activo,
+   * para resaltar su hora en los próximos buses.
+   */
+  readonly selectedKeys = computed((): ReadonlySet<string> => {
+    const alert = this.activeAlert();
+    const target = this.step() === 'minutes' ? this.target() : null;
+    const ref = target ?? (alert ? { at: alert.scheduledAt, vehicleId: alert.vehicleId } : null);
+    if (!ref) return new Set();
+    const keys = new Set<string>();
+    if (ref.vehicleId) keys.add(`v${ref.vehicleId}`);
+    // Del horario: el paso a esa misma hora (un aviso ajustado con el tiempo real también lo marca).
+    const scheduled = this.candidates().find(
+      (c) => c.target.vehicleId === null && c.target.at === ref.at,
+    );
+    if (scheduled && (!target || !target.vehicleId)) keys.add(scheduled.key);
+    return keys;
+  });
+
   /** Claves de los pasos que se pueden elegir ("v<autobús>" o "s<minutos>"). */
   readonly selectableKeys = computed(
     () =>

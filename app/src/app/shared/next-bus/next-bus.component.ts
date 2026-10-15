@@ -87,6 +87,20 @@ interface Passing {
       outline: 3px solid var(--ion-color-primary);
       outline-offset: 2px;
     }
+    /* El bus elegido para el aviso, en coral: se ve cuál se ha elegido. */
+    .passings .passing.passing.selected {
+      border-color: var(--app-accent);
+      background: var(--app-accent);
+      color: #fff;
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-accent) 30%, transparent);
+    }
+    :host-context(.ion-palette-dark) .passings .passing.passing.selected {
+      color: #1c2b4a;
+    }
+    .passings .passing.passing.selected .live-dot {
+      background: currentColor;
+      box-shadow: none;
+    }
     .bell {
       font-size: 0.75rem;
       opacity: 0.8;
@@ -170,6 +184,8 @@ interface Passing {
                 type="button"
                 class="passing"
                 [class.live]="passing.live"
+                [class.selected]="selected().has(passing.key)"
+                [attr.aria-pressed]="selected().has(passing.key)"
                 [attr.aria-label]="'alert.notifyForBus' | transloco: { bus: passing.spoken }"
                 (click)="picker()?.select(passing.key)"
               >
@@ -186,7 +202,12 @@ interface Passing {
               </button>
             </li>
           } @else {
-            <li class="passing" [class.live]="passing.live" aria-hidden="true">
+            <li
+              class="passing"
+              [class.live]="passing.live"
+              [class.selected]="selected().has(passing.key)"
+              aria-hidden="true"
+            >
               <span class="main">
                 @if (passing.live) {
                   <span class="live-dot"></span>
@@ -238,6 +259,9 @@ export class NextBusComponent {
   protected readonly selectable = computed(
     () => this.picker()?.selectableKeys() ?? new Set<string>(),
   );
+
+  /** Hora del bus elegido para el aviso (o del aviso activo), resaltada. */
+  protected readonly selected = computed(() => this.picker()?.selectedKeys() ?? new Set<string>());
 
   constructor() {
     void this.schedule.load();
