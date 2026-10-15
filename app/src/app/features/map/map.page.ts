@@ -253,6 +253,17 @@ export class MapPage {
   private readonly trafficItems = signal<readonly TrafficItem[]>([]);
   // Ocultos al abrir para no saturar el mapa (05/10/2026); un botón los muestra.
   protected readonly showTraffic = signal(false);
+  /** Atascos estimados con los autobuses (Fase 8): ocultos hasta que se piden, como los cortes. */
+  protected readonly showCongestion = signal(false);
+  protected readonly congestion = computed(() => this.tracker.congestion());
+  protected readonly jams = computed(
+    () => this.congestion().filter((c) => c.level === 'jam').length,
+  );
+  protected readonly mapCongestion = computed(() =>
+    this.showCongestion()
+      ? this.congestion().map(({ id, level, points }) => ({ id, level, points }))
+      : [],
+  );
   protected readonly selectedTrafficId = signal<string | null>(null);
   private readonly clock = inject(ScheduleClockService).clock;
   /** "AAAA-MM-DDTHH:mm" en hora de Madrid, como las fechas de los cortes. */
@@ -504,6 +515,11 @@ export class MapPage {
   }
 
   /** Marca un corte de tráfico: ficha arriba del panel y mapa centrado en él. */
+  /** Nombre de una parada para el texto de los atascos (su código si no se encuentra). */
+  protected stopName(id: string): string {
+    return this.network.getStop(id)?.name ?? id;
+  }
+
   protected selectTraffic(id: string | null): void {
     this.selectedTrafficId.set(id);
     if (id) this.scrollPanelToTop();

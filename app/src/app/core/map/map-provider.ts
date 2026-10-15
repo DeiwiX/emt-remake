@@ -45,6 +45,13 @@ export interface MapTrafficItem {
   readonly active: boolean;
 }
 
+/** Tramo lento estimado con los autobuses (Fase 8): naranja si va lento, rojo si hay atasco. */
+export interface MapCongestion {
+  readonly id: string;
+  readonly level: 'slow' | 'jam';
+  readonly points: readonly LatLon[];
+}
+
 export interface MapStop {
   readonly id: string;
   readonly name: string;
@@ -99,6 +106,8 @@ export interface MapView {
   setUserLocation(point: LatLon | null, accuracy?: number): void;
   /** Cortes de tráfico; lista vacía para quitarlos. */
   setTraffic(items: readonly MapTrafficItem[]): void;
+  /** Tramos lentos estimados con los autobuses; lista vacía para quitarlos. */
+  setCongestion(stretches: readonly MapCongestion[]): void;
   /** Autobuses en tiempo real; lista vacía para quitarlos. */
   setVehicles(vehicles: readonly MapVehicle[]): void;
   /** Tamaño de los autobuses (1 = normal), según Ajustes. */

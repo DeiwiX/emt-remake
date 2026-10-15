@@ -23,6 +23,7 @@ import {
   MapRoute,
   MapStop,
   MapTrafficItem,
+  MapCongestion,
   MapVehicle,
   MapView,
 } from '../../core/map/map-provider';
@@ -259,6 +260,8 @@ export class MapViewComponent {
   /** Cortes de tráfico. */
   readonly traffic = input<readonly MapTrafficItem[]>([]);
   readonly trafficSelected = output<string>();
+  /** Tramos lentos estimados con los autobuses (Fase 8). */
+  readonly congestion = input<readonly MapCongestion[]>([]);
   /** Autobuses en tiempo real (solo en la app del móvil). */
   readonly vehicles = input<readonly MapVehicle[]>([]);
   readonly vehicleSelected = output<string>();
@@ -349,6 +352,7 @@ export class MapViewComponent {
       if (view && point) view.centerOn(point);
     });
     effect(() => this.view()?.setTraffic(this.traffic()));
+    effect(() => this.view()?.setCongestion(this.congestion()));
     effect(() => {
       const label = this.label();
       if (label) this.view()?.setLabel(label);

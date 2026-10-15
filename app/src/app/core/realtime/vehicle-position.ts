@@ -203,6 +203,15 @@ export interface SmoothState {
  * hacia atrás. En vez de teletransportar el autobús, se sigue su avance y se
  * corrige la diferencia poco a poco (~15 s), así se mueve con suavidad.
  */
+/** Trozo del trazado entre dos distancias desde su inicio (metros). */
+export function trackSlice(track: RouteTrack, from: number, to: number): LatLon[] {
+  const inner = track.points.filter((_, i) => {
+    const along = track.cumulative[i]!;
+    return along > from && along < to;
+  });
+  return [pointAt(track, from).point, ...inner, pointAt(track, to).point];
+}
+
 export function smoothAlong(previous: SmoothState | undefined, target: number): SmoothState {
   if (!previous || Math.abs(target - previous.target) > MAX_SMOOTH_METRES) {
     return { shown: target, target };

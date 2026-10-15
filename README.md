@@ -163,6 +163,11 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
 - Las líneas afectadas se leen del principio del título ("L-15-18-N2: ..."); sin ese prefijo el aviso es general. Cada aviso se ve 60 días desde que se publica (los generales, 7).
 - Dónde se ven: en el detalle de línea y en el de parada (los de sus líneas y los generales), en el inicio (los generales y los de tus favoritas, solo el título) y con un punto naranja en las paradas favoritas afectadas. Al tocar uno se abre su página en la web de la EMT. ADR 0014.
 
+### Atascos estimados (Fase 8)
+
+- En el Mapa, "Mostrar atascos" pinta encima de los recorridos los tramos que los autobuses acaban de recorrer más despacio que su horario: naranja si van lentos (2 min de más y un 50 % más de lo previsto) y rojo si hay atasco (5 min de más y el doble). El panel los lista con la línea, las paradas y los minutos de más.
+- Se mide con dos datos seguidos de cada autobús (la fuente da uno cada ~5 min), así que hace falta tener el mapa abierto unos 5 min. No se mide en la primera ni en la última parada. Solo en la app del móvil. ADR 0015.
+
 ### Cortes de tráfico
 
 - `traffic.json` (se publica cada hora): cortes del Ayuntamiento ("Cortes de tráfico", CC BY-SA 4.0) e incidencias de la DGT (DATEX II) en la zona de Málaga, sin los ya terminados. Si una fuente falla se publica el resto; no cuenta en `dataVersion`, así que la app no vuelve a bajar la red cada hora.

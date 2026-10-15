@@ -37,6 +37,7 @@ class FakeMapView implements MapView {
     this.routes = routes;
   }
   setStops = vi.fn();
+  setCongestion = vi.fn();
   setVisibleLines(ids: ReadonlySet<string> | null) {
     this.visible = ids;
   }

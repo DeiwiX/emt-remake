@@ -5,6 +5,7 @@ import { LatLon } from '../models/network.model';
 import { MAX_AGE_MINUTES, madridInstant } from './realtime';
 import { RealtimeService } from './realtime.service';
 import { LiveContextService } from './live-context.service';
+import { CongestionLevel, slowStretch } from './congestion';
 import { dwellMinutes } from './dwell';
 import { LiveProgress, vehicleProgress } from './live-estimate';
 import {
@@ -14,6 +15,7 @@ import {
   pointAt,
   positionFromReport,
   smoothAlong,
+  trackSlice,
 } from './vehicle-position';
 
 /** Cada cuánto se recalcula la posición estimada (el mapa la anima entre medias). */
@@ -39,6 +41,17 @@ export interface TrackedVehicle {
   readonly delayMinutes: number | null;
   /** Avance en minutos de horario (solo si la posición se ha estimado sobre el recorrido). */
   readonly progress?: LiveProgress;
+}
+
+/** Tramo lento (Fase 8) listo para dibujar: el trozo de trazado que recorrió el autobús. */
+export interface CongestedStretch {
+  readonly id: string;
+  readonly lineId: string;
+  readonly level: CongestionLevel;
+  readonly extraMinutes: number;
+  readonly fromStopId: string;
+  readonly toStopId: string;
+  readonly points: readonly LatLon[];
 }
 
 /**
@@ -146,6 +159,50 @@ export class VehicleTrackerService {
     });
     this.smooth = smooth;
     return result;
+  });
+
+  /**
+   * Tramos que los autobuses acaban de recorrer más despacio que su horario
+   * (Fase 8). Se recalculan con cada dato nuevo, no cada segundo.
+   */
+  readonly congestion = computed<readonly CongestedStretch[]>(() => {
+    const now = this.realtime.now();
+    const geometries = this.geometries();
+    const context = this.live.context();
+    this.network.lines();
+    return this.realtime.vehicles().flatMap((vehicle): CongestedStretch[] => {
+      if (vehicle.dateKey !== now.dateKey) return [];
+      if ((now.seconds - vehicle.seconds) / 60 > MAX_AGE_MINUTES) return [];
+      const direction = this.network
+        .getLine(vehicle.lineId)
+        ?.directions.find((d) => d.id === vehicle.directionId);
+      if (!direction) return [];
+      const lastStop = direction.stopIds.indexOf(vehicle.lastStopId);
+      if (lastStop === -1) return [];
+      const progress = vehicleProgress(vehicle, direction, lastStop, context);
+      const stretch =
+        progress &&
+        slowStretch(vehicle, context.previous?.(vehicle.id), direction, lastStop, progress.profile);
+      const key = `${vehicle.lineId}|${direction.id}`;
+      const track = this.trackFor(key, geometries.get(direction.shapeId), direction.stopIds);
+      if (!stretch || !track) return [];
+      const points = trackSlice(
+        track,
+        track.stopDistances[stretch.fromIndex]!,
+        track.stopDistances[stretch.toIndex]!,
+      );
+      return [
+        {
+          id: vehicle.id,
+          lineId: vehicle.lineId,
+          level: stretch.level,
+          extraMinutes: stretch.extraMinutes,
+          fromStopId: direction.stopIds[stretch.fromIndex]!,
+          toStopId: direction.stopIds[stretch.toIndex]!,
+          points,
+        },
+      ];
+    });
   });
 
   /** Empieza a seguir a los autobuses mientras viva quien llama. */

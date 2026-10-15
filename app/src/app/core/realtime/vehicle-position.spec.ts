@@ -1,5 +1,5 @@
 import { LatLon } from '../models/network.model';
-import { buildTrack, positionFromReport, positionOnTrack } from './vehicle-position';
+import { buildTrack, positionFromReport, positionOnTrack, trackSlice } from './vehicle-position';
 
 // Recta hacia el este: ~100 m entre puntos (0,0009° de longitud a 36,72° ≈ 80 m).
 const line: LatLon[] = [0, 1, 2, 3, 4].map((i): LatLon => [36.72, -4.42 + i * 0.001]);
@@ -8,6 +8,13 @@ const minutes = [0, 4, 8];
 
 describe('Posición estimada del autobús', () => {
   const track = buildTrack(line, stops)!;
+
+  it('recorta el trazado entre dos paradas (tramo lento)', () => {
+    const slice = trackSlice(track, track.stopDistances[1]!, track.stopDistances[2]!);
+    expect(slice[0]![1]).toBeCloseTo(line[2]![1], 6);
+    expect(slice.at(-1)![1]).toBeCloseTo(line[4]![1], 6);
+    expect(slice).toHaveLength(3);
+  });
 
   it('sitúa las paradas sobre el trazado', () => {
     expect(track.stopDistances[0]).toBeCloseTo(0, 0);

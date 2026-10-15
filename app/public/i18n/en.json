@@ -270,6 +270,15 @@
     "source": "Real time (data from {{age}} min ago)",
     "pill": "~{{minutes}} min"
   },
+  "congestion": {
+    "title": "Estimated traffic jams",
+    "show": "Show traffic jams",
+    "hide": "Hide traffic jams",
+    "summary": "Traffic estimated from the buses: {{slow}} slow stretches (orange) and {{jams}} jams (red)",
+    "none": "No jams detected by the buses. They are measured by comparing two reports of each bus (about 5 min with the map open).",
+    "slowItem": "Line {{line}}, from {{from}} to {{to}}: slow, {{minutes}} min extra",
+    "jamItem": "Line {{line}}, from {{from}} to {{to}}: jam, {{minutes}} min extra"
+  },
   "traffic": {
     "show": "Show traffic closures",
     "hide": "Hide traffic closures",

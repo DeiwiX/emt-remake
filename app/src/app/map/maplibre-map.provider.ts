@@ -19,6 +19,7 @@ import {
   MapViewOptions,
   MapVehicle,
   MapTrafficItem,
+  MapCongestion,
 } from '../core/map/map-provider';
 import { ColorScheme } from '../core/theme/color-scheme.service';
 
@@ -76,6 +77,7 @@ const LAYER = {
   vehicleLabels: 'vehicle-labels',
   traffic: 'traffic',
   trafficLabels: 'traffic-labels',
+  congestion: 'congestion',
 } as const;
 const SOURCE = {
   routes: 'routes',
@@ -85,6 +87,7 @@ const SOURCE = {
   user: 'user',
   vehicles: 'vehicles',
   traffic: 'traffic',
+  congestion: 'congestion',
 } as const;
 
 /**
@@ -206,6 +209,7 @@ class MapLibreView implements MapView {
   /** Dibujos de bus ya añadidos al estilo (uno por color de línea). */
   private readonly busImages = new Set<string>();
   private traffic: readonly MapTrafficItem[] = [];
+  private congestion: readonly MapCongestion[] = [];
   private area: readonly Polygon[] | null = null;
   private scheme: ColorScheme;
   private baseLayer: MapBaseLayer = 'streets';
@@ -274,6 +278,11 @@ class MapLibreView implements MapView {
   setHighlightedStop(stop: MapStop | null): void {
     this.highlightedStop = stop;
     this.source(SOURCE.selectedStop)?.setData(this.selectedStopGeoJson());
+  }
+
+  setCongestion(stretches: readonly MapCongestion[]): void {
+    this.congestion = stretches;
+    this.source(SOURCE.congestion)?.setData(this.congestionGeoJson());
   }
 
   setTraffic(items: readonly MapTrafficItem[]): void {
@@ -519,6 +528,20 @@ class MapLibreView implements MapView {
         'circle-stroke-width': 3,
       },
     });
+    // Tramos lentos estimados con los autobuses (Fase 8): encima de los recorridos,
+    // naranja si va lento y rojo si hay atasco.
+    map.addSource(SOURCE.congestion, { type: 'geojson', data: this.congestionGeoJson() });
+    map.addLayer({
+      id: LAYER.congestion,
+      type: 'line',
+      source: SOURCE.congestion,
+      layout: { 'line-join': 'round', 'line-cap': 'round' },
+      paint: {
+        'line-color': ['match', ['get', 'level'], 'jam', '#E03131', '#F59F00'],
+        'line-width': ['interpolate', ['linear'], ['zoom'], 11, 5, 16, 10],
+        'line-opacity': 0.9,
+      },
+    });
     // Cortes de tráfico: aviso naranja (gris si aún no ha empezado) con "!".
     map.addSource(SOURCE.traffic, { type: 'geojson', data: this.trafficGeoJson() });
     map.addLayer({
@@ -719,6 +742,20 @@ class MapLibreView implements MapView {
             },
           ]
         : [],
+    };
+  }
+
+  private congestionGeoJson(): FeatureCollection {
+    return {
+      type: 'FeatureCollection',
+      features: this.congestion.map((stretch) => ({
+        type: 'Feature',
+        properties: { id: stretch.id, level: stretch.level },
+        geometry: {
+          type: 'LineString',
+          coordinates: stretch.points.map(([lat, lon]) => [lon, lat]),
+        },
+      })),
     };
   }
 

@@ -36,6 +36,7 @@
           (stopSelected)="selectStop($event)"
           (zoomChanged)="onZoom($event)"
           [traffic]="mapTraffic()"
+          [congestion]="mapCongestion()"
           (trafficSelected)="selectTraffic($event)"
           [vehicles]="vehicles()"
           [followPoint]="followPoint()"
@@ -341,6 +342,55 @@
             </ion-button>
           }
         </div>
+        <!-- Atascos estimados con los autobuses (Fase 8): solo con tiempo real. -->
+        @if (realtimeAvailable) {
+          <div class="traffic-toggle ion-padding-horizontal">
+            <ion-note>
+              @if (congestion().length > 0) {
+                {{
+                  'congestion.summary'
+                    | transloco: { slow: congestion().length - jams(), jams: jams() }
+                }}
+              } @else {
+                {{ 'congestion.none' | transloco }}
+              }
+            </ion-note>
+            <ion-button
+              size="small"
+              fill="outline"
+              [attr.aria-pressed]="showCongestion()"
+              (click)="showCongestion.set(!showCongestion())"
+            >
+              {{ (showCongestion() ? 'congestion.hide' : 'congestion.show') | transloco }}
+            </ion-button>
+          </div>
+          @if (showCongestion() && congestion().length > 0) {
+            <ul
+              class="congestion-list ion-padding-horizontal"
+              [attr.aria-label]="'congestion.title' | transloco"
+            >
+              @for (stretch of congestion(); track stretch.id) {
+                <li>
+                  <span
+                    class="congestion-dot"
+                    [class.jam]="stretch.level === 'jam'"
+                    aria-hidden="true"
+                  ></span>
+                  {{
+                    (stretch.level === 'jam' ? 'congestion.jamItem' : 'congestion.slowItem')
+                      | transloco
+                        : {
+                            line: stretch.lineId,
+                            from: stopName(stretch.fromStopId),
+                            to: stopName(stretch.toStopId),
+                            minutes: stretch.extraMinutes,
+                          }
+                  }}
+                </li>
+              }
+            </ul>
+          }
+        }
         @if (realtimeAvailable && vehiclesAge() !== null) {
           <p class="live-note ion-padding-horizontal">
             <ion-note>{{

@@ -62,6 +62,30 @@ app-line-badge {
 }
 
 /* Cortes de tráfico. */
+.congestion-list {
+  margin: 8px 0 0;
+  padding-inline-start: 16px;
+  list-style: none;
+  font-size: 0.9rem;
+
+  li {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 4px 0;
+  }
+}
+.congestion-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #f59f00;
+
+  &.jam {
+    background: #e03131;
+  }
+}
 .traffic-toggle {
   display: flex;
   flex-wrap: wrap;
