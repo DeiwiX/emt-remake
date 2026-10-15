@@ -105,7 +105,12 @@ interface Candidate {
         </div>
       } @else if (candidates().length > 0) {
         <div class="alert">
-          <ion-button size="small" fill="clear" (click)="step.set('bus')">
+          <ion-button
+            size="small"
+            fill="clear"
+            [attr.aria-label]="'alert.notifyMeLine' | transloco: { line: lineId() }"
+            (click)="step.set('bus')"
+          >
             <ion-icon slot="start" name="notifications-outline" aria-hidden="true" />
             {{ 'alert.notifyMe' | transloco }}
           </ion-button>

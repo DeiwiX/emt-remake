@@ -313,6 +313,7 @@
   },
   "alert": {
     "notifyMe": "Notify me",
+    "notifyMeLine": "Notify me about line {{line}}",
     "chooseBus": "Which bus should I notify you about?",
     "chooseMinutes": "How many minutes before?",
     "liveOption": "~{{minutes}} min (real time)",

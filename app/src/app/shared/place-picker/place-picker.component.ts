@@ -18,6 +18,7 @@ import { LocationService } from '../../core/location/location.service';
 import { Zone } from '../../core/models/network.model';
 import { Place } from '../../core/planner/planner';
 import { searchStops, searchStreets, searchZones } from '../../core/search/search';
+import { SearchbarLabelDirective } from '../searchbar-label/searchbar-label.directive';
 
 const MAX_RESULTS = 6;
 
@@ -38,7 +39,16 @@ interface Option {
  */
 @Component({
   selector: 'app-place-picker',
-  imports: [TranslocoPipe, IonButton, IonIcon, IonItem, IonLabel, IonList, IonSearchbar],
+  imports: [
+    SearchbarLabelDirective,
+    TranslocoPipe,
+    IonButton,
+    IonIcon,
+    IonItem,
+    IonLabel,
+    IonList,
+    IonSearchbar,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
     .chosen {
@@ -88,7 +98,7 @@ interface Option {
       }
       <ion-searchbar
         [placeholder]="label() + ': ' + ('plan.searchPlaceholder' | transloco)"
-        [attr.aria-label]="label()"
+        [appSearchbarLabel]="label()"
         [debounce]="150"
         (ionInput)="setQuery($event.detail.value ?? '')"
       />

@@ -51,6 +51,7 @@ import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-
 import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component';
 import { MapViewComponent } from '../../shared/map-view/map-view.component';
 import { StopCardComponent } from '../../shared/stop-card/stop-card.component';
+import { SearchbarLabelDirective } from '../../shared/searchbar-label/searchbar-label.directive';
 
 /** Paradas que se pintan como resultado de búsqueda; la lista completa está en Paradas. */
 const MAX_STOP_RESULTS = 30;
@@ -101,6 +102,7 @@ const DETAIL_ZOOM = 14;
 @Component({
   selector: 'app-map',
   imports: [
+    SearchbarLabelDirective,
     DataDateComponent,
     RouterLink,
     TranslocoPipe,

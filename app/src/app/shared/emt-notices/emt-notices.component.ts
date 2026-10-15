@@ -82,12 +82,17 @@ const DATE_FORMAT = new Intl.DateTimeFormat('es-ES', {
       font-size: 0.8rem;
       color: var(--muted);
     }
+    /* Texto del color normal (el coral sobre el fondo del aviso no llega a 4,5:1); el icono, en coral. */
     .open {
       display: inline-flex;
       align-items: center;
       gap: 3px;
-      color: var(--app-accent);
+      color: var(--ion-text-color);
       font-weight: 600;
+      text-decoration: underline;
+    }
+    .open ion-icon {
+      color: var(--app-accent);
     }
   `,
   template: `

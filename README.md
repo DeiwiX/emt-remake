@@ -208,6 +208,12 @@ Revisión del incremento 9 (04/10/2026):
 - **Carga** (compilación de producción, CPU ×4 y red "4G lenta" simulados, sin caché): primer contenido en unos 2,4 s y unos 270 KB transferidos, de los que 183 KB son el código inicial comprimido. El código inicial ocupa unos 800 KB sin comprimir: la mayor parte es Ionic (unos 360 KB) y Angular (unos 300 KB), así que bajar de 500 KB sin comprimir exigiría prescindir de Ionic. La librería del mapa (230 KB comprimidos) solo se descarga al abrir un mapa.
 - Pendiente para el incremento 10 (apps nativas): probar con TalkBack en un Android real y con VoiceOver (necesita un Mac o un iPhone). La auditoría con axe no se automatiza en las pruebas (decisión del desarrollador, 04/10/2026).
 
+Revisión de la Fase 9 (15/10/2026), dentro de la app Android (WebView, con datos reales):
+
+- **axe-core 4.10** en inicio, Mapa (con una línea elegida, cortes y atascos a la vista), Cómo llegar (con resultados), Favoritos, Líneas, detalle de línea y de parada (con el selector del aviso abierto), Cerca de mí, Paradas, Ajustes y Acerca de, en claro y oscuro. Se corrigió el contraste del enlace "Ver en la web de la EMT" de los avisos y dos regiones de búsqueda sin nombre en "Cómo llegar".
+- **Árbol de accesibilidad de la WebView** (lo que lee TalkBack): los campos de búsqueda se anunciaban como "search text" porque Ionic copia su nombre antes de que llegue la traducción; ahora lo pone la directiva `appSearchbarLabel`. Los botones "Avísame" de una parada dicen de qué línea son ("Avísame de la línea 3"). Botones de icono, pestañas de la barra inferior y avisos tienen nombre.
+- Pendiente: recorrerla con TalkBack a mano en un móvil real (en el emulador el diálogo de permisos de TalkBack no deja usarlo por adb) y con VoiceOver (necesita un Mac o un iPhone).
+
 ### Origen y licencia
 
 Los datos proceden del portal de datos abiertos del Ayuntamiento de Málaga (datosabiertos.malaga.eu). Se tratan como CC BY-SA 4.0 (ver `docs/adr/0002-datos-preprocesados.md`).

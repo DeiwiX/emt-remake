@@ -34,12 +34,14 @@ import { LineListComponent } from '../../shared/line-list/line-list.component';
 import { StopListComponent } from '../../shared/stop-list/stop-list.component';
 import { ActiveAlertStripComponent } from './active-alert-strip.component';
 import { FavoritesSectionComponent } from './favorites-section.component';
+import { SearchbarLabelDirective } from '../../shared/searchbar-label/searchbar-label.directive';
 
 const MAX_STOP_RESULTS = 30;
 
 @Component({
   selector: 'app-home',
   imports: [
+    SearchbarLabelDirective,
     DataDateComponent,
     EmtNoticesComponent,
     RouterLink,

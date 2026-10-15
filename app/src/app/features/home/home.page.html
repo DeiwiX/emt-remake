@@ -30,7 +30,7 @@
         class="home-search"
         [value]="query()"
         [placeholder]="'home.searchPlaceholder' | transloco"
-        [attr.aria-label]="'home.searchPlaceholder' | transloco"
+        [appSearchbarLabel]="'home.searchPlaceholder' | transloco"
         [debounce]="150"
         (ionInput)="setQuery($event.detail.value ?? '')"
       />

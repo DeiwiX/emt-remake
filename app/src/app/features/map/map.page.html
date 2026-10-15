@@ -10,7 +10,7 @@
     <ion-searchbar
       [value]="query()"
       [placeholder]="'map.searchPlaceholder' | transloco"
-      [attr.aria-label]="'map.searchPlaceholder' | transloco"
+      [appSearchbarLabel]="'map.searchPlaceholder' | transloco"
       [debounce]="150"
       (ionInput)="query.set($event.detail.value ?? '')"
     />

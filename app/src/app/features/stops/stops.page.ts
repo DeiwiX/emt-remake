@@ -32,6 +32,7 @@ import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-
 import { MapViewComponent } from '../../shared/map-view/map-view.component';
 import { StopCardComponent } from '../../shared/stop-card/stop-card.component';
 import { FavoriteButtonComponent } from '../../shared/favorite-button/favorite-button.component';
+import { SearchbarLabelDirective } from '../../shared/searchbar-label/searchbar-label.directive';
 
 /**
  * Hay más de 1.000 paradas: se pintan por bloques para que la lista sea fluida
@@ -50,6 +51,7 @@ const MAX_FIT_RESULTS = 200;
 @Component({
   selector: 'app-stops',
   imports: [
+    SearchbarLabelDirective,
     DataDateComponent,
     TranslocoPipe,
     DataStatusBannerComponent,
@@ -81,7 +83,7 @@ const MAX_FIT_RESULTS = 200;
       <ion-toolbar>
         <ion-searchbar
           [placeholder]="'stops.filterPlaceholder' | transloco"
-          [attr.aria-label]="'stops.filterPlaceholder' | transloco"
+          [appSearchbarLabel]="'stops.filterPlaceholder' | transloco"
           [debounce]="200"
           (ionInput)="setQuery($event.detail.value ?? '')"
         />
