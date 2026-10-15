@@ -27,6 +27,7 @@ import { SimpleModeService } from '../../core/settings/simple-mode.service';
 import { VehicleTrackerService } from '../../core/realtime/vehicle-tracker.service';
 import { LatLon, Line } from '../../core/models/network.model';
 import { MapViewComponent } from '../../shared/map-view/map-view.component';
+import { EmtNoticesComponent } from '../../shared/emt-notices/emt-notices.component';
 import { DataDateComponent } from '../../shared/data-date/data-date.component';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
 import { FavoriteButtonComponent } from '../../shared/favorite-button/favorite-button.component';
@@ -39,6 +40,7 @@ import { LocateBusButtonComponent } from '../../shared/locate-bus-button/locate-
   selector: 'app-stop-detail',
   imports: [
     DataDateComponent,
+    EmtNoticesComponent,
     RouterLink,
     TranslocoPipe,
     DataStatusBannerComponent,
@@ -108,6 +110,8 @@ import { LocateBusButtonComponent } from '../../shared/locate-bus-button/locate-
               />
               <!-- Abre el Mapa siguiendo el autobús que antes llega a esta parada. -->
               <app-locate-bus-button [stop]="stop" />
+              <!-- Desvíos e incidencias de sus líneas publicados por la EMT (Fase 7). -->
+              <app-emt-notices [lines]="lineIds()" />
               @if (stop.address) {
                 <p>{{ 'stopDetail.address' | transloco: { address: stop.address } }}</p>
               }
@@ -229,6 +233,11 @@ export class StopDetailPage {
   protected openStop(stopId: string): void {
     if (stopId !== this.stopId()) void this.router.navigate(['/stops', stopId]);
   }
+
+  /** Líneas que paran aquí, para sus avisos de la EMT. */
+  protected readonly lineIds = computed(() => [
+    ...new Set((this.stop()?.services ?? []).map((s) => s.lineId)),
+  ]);
 
   protected readonly services = computed(() =>
     (this.stop()?.services ?? []).map((service) => ({

@@ -296,6 +296,12 @@
     "unfollow": "Stop following",
     "stoppedAt": "Stopped at {{stop}} ({{code}}): passengers boarding"
   },
+  "notices": {
+    "title": "EMT notices",
+    "published": "Published on {{date}}",
+    "open": "Open on the EMT website",
+    "stopHasNotice": "There are EMT notices for its lines"
+  },
   "alert": {
     "notifyMe": "Notify me",
     "chooseBus": "Which bus should I notify you about?",

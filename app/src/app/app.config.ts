@@ -15,6 +15,8 @@ import { provideData } from './data/provide-data';
 import { provideSettings } from './core/settings/provide-settings';
 import { prefersReducedMotion } from './core/theme/color-scheme.service';
 import { MapProvider } from './core/map/map-provider';
+import { NoticeSource } from './core/notices/notices.service';
+import { CapacitorNoticeSource } from './realtime/capacitor-notice.source';
 import { MapLibreMapProvider } from './map/maplibre-map.provider';
 import { LocationService } from './core/location/location.service';
 import { CapacitorLocationService } from './location/capacitor-location.service';
@@ -39,6 +41,7 @@ export const appConfig: ApplicationConfig = {
     { provide: MapProvider, useClass: MapLibreMapProvider },
     { provide: LocationService, useClass: CapacitorLocationService },
     { provide: RealtimeSource, useClass: CapacitorRealtimeSource },
+    { provide: NoticeSource, useClass: CapacitorNoticeSource },
     { provide: ArrivalNotifier, useClass: CapacitorArrivalNotifier },
     // Un aviso de llegada guardado sigue ajustándose con el tiempo real al abrir la app.
     provideAppInitializer(() => void inject(ArrivalAlertService)),

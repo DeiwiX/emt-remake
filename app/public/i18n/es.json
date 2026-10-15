@@ -296,6 +296,12 @@
     "unfollow": "Dejar de seguir",
     "stoppedAt": "Parado en {{stop}} ({{code}}): suben y bajan viajeros"
   },
+  "notices": {
+    "title": "Avisos de la EMT",
+    "published": "Publicado el {{date}}",
+    "open": "Ver en la web de la EMT",
+    "stopHasNotice": "Hay avisos de la EMT para sus líneas"
+  },
   "alert": {
     "notifyMe": "Avísame",
     "chooseBus": "¿De qué autobús quieres el aviso?",

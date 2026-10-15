@@ -157,6 +157,12 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
 - **Retraso real y ritmo (Fase 6):** cada autobús se casa con el viaje del horario que está haciendo (el que debía pasar por su última parada más cerca de la hora del dato, prefiriendo que vaya tarde a adelantado). La llegada usa los tiempos entre paradas de ese viaje y se muestra su retraso ("Va 3 min tarde", "Va en hora"). Con dos datos seguidos del mismo autobús se mide su ritmo frente al horario (mezclado al 50 % y acotado entre 0,6 y 1,4) y se aplica a lo que le queda; lo usan la llegada estimada, los avisos y los autobuses del mapa. Cuando llega un dato nuevo los autobuses del mapa corrigen su posición poco a poco (~15 s) en vez de saltar. ADR 0012.
 - Solo en la app nativa: el servidor no permite CORS, así que en la web se usa solo el horario (ADR 0008).
 
+### Avisos de la EMT (Fase 7)
+
+- La app lee las noticias de la web de la EMT (`https://www.emtmalaga.es/rss.xml`), donde publica desvíos, paradas trasladadas y cortes, como mucho cada 15 min y solo en la app del móvil (el servidor no permite CORS). Se guardan en el dispositivo, así no se pierden cuando salen del canal (que solo trae los 6 últimos).
+- Las líneas afectadas se leen del principio del título ("L-15-18-N2: ..."); sin ese prefijo el aviso es general. Cada aviso se ve 60 días desde que se publica (los generales, 7).
+- Dónde se ven: en el detalle de línea y en el de parada (los de sus líneas y los generales), en el inicio (los generales y los de tus favoritas, solo el título) y con un punto naranja en las paradas favoritas afectadas. Al tocar uno se abre su página en la web de la EMT. ADR 0014.
+
 ### Cortes de tráfico
 
 - `traffic.json` (se publica cada hora): cortes del Ayuntamiento ("Cortes de tráfico", CC BY-SA 4.0) e incidencias de la DGT (DATEX II) en la zona de Málaga, sin los ya terminados. Si una fuente falla se publica el resto; no cuenta en `dataVersion`, así que la app no vuelve a bajar la red cada hora.

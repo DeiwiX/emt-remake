@@ -14,6 +14,7 @@ import { IonButton, IonIcon } from '@ionic/angular';
 import { NetworkRepository } from '../../core/data/repositories';
 import { MAX_ALIAS_LENGTH } from '../../core/favorites/favorites';
 import { FavoritesService } from '../../core/favorites/favorites.service';
+import { NoticesService } from '../../core/notices/notices.service';
 import { Stop } from '../../core/models/network.model';
 import { ArrivalContextService } from '../../core/realtime/arrival-context.service';
 import { estimateArrivals } from '../../core/realtime/realtime';
@@ -90,6 +91,16 @@ const COUNTDOWN_MINUTES = 60;
       gap: 6px;
       font-weight: 700;
       line-height: 1.2;
+    }
+    .notice-dot {
+      flex: none;
+      width: 10px;
+      height: 10px;
+      margin-top: 4px;
+      margin-inline-start: auto;
+      border-radius: 50%;
+      background: var(--app-accent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-accent) 25%, transparent);
     }
     .chevron {
       flex: 0 0 auto;
@@ -199,6 +210,14 @@ const COUNTDOWN_MINUTES = 60;
             {{ stop().name }}
           }
         </span>
+        @if (hasNotice()) {
+          <!-- Hay un aviso de la EMT para alguna de sus líneas (Fase 7). -->
+          <span
+            class="notice-dot"
+            role="img"
+            [attr.aria-label]="'notices.stopHasNotice' | transloco"
+          ></span>
+        }
         <ion-icon class="chevron" name="chevron-down" aria-hidden="true" />
       </span>
       <span class="badges">
@@ -326,6 +345,12 @@ export class FavoriteStopTileComponent {
   protected readonly lineIds = computed(() => [
     ...new Set(this.stop().services.map((s) => s.lineId)),
   ]);
+
+  private readonly notices = inject(NoticesService);
+  /** Algún aviso de la EMT (no general) afecta a sus líneas. */
+  protected readonly hasNotice = computed(
+    () => this.notices.forLines(this.lineIds(), false).length > 0,
+  );
 
   protected readonly services = computed(() =>
     this.stop().services.map((service) => ({

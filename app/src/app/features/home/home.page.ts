@@ -18,6 +18,7 @@ import {
   IonNote,
   IonSearchbar,
 } from '@ionic/angular';
+import { EmtNoticesComponent } from '../../shared/emt-notices/emt-notices.component';
 import { DataDateComponent } from '../../shared/data-date/data-date.component';
 
 import { NetworkRepository } from '../../core/data/repositories';
@@ -40,6 +41,7 @@ const MAX_STOP_RESULTS = 30;
   selector: 'app-home',
   imports: [
     DataDateComponent,
+    EmtNoticesComponent,
     RouterLink,
     TranslocoPipe,
     DataStatusBannerComponent,
@@ -83,6 +85,21 @@ export class HomePage {
 
   private readonly favorites = inject(FavoritesService).favorites;
   protected readonly hasFavorites = computed(() => this.favorites().length > 0);
+  /** Líneas guardadas y las de las paradas guardadas: sus avisos de la EMT salen en el inicio. */
+  protected readonly favoriteLineIds = computed(() => {
+    const stops = new Map(this.network.stops().map((s) => [s.id, s]));
+    return [
+      ...new Set(
+        this.favorites().flatMap((f) =>
+          f.kind === 'line'
+            ? [f.lineId]
+            : f.kind === 'stop'
+              ? (stops.get(f.stopId)?.services ?? []).map((s) => s.lineId)
+              : [],
+        ),
+      ),
+    ];
+  });
   /** Calles (también "calle + número"): elegir una abre el mapa con sus paradas cercanas. */
   private readonly streetsStore = inject(StreetsStore);
   protected readonly streetResults = computed(() =>

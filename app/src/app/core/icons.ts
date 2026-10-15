@@ -13,6 +13,7 @@ import {
   navigateOutline,
   notifications,
   notificationsOutline,
+  openOutline,
   refresh,
   settingsOutline,
   star,
@@ -20,6 +21,7 @@ import {
   swapVerticalOutline,
   timeOutline,
   trailSignOutline,
+  warningOutline,
 } from 'ionicons/icons';
 
 /**
@@ -41,6 +43,7 @@ export function registerAppIcons(): void {
     navigateOutline,
     notifications,
     notificationsOutline,
+    openOutline,
     refresh,
     settingsOutline,
     star,
@@ -48,5 +51,6 @@ export function registerAppIcons(): void {
     swapVerticalOutline,
     timeOutline,
     trailSignOutline,
+    warningOutline,
   });
 }
