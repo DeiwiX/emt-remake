@@ -74,6 +74,24 @@ export function compareTimed(mode: TimeMode) {
       : b.leaveAt - a.leaveAt || a.arrival - b.arrival;
 }
 
+/** Una opción que llega más de 90 min después que la mejor (o sale 90 min antes) no se ofrece. */
+export const MAX_GAP_MINUTES = 90;
+
+/**
+ * Quita las opciones que no tienen sentido frente a la mejor (16/10/2026): de
+ * noche salía, por ejemplo, un transbordo que llegaba ocho horas más tarde.
+ * `sorted` debe venir ordenado con compareTimed (la mejor, primero).
+ */
+export function withinReach(sorted: readonly TimedJourney[], mode: TimeMode): TimedJourney[] {
+  const best = sorted[0];
+  if (!best) return [];
+  return sorted.filter((t) =>
+    mode === 'depart'
+      ? t.arrival - best.arrival <= MAX_GAP_MINUTES
+      : best.leaveAt - t.leaveAt <= MAX_GAP_MINUTES,
+  );
+}
+
 interface LegPlan {
   leg: Leg;
   /** Viajes programados: paso por la parada de subida y por la de bajada. */

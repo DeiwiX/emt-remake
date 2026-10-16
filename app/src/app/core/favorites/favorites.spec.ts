@@ -47,7 +47,8 @@ describe('Favoritos', () => {
     const data = { stops: [stop], getStop, zones: [zone], streets: [] };
 
     it('convierte la referencia de la URL en un lugar con sus paradas', () => {
-      expect(resolvePlace('stop:152', data)).toEqual({
+      // Una parada lleva también las cercanas (a pie); aquí no hay más paradas.
+      expect(resolvePlace('stop:152', data)).toMatchObject({
         kind: 'stop',
         id: '152',
         name: 'Postas',

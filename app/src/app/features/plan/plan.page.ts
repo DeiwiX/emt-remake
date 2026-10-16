@@ -44,6 +44,7 @@ import {
   TimedJourney,
   compareTimed,
   scheduleJourney,
+  withinReach,
 } from '../../core/planner/scheduled-journey';
 import { ServiceClock, dayOffsetOf, formatClock } from '../../core/schedule/schedule';
 import { ScheduleClockService } from '../../core/schedule/schedule-clock.service';
@@ -216,9 +217,16 @@ export class PlanPage {
       option,
       timed: timetables ? scheduleJourney(option, lines, timetables, reference, mode) : null,
     }));
-    const timed = rows
+    const sorted = rows
       .filter((r) => r.timed)
       .sort((a, b) => compareTimed(mode)(a.timed!, b.timed!));
+    const kept = new Set(
+      withinReach(
+        sorted.map((r) => r.timed!),
+        mode,
+      ),
+    );
+    const timed = sorted.filter((r) => kept.has(r.timed!));
     return [...timed, ...rows.filter((r) => !r.timed)].slice(0, 6);
   });
 

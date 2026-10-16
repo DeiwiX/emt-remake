@@ -122,6 +122,7 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
 
 ### Horario programado y "Cómo llegar"
 
+- **Parada como origen o destino (16/10/2026):** cuenta también las paradas a menos de 300 m, con los minutos andando desde (o hasta) la elegida. Antes solo valía la parada exacta y, si sus líneas no iban al destino, no salía nada (p. ej. de Parque - Ayuntamiento a Postas, que ahora propone andar 1 min hasta Parque - Rectorado y coger la línea 1). Tampoco se ofrecen opciones que llegan más de 90 min después que la mejor (o, en "Llegar a las", que salen 90 min antes).
 - **Horario oficial:** el GTFS del portal municipal es el horario programado de la EMT. El script publica `timetables.json`: las salidas de cada línea y sentido por día de servicio, con los días de cada servicio (unos 17 KB comprimidos). La hora de paso por una parada se calcula como la salida más los minutos del sentido hasta esa parada, así que es aproximada. No es tiempo real (Fase 3).
 - **Próximo bus:** en el detalle de parada y en la ficha de parada de Mapa y Paradas, cada línea muestra los tres próximos pasos según horario (hora de Málaga) en cápsulas: lo que falta ("8 min") y la hora; a más de una hora, la hora y el tiempo que falta; si hoy no hay más, el día. El primero va destacado.
 - **Cómo llegar:**

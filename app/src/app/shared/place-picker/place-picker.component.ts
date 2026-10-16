@@ -13,6 +13,7 @@ import { IonButton, IonIcon, IonItem, IonLabel, IonList, IonSearchbar } from '@i
 import { NetworkRepository } from '../../core/data/repositories';
 import { StreetsStore } from '../../core/data/streets-store.service';
 import { placeForStreet } from '../../core/location/street-place';
+import { placeForStop } from '../../core/location/stop-place';
 import { stopsNear } from '../../core/location/geo';
 import { LocationService } from '../../core/location/location.service';
 import { Zone } from '../../core/models/network.model';
@@ -165,7 +166,7 @@ export class PlacePickerComponent {
       name: stop.name,
       kindKey: 'plan.kind.stop',
       detail: { key: 'stops.code', params: { id: stop.id } },
-      toPlace: () => ({ kind: 'stop', id: stop.id, name: stop.name, stopIds: [stop.id] }),
+      toPlace: () => placeForStop(stop, this.network.stops()),
     }));
     return [...zones, ...streets, ...stops];
   });

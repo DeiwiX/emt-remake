@@ -1,4 +1,5 @@
 import { placeForStreet } from '../location/street-place';
+import { placeForStop } from '../location/stop-place';
 import { Place } from '../planner/planner';
 import { Stop, Street, Zone } from '../models/network.model';
 
@@ -131,7 +132,7 @@ export function resolvePlace(param: string | undefined, data: PlaceData): Place 
   const id = param.slice(separator + 1);
   if (kind === 'stop') {
     const stop = data.getStop(id);
-    return stop ? { kind: 'stop', id, name: stop.name, stopIds: [id] } : null;
+    return stop ? placeForStop(stop, data.stops) : null;
   }
   if (kind === 'street' || kind === 'address') {
     const [streetId, numberText] = id.split('#');
