@@ -125,3 +125,31 @@ export function minutesToStop(
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
+
+/** Un paso del horario es de un viaje si cuadra con él con este margen (redondeos). */
+const TRIP_MATCH_MINUTES = 2;
+
+/**
+ * Perfil (minutos desde la salida en cada parada) del viaje del horario que
+ * pasa por la parada `stopIndex` a los `minutes` (desde la medianoche del día
+ * de los viajes). Si no se encuentra, el típico del sentido. Lo usa el
+ * seguimiento nativo con la app cerrada, para medir igual que la app.
+ */
+export function tripProfileAt(
+  trips: readonly ScheduledTrip[],
+  typical: readonly number[],
+  stopIndex: number,
+  minutes: number,
+): readonly number[] {
+  let best: readonly number[] = typical;
+  let bestGap = TRIP_MATCH_MINUTES;
+  for (const trip of trips) {
+    const profile = trip.profile ?? typical;
+    const gap = Math.abs(trip.start + profile[stopIndex]! - minutes);
+    if (gap <= bestGap) {
+      bestGap = gap;
+      best = profile;
+    }
+  }
+  return best;
+}

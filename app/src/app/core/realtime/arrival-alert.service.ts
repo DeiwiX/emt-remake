@@ -6,6 +6,7 @@ import { ArrivalAlert, LiveArrival, createAlert, parseAlert, updateAlert } from 
 import { ArrivalNotifier, NotificationText, TrackingRequest } from './arrival-notifier';
 import { formatClock, madridClock } from '../schedule/schedule';
 import { estimateArrivals } from './realtime';
+import { tripProfileAt } from './live-estimate';
 import { RealtimeService } from './realtime.service';
 import { ArrivalContextService } from './arrival-context.service';
 
@@ -149,11 +150,17 @@ export class ArrivalAlertService {
     const stop = this.network.getStop(alert.stopId)?.name ?? alert.stopId;
     const params = { line: alert.lineId, stop, minutes: '{minutes}', before: alert.minutes };
     const notifyAt = madridClock(new Date(alert.notifyAt));
+    // Perfil del viaje elegido (no el típico del sentido): el servicio nativo mide
+    // así igual que la app (optimización 2, 16/10/2026).
+    const passing = madridClock(new Date(alert.scheduledAt));
+    const trips =
+      this.arrivalContext.context().trips?.(alert.lineId, alert.directionId, passing.dateKey) ?? [];
+    const profile = tripProfileAt(trips, direction.minutes, stopIndex, passing.minutes);
     return {
       lineId: alert.lineId,
       directionId: alert.directionId,
       stopIds: direction.stopIds,
-      profile: direction.minutes,
+      profile,
       stopIndex,
       minutesBefore: alert.minutes,
       vehicleId: alert.vehicleId,

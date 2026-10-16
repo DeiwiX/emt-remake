@@ -40,6 +40,8 @@ public class BusTrackerService extends Service {
     private HandlerThread thread;
     private Handler handler;
     private final Runnable tick = this::check;
+    /** Datos vistos de cada autobús, para medir su ritmo frente al horario. */
+    private final FeedEstimator.History history = new FeedEstimator.History();
 
     static void start(Context context) {
         Intent intent = new Intent(context, BusTrackerService.class);
@@ -99,7 +101,7 @@ public class BusTrackerService extends Service {
         long now = System.currentTimeMillis();
         Long minutesLeft = null;
         try {
-            FeedEstimator.Estimate estimate = FeedEstimator.estimate(download(alert.feedUrl), alert, now);
+            FeedEstimator.Estimate estimate = FeedEstimator.estimate(download(alert.feedUrl), alert, now, history);
             if (estimate != null) {
                 alert.vehicleId = estimate.vehicleId;
                 alert.expectedAt = estimate.arrivalAt;

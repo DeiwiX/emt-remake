@@ -21,6 +21,6 @@ Los avisos de llegada (ADR 0009) se reprogramaban con cada dato nuevo solo mient
 ## Consecuencias y riesgos
 
 - Gasta algo de batería y datos (una descarga de ~60 KB por minuto) solo mientras dura el aviso.
-- El servicio usa la regla sencilla (sin el viaje casado ni el ritmo de la ADR 0012); con la app abierta, la app le envía la hora afinada.
+- ~~El servicio usa la regla sencilla (sin el viaje casado ni el ritmo de la ADR 0012).~~ Actualizado el 16/10/2026: la app le envía el perfil del viaje elegido y el servicio mide el ritmo del autobús con dos datos seguidos (misma mezcla y límites que la ADR 0012). Con la app abierta, la app le sigue enviando la hora afinada.
 - `specialUse` y `USE_EXACT_ALARM` habría que justificarlos si se publicara en Google Play.
 - Si el móvil se reinicia, el seguimiento programado se pierde.

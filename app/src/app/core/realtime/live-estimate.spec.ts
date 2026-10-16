@@ -1,5 +1,5 @@
 import { Direction } from '../models/network.model';
-import { minutesToStop, vehicleProgress } from './live-estimate';
+import { minutesToStop, tripProfileAt, vehicleProgress } from './live-estimate';
 import { Vehicle, estimateArrivals } from './realtime';
 import { previousReports } from './realtime.service';
 import { dwellMinutes, dwellSeconds } from './dwell';
@@ -149,5 +149,23 @@ describe('Fase 6: posición y llegada cuadran', () => {
     // La estimación retrocede (dato nuevo): el dibujo no se queda por delante.
     state = smoothAlong(state, 900);
     expect(state.shown).toBeLessThanOrEqual(900);
+  });
+});
+
+describe('tripProfileAt (seguimiento con la app cerrada)', () => {
+  const typical = [0, 5, 10];
+  const peak = [0, 7, 14];
+
+  it('usa el perfil del viaje que pasa por la parada a esa hora', () => {
+    const trips = [
+      { start: 480, profile: peak },
+      { start: 500, profile: null },
+    ];
+    expect(tripProfileAt(trips, typical, 2, 494)).toBe(peak);
+    expect(tripProfileAt(trips, typical, 2, 510)).toBe(typical);
+  });
+
+  it('sin viaje que cuadre, el típico del sentido', () => {
+    expect(tripProfileAt([{ start: 480, profile: peak }], typical, 2, 600)).toBe(typical);
   });
 });
