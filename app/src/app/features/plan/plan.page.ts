@@ -184,12 +184,16 @@ export class PlanPage {
   );
 
   /** Paradas cercanas entre sí, para transbordos a pie; se recalcula solo si cambia la red. */
-  private readonly nearbyStops = computed(() => buildNearbyStops(this.network.stops()));
+  private readonly straightNearbyStops = computed(() => buildNearbyStops(this.network.stops()));
 
   /** Rutas andando por las calles (2B): minutos reales a cada parada y camino en el mapa. */
   private readonly walking = inject(WalkingService);
   private readonly plannedOrigin = computed(() => this.walking.refine(this.origin()));
   private readonly plannedDestination = computed(() => this.walking.refine(this.destination()));
+  /** Transbordos a pie con los minutos del camino real por la calle, si ya hay red peatonal. */
+  private readonly nearbyStops = computed(() =>
+    this.walking.transferWalks(this.straightNearbyStops()),
+  );
 
   private readonly options = computed<readonly JourneyOption[]>(() => {
     const origin = this.plannedOrigin();
@@ -277,7 +281,7 @@ export class PlanPage {
           `walk-transfer-${i}`,
           [from.lat, from.lon],
           leg.fromStopId,
-          row.option.walkMinutes,
+          row.option.transferWalks[i] ?? 0,
         );
       }),
     ].filter((route): route is MapRoute => route !== null);

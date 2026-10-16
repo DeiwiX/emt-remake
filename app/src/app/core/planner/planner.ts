@@ -5,7 +5,9 @@ import { WALK_DETOUR, WALK_METRES_PER_MINUTE, metresBetween } from '../location/
  * Planificador "Cómo llegar" (versión con datos programados). Lógica pura, sin
  * Angular, para poder probarla de forma aislada.
  *
- * Busca viajes directos y con un transbordo en la misma parada. Los tiempos son
+ * Busca viajes directos, con un transbordo y, si no hay nada mejor, con dos
+ * (16/10/2026). Los transbordos pueden ser en la misma parada o andando a una
+ * cercana. Los tiempos son
  * los del horario programado (o estimados por distancia si una línea no tiene
  * horario); no incluyen la espera en la parada de origen, que necesitará tiempo
  * real (Fase 3).
@@ -50,13 +52,18 @@ export interface JourneyOption {
   readonly egressMinutes: number;
   /** Minutos andando hasta la primera parada, en el autobús, a pie entre paradas y el margen de cada transbordo. */
   readonly totalMinutes: number;
-  /** Minutos andando entre la parada de bajada y la de subida del transbordo (0 si es la misma). */
-  readonly walkMinutes: number;
+  /**
+   * Minutos andando en cada transbordo, entre la parada de bajada y la de subida
+   * (0 si es la misma). Uno por transbordo: legs.length - 1.
+   */
+  readonly transferWalks: readonly number[];
 }
 
 export interface NearbyStop {
   readonly stopId: string;
   readonly metres: number;
+  /** Minutos andando por la calle, si se conocen (si no, se estiman con `metres`). */
+  readonly minutes?: number;
 }
 
 export interface PlanOptions {
@@ -112,7 +119,7 @@ export function planJourneys(
         accessMinutes,
         egressMinutes,
         totalMinutes: accessMinutes + leg.minutes + egressMinutes,
-        walkMinutes: 0,
+        transferWalks: [],
       },
     ];
   });
@@ -154,17 +161,13 @@ export function planJourneys(
       );
       const boardingStop = d.stopIds[p]!;
       // Se puede bajar en la misma parada o en una cercana y caminar hasta esta.
-      const candidates = [
-        { stopId: boardingStop, metres: 0 },
-        ...nearbyStops(boardingStop),
-      ].flatMap(({ stopId, metres }) =>
-        (firstLegs.get(stopId) ?? []).map((first) => ({ first, metres })),
+      const candidates = withNearby(boardingStop, nearbyStops).flatMap(({ stopId, walk }) =>
+        (firstLegs.get(stopId) ?? []).map((first) => ({ first, walk })),
       );
       if (candidates.length === 0) continue;
       const second = makeLeg(line, d, p, arrival, times);
-      for (const { first, metres } of candidates) {
+      for (const { first, walk: walkMinutes } of candidates) {
         if (first.lineId === line.id) continue;
-        const walkMinutes = Math.ceil((metres * WALK_DETOUR) / WALK_METRES_PER_MINUTE);
         const accessMinutes = access(first.fromStopId);
         const egressMinutes = egress(second.toStopId);
         const total =
@@ -182,7 +185,7 @@ export function planJourneys(
             accessMinutes,
             egressMinutes,
             totalMinutes: total,
-            walkMinutes,
+            transferWalks: [walkMinutes],
           });
         }
       }
@@ -191,26 +194,179 @@ export function planJourneys(
 
   // Un transbordo solo compensa si una línea directa no hace lo mismo con la misma línea,
   // y no se repite una línea en varias combinaciones: así las opciones son distintas.
+  // Las de líneas secundarias (nocturnas) se miran al final, para que no quiten el
+  // sitio a una de día con la misma línea.
+  const secondary = (o: JourneyOption) => o.legs.some((leg) => isSecondary(leg.lineId));
   const directLines = new Set(direct.map((o) => o.legs[0]!.lineId));
   const used = new Set<string>();
-  const usefulTransfers = [...transfers.values()].sort(byTime).filter((o) => {
-    const [first, second] = [o.legs[0]!.lineId, o.legs[1]!.lineId];
-    if (directLines.has(first) || directLines.has(second) || used.has(first) || used.has(second)) {
-      return false;
-    }
-    used.add(first);
-    used.add(second);
-    return true;
-  });
+  const usefulTransfers = [...transfers.values()]
+    .sort((a, b) => Number(secondary(a)) - Number(secondary(b)) || byTime(a, b))
+    .filter((o) => {
+      const [first, second] = [o.legs[0]!.lineId, o.legs[1]!.lineId];
+      if (
+        directLines.has(first) ||
+        directLines.has(second) ||
+        used.has(first) ||
+        used.has(second)
+      ) {
+        return false;
+      }
+      used.add(first);
+      used.add(second);
+      return true;
+    });
+
+  // Dos transbordos solo si no hay nada directo ni con uno, o si ahorran bastante
+  // (frente a lo que no usa líneas secundarias, como las nocturnas, que de día no van).
+  const bestSoFar = Math.min(
+    ...[...direct, ...usefulTransfers].filter((o) => !secondary(o)).map((o) => o.totalMinutes),
+  );
+  const doubles = twoTransfers(
+    directions,
+    firstLegs,
+    to,
+    egress,
+    access,
+    nearbyStops,
+    transferMinutes,
+  )
+    .filter((o) => o.totalMinutes <= bestSoFar - DOUBLE_TRANSFER_SAVING_MINUTES)
+    .sort((a, b) => Number(secondary(a)) - Number(secondary(b)))
+    .slice(0, MAX_DOUBLE_TRANSFERS);
 
   // Primero las directas (más cómodas) y después los transbordos, cada grupo por
   // tiempo; las opciones con líneas secundarias van al final de todo.
-  const secondary = (o: JourneyOption) => o.legs.some((leg) => isSecondary(leg.lineId));
-  const ordered = [...direct.sort(byTime), ...usefulTransfers];
+  const ordered = [...direct.sort(byTime), ...usefulTransfers, ...doubles];
   return [...ordered.filter((o) => !secondary(o)), ...ordered.filter(secondary)].slice(
     0,
     maxResults,
   );
+}
+
+/** Con dos transbordos se ofrecen como mucho tres opciones. */
+const MAX_DOUBLE_TRANSFERS = 3;
+/** Dos transbordos compensan si ahorran al menos esto frente a lo mejor sin ellos. */
+const DOUBLE_TRANSFER_SAVING_MINUTES = 10;
+
+/** La parada y las cercanas, con los minutos andando hasta cada una (0 la misma). */
+function withNearby(
+  stopId: string,
+  nearbyStops: (stopId: string) => readonly NearbyStop[],
+): { stopId: string; walk: number }[] {
+  return [
+    { stopId, walk: 0 },
+    ...nearbyStops(stopId).map((n) => ({
+      stopId: n.stopId,
+      walk: n.minutes ?? Math.ceil((n.metres * WALK_DETOUR) / WALK_METRES_PER_MINUTE),
+    })),
+  ];
+}
+
+/**
+ * Viajes con dos transbordos: primer tramo (ya calculado hasta cada parada),
+ * un tramo intermedio y el último hasta el destino. Para que sea rápido, de
+ * cada parada solo se usa el mejor primer tramo y el mejor último tramo.
+ */
+function twoTransfers(
+  directions: readonly { line: Line; d: Direction }[],
+  firstLegs: ReadonlyMap<string, Leg[]>,
+  to: ReadonlySet<string>,
+  egress: (stopId: string) => number,
+  access: (stopId: string) => number,
+  nearbyStops: (stopId: string) => readonly NearbyStop[],
+  transferMinutes: number,
+): JourneyOption[] {
+  // Mejor primer tramo que deja en cada parada (contando lo que se anda hasta la de subida).
+  const bestFirst = new Map<string, Leg>();
+  for (const [stopId, legs] of firstLegs) {
+    bestFirst.set(
+      stopId,
+      legs.reduce((a, b) =>
+        access(a.fromStopId) + a.minutes <= access(b.fromStopId) + b.minutes ? a : b,
+      ),
+    );
+  }
+  // Mejor último tramo desde cada parada hasta el destino (contando lo que se anda después).
+  const bestLast = new Map<string, Leg>();
+  for (const { line, d } of directions) {
+    const times = minutesOf(d);
+    const arrivals = indicesOf(d, to);
+    if (arrivals.length === 0) continue;
+    for (let p = 0; p < d.stopIds.length; p++) {
+      const stopId = d.stopIds[p]!;
+      if (to.has(stopId)) continue;
+      const later = arrivals.filter((q) => q > p);
+      if (later.length === 0) continue;
+      const arrival = later.reduce((best, q) =>
+        times[q]! + egress(d.stopIds[q]!) < times[best]! + egress(d.stopIds[best]!) ? q : best,
+      );
+      const leg = makeLeg(line, d, p, arrival, times);
+      const current = bestLast.get(stopId);
+      if (
+        !current ||
+        leg.minutes + egress(leg.toStopId) < current.minutes + egress(current.toStopId)
+      ) {
+        bestLast.set(stopId, leg);
+      }
+    }
+  }
+
+  const options = new Map<string, JourneyOption>();
+  for (const { line, d } of directions) {
+    const times = minutesOf(d);
+    // En cada parada del tramo intermedio, el mejor primer tramo que deja en ella (o
+    // andando cerca) y el mejor último tramo que sale de ella, de otras líneas.
+    const firstAt = d.stopIds.map((stopId) => {
+      let best: { first: Leg; walk: number; cost: number } | null = null;
+      for (const { stopId: id, walk } of withNearby(stopId, nearbyStops)) {
+        const first = bestFirst.get(id);
+        if (!first || first.lineId === line.id) continue;
+        const cost = access(first.fromStopId) + first.minutes + walk;
+        if (!best || cost < best.cost) best = { first, walk, cost };
+      }
+      return best;
+    });
+    const lastAt = d.stopIds.map((stopId) => {
+      let best: { last: Leg; walk: number; cost: number } | null = null;
+      for (const { stopId: id, walk } of withNearby(stopId, nearbyStops)) {
+        const last = bestLast.get(id);
+        if (!last || last.lineId === line.id) continue;
+        const cost = walk + last.minutes + egress(last.toStopId);
+        if (!best || cost < best.cost) best = { last, walk, cost };
+      }
+      return best;
+    });
+    for (let p = 0; p < d.stopIds.length - 1; p++) {
+      const start = firstAt[p];
+      if (!start) continue;
+      for (let q = p + 1; q < d.stopIds.length; q++) {
+        const end = lastAt[q];
+        if (!end || start.first.lineId === end.last.lineId) continue;
+        const middle = makeLeg(line, d, p, q, times);
+        const total = start.cost + middle.minutes + end.cost + 2 * transferMinutes;
+        const key = `${start.first.lineId}>${line.id}>${end.last.lineId}`;
+        const current = options.get(key);
+        if (!current || total < current.totalMinutes) {
+          options.set(key, {
+            legs: [start.first, middle, end.last],
+            accessMinutes: access(start.first.fromStopId),
+            egressMinutes: egress(end.last.toStopId),
+            totalMinutes: total,
+            transferWalks: [start.walk, end.walk],
+          });
+        }
+      }
+    }
+  }
+  // Una opción por línea intermedia, para que sean distintas. No se exige que no
+  // repitan la primera o la última: a menudo solo una línea sale del origen.
+  const used = new Set<string>();
+  return [...options.values()].sort(byTime).filter((o) => {
+    const middle = o.legs[1]!.lineId;
+    if (used.has(middle)) return false;
+    used.add(middle);
+    return true;
+  });
 }
 
 /**

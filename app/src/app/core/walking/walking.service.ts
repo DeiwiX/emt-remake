@@ -2,8 +2,8 @@ import { Injectable, inject, signal } from '@angular/core';
 
 import { LatLon } from '../models/network.model';
 import { NetworkRepository, WalkGraphRepository } from '../data/repositories';
-import { Place } from '../planner/planner';
-import { withStreetWalks } from './walk-access';
+import { NearbyStop, Place } from '../planner/planner';
+import { streetTransfers, withStreetWalks } from './walk-access';
 import { WalkGraph, WalkPath } from './walk-graph';
 
 /**
@@ -35,6 +35,17 @@ export class WalkingService {
   refine(place: Place | null): Place | null {
     const graph = this.graphSignal();
     return place && graph ? withStreetWalks(place, graph, (id) => this.network.getStop(id)) : place;
+  }
+
+  /**
+   * Transbordos a pie entre paradas con los minutos del camino real (16/10/2026).
+   * Sin red peatonal, los de siempre (línea recta con margen de rodeo).
+   */
+  transferWalks(
+    nearby: (stopId: string) => readonly NearbyStop[],
+  ): (stopId: string) => readonly NearbyStop[] {
+    const graph = this.graphSignal();
+    return graph ? streetTransfers(nearby, graph, (id) => this.network.getStop(id)) : nearby;
   }
 
   /** Camino por las calles entre dos puntos (null sin red o sin camino). */

@@ -148,14 +148,14 @@ describe('scheduleJourney', () => {
     accessMinutes: 0,
     egressMinutes: 0,
     totalMinutes: 5,
-    walkMinutes: 0,
+    transferWalks: [],
   };
   const transfer: JourneyOption = {
     legs: [leg('1', 'a', 'c'), leg('2', 'c', 'd')],
     accessMinutes: 0,
     egressMinutes: 0,
     totalMinutes: 26,
-    walkMinutes: 0,
+    transferWalks: [],
   };
 
   it('"salir a las": coge el próximo bus y calcula la llegada', () => {
@@ -182,6 +182,22 @@ describe('scheduleJourney', () => {
     expect(journey?.legs.map((l) => [l.departure, l.arrival])).toEqual([
       [420, 430],
       [440, 448],
+    ]);
+  });
+
+  it('no hace esperar horas en un transbordo: coge el último primer bus que enlaza', () => {
+    // A las 23:45 el L1 de las 23:50 llegaría a c a medianoche, pero el L2 no pasa hasta
+    // las 7:20 del martes: mejor el L1 de las 7:00 del martes, que también lo coge.
+    const journey = scheduleJourney(
+      transfer,
+      LINES,
+      TIMETABLES,
+      { dateKey: MONDAY, minutes: 1425 },
+      'depart',
+    );
+    expect(journey?.legs.map((l) => [l.departure, l.arrival])).toEqual([
+      [1440 + 420, 1440 + 430],
+      [1440 + 440, 1440 + 448],
     ]);
   });
 
@@ -227,7 +243,7 @@ describe('scheduleJourney', () => {
       accessMinutes: 0,
       egressMinutes: 0,
       totalMinutes: 3,
-      walkMinutes: 0,
+      transferWalks: [],
     };
     expect(
       scheduleJourney(noTimes, LINES, TIMETABLES, { dateKey: MONDAY, minutes: 0 }, 'depart'),

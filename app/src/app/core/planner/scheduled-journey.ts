@@ -70,11 +70,16 @@ export function scheduleJourney(
 export function compareTimed(mode: TimeMode) {
   return (a: TimedJourney, b: TimedJourney) =>
     mode === 'depart'
-      ? a.arrival - b.arrival || a.option.legs.length - b.option.legs.length
+      ? a.arrival - b.arrival ||
+        b.leaveAt - a.leaveAt ||
+        a.option.legs.length - b.option.legs.length
       : b.leaveAt - a.leaveAt || a.arrival - b.arrival;
 }
 
-/** Una opción que llega más de 90 min después que la mejor (o sale 90 min antes) no se ofrece. */
+/**
+ * Una opción que llega más de 90 min después que la mejor (o sale 90 min antes),
+ * o que tarda 90 min más, no se ofrece.
+ */
 export const MAX_GAP_MINUTES = 90;
 
 /**
@@ -85,10 +90,14 @@ export const MAX_GAP_MINUTES = 90;
 export function withinReach(sorted: readonly TimedJourney[], mode: TimeMode): TimedJourney[] {
   const best = sorted[0];
   if (!best) return [];
-  return sorted.filter((t) =>
-    mode === 'depart'
-      ? t.arrival - best.arrival <= MAX_GAP_MINUTES
-      : best.leaveAt - t.leaveAt <= MAX_GAP_MINUTES,
+  const duration = (t: TimedJourney) => t.arrival - t.leaveAt;
+  return sorted.filter(
+    (t) =>
+      (mode === 'depart'
+        ? t.arrival - best.arrival <= MAX_GAP_MINUTES
+        : best.leaveAt - t.leaveAt <= MAX_GAP_MINUTES) &&
+      // Tampoco las que tardan mucho más (p. ej. un búho y horas de espera hasta el siguiente).
+      duration(t) - duration(best) <= MAX_GAP_MINUTES,
   );
 }
 
@@ -131,7 +140,20 @@ function ride(option: JourneyOption, plans: LegPlan[], from: number): TimedJourn
     const { departure, arrival } = trip;
     legs.push({ leg: plan.leg, departure, arrival });
     const isLast = i === plans.length - 1;
-    ready = arrival + (isLast ? 0 : option.walkMinutes + TRANSFER_BUFFER_MINUTES);
+    ready = arrival + (isLast ? 0 : (option.transferWalks[i] ?? 0) + TRANSFER_BUFFER_MINUTES);
+  }
+  // Hacia atrás: en cada tramo, el último bus con el que se sigue cogiendo el
+  // siguiente. Así no se espera horas en un transbordo (16/10/2026: de noche
+  // proponía un búho a la 01:36 para esperar hasta las 07:46 el siguiente bus).
+  for (let i = legs.length - 2; i >= 0; i--) {
+    const deadline =
+      legs[i + 1]!.departure - (option.transferWalks[i] ?? 0) - TRANSFER_BUFFER_MINUTES;
+    const current = legs[i]!;
+    const later = plans[i]!.trips.filter(
+      (t) => t.departure >= current.departure && t.arrival <= deadline,
+    );
+    const latest = later.at(-1);
+    if (latest) legs[i] = { ...current, departure: latest.departure, arrival: latest.arrival };
   }
   const departure = legs[0]!.departure;
   return {

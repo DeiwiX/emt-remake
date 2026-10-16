@@ -25,6 +25,12 @@ describe('withinReach', () => {
     expect(withinReach([best, early], 'arrive')).toEqual([best]);
   });
 
+  it('quita las que llegan a la vez pero tardan mucho más (esperas de horas)', () => {
+    const best = timed(421, 477);
+    const owl = timed(95, 477);
+    expect(withinReach([best, owl], 'depart')).toEqual([best]);
+  });
+
   it('sin opciones, nada', () => {
     expect(withinReach([], 'depart')).toEqual([]);
   });

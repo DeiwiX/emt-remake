@@ -40,6 +40,32 @@ const LINES = [
 ];
 
 describe('planJourneys', () => {
+  it('con dos transbordos si no hay nada directo ni con uno', () => {
+    // a → (L1) → c → (L2) → y → (L5) → z
+    const lines = [LINES[0]!, LINES[1]!, line('L5', ['y', 'z'], [0, 5])];
+    const [option] = planJourneys(lines, stop('a'), stop('z'), { transferMinutes: 8 });
+    expect(option?.legs.map((l) => l.lineId)).toEqual(['L1', 'L2', 'L5']);
+    expect(option?.transferWalks).toEqual([0, 0]);
+    // 6 + 9 + 5 en autobús y dos transbordos de 8 min.
+    expect(option?.totalMinutes).toBe(36);
+  });
+
+  it('dos transbordos no se ofrecen si no ahorran tiempo frente a lo que ya hay', () => {
+    // a → y directo por L3 (30 min); por L1 + L2 + L6 sería más largo.
+    const lines = [...LINES, line('L6', ['x', 'y'], [0, 1])];
+    const options = planJourneys(lines, stop('a'), stop('y'));
+    expect(options.every((o) => o.legs.length <= 2)).toBe(true);
+  });
+
+  it('usa los minutos del camino por la calle en un transbordo a pie si se conocen', () => {
+    const lines = [line('L1', ['a', 'b'], [0, 5]), line('L2', ['b2', 'c'], [0, 5])];
+    const nearbyStops = (id: string) =>
+      id === 'b2' ? [{ stopId: 'b', metres: 100, minutes: 4 }] : [];
+    const [option] = planJourneys(lines, stop('a'), stop('c'), { nearbyStops, transferMinutes: 8 });
+    expect(option?.transferWalks).toEqual([4]);
+    expect(option?.totalMinutes).toBe(22);
+  });
+
   it('encuentra el viaje directo con su tiempo según horario', () => {
     const [option] = planJourneys(LINES, stop('a'), stop('d'));
     expect(option?.legs).toEqual([
@@ -120,7 +146,7 @@ describe('planJourneys', () => {
     });
     expect(options).toHaveLength(1);
     // 120 m × 1,3 / 80 m/min ≈ 2 min andando.
-    expect(options[0]).toEqual(expect.objectContaining({ walkMinutes: 2, totalMinutes: 17 }));
+    expect(options[0]).toEqual(expect.objectContaining({ transferWalks: [2], totalMinutes: 17 }));
   });
 
   it('desde "Mi ubicación" cuenta el tiempo andando y elige la parada que antes deja en destino', () => {

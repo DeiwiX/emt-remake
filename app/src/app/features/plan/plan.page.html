@@ -185,17 +185,18 @@
                     @if (!first) {
                       <!-- Las paradas del transbordo enlazan a su ficha; al volver se conserva el recorrido. -->
                       <li class="transfer">
-                        @if (row.option.walkMinutes > 0) {
+                        @if ((row.option.transferWalks[i - 1] ?? 0) > 0) {
                           {{ 'plan.transferWalkFrom' | transloco }}
                           <a
                             class="stop-chip"
-                            [routerLink]="['/stops', row.option.legs[0]!.toStopId]"
+                            [routerLink]="['/stops', row.option.legs[i - 1]!.toStopId]"
                             ><ion-icon name="location-outline" aria-hidden="true" />{{
-                              stopLabel(row.option.legs[0]!.toStopId)
+                              stopLabel(row.option.legs[i - 1]!.toStopId)
                             }}</a
                           >
                           {{
-                            'plan.transferWalkTo' | transloco: { minutes: row.option.walkMinutes }
+                            'plan.transferWalkTo'
+                              | transloco: { minutes: row.option.transferWalks[i - 1] }
                           }}
                           <a class="stop-chip" [routerLink]="['/stops', leg.fromStopId]"
                             ><ion-icon name="location-outline" aria-hidden="true" />{{
