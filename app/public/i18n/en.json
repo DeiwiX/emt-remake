@@ -144,6 +144,8 @@
     "loading": "Loading data…",
     "unavailable": "No data available. Check your connection and try again.",
     "outdated": "The data could not be updated. Showing data from {{date}}, which may be out of date.",
+    "scheduleExpired": "The saved timetable no longer covers today. Connect to the internet to update it.",
+    "scheduleExpiredChecking": "The saved timetable no longer covers today. Updating…",
     "updatedOn": "Data from {{date}}"
   },
   "plan": {

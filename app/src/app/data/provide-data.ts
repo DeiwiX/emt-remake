@@ -1,5 +1,12 @@
 import { Provider, EnvironmentProviders, inject, provideAppInitializer } from '@angular/core';
 
+/**
+ * Al volver a la app se comprueba si hay datos nuevos, como mucho una vez cada
+ * 30 min: Android puede tenerla abierta en segundo plano durante días y, si no,
+ * solo se comprobaba al arrancar (optimización 1, 16/10/2026).
+ */
+const RESUME_CHECK_MS = 30 * 60_000;
+
 import {
   DataStatusService,
   NetworkRepository,
@@ -39,7 +46,16 @@ export function provideData(): (Provider | EnvironmentProviders)[] {
     { provide: ScheduleRepository, useClass: StaticScheduleRepository },
     // No se espera al resultado: la app se pinta mientras se cargan los datos.
     provideAppInitializer(() => {
-      void inject(DataStatusService).refresh();
+      const data = inject(DataStatusService);
+      let lastCheck = Date.now();
+      void data.refresh();
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState !== 'visible' || Date.now() - lastCheck < RESUME_CHECK_MS) {
+          return;
+        }
+        lastCheck = Date.now();
+        void data.refresh();
+      });
     }),
   ];
 }

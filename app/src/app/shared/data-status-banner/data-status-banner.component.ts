@@ -3,6 +3,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
 import { IonButton, IonNote } from '@ionic/angular';
 
 import { DataStatusService } from '../../core/data/repositories';
+import { ScheduleClockService } from '../../core/schedule/schedule-clock.service';
 import { shortDate } from '../data-date/short-date';
 
 /**
@@ -59,11 +60,29 @@ import { shortDate } from '../data-date/short-date';
         }
         <!-- Con los datos al día no se dice nada: la fecha va en la cabecera. -->
       }
+      @if (scheduleExpired()) {
+        <!-- El horario guardado ya no cubre hoy: se avisa mientras se actualiza. -->
+        <div class="banner warning">
+          <p>
+            {{ (checking() ? 'data.scheduleExpiredChecking' : 'data.scheduleExpired') | transloco }}
+          </p>
+          @if (!checking()) {
+            <ion-button size="default" (click)="retry()">{{
+              'common.retry' | transloco
+            }}</ion-button>
+          }
+        </div>
+      }
     </div>
   `,
 })
 export class DataStatusBannerComponent {
   private readonly dataStatus = inject(DataStatusService);
+  protected readonly scheduleExpired = inject(ScheduleClockService).expired;
+  protected readonly checking = computed(() => {
+    const status = this.dataStatus.status();
+    return status.state === 'loading' || (status.state === 'ready' && status.checking);
+  });
 
   protected readonly view = computed(() => {
     const status = this.dataStatus.status();

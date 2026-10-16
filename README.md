@@ -100,6 +100,7 @@ Si la descarga falla o los datos no son plausibles (por debajo de 20 líneas o 5
 2. Después descarga `manifest.json`. Si `dataVersion` no ha cambiado no descarga nada más. Si ha cambiado, descarga `network.json`, comprueba su huella SHA-256 y su formato, y solo entonces sustituye la copia guardada.
 3. Los trazados se descargan solo al abrir el mapa y también se guardan.
 4. Si algo falla, se siguen mostrando los últimos datos válidos, con un aviso de que pueden estar desactualizados y la fecha de los datos.
+5. Al volver a la app (Android puede tenerla en segundo plano días) se vuelve a comprobar, como mucho cada 30 min. Si llegan datos nuevos, el horario se recarga solo, sin cerrar la app. Si el horario guardado ya no cubre hoy, un aviso lo dice mientras se actualiza (antes podía decir que no había buses).
 
 Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para cambiar de fuente (API propia u oficial) basta con otra implementación registrada en `data/provide-data.ts`.
 

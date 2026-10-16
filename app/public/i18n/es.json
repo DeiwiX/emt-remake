@@ -144,6 +144,8 @@
     "loading": "Cargando datos…",
     "unavailable": "No hay datos disponibles. Comprueba tu conexión e inténtalo de nuevo.",
     "outdated": "No se han podido actualizar los datos. Se muestran los del {{date}}, que pueden estar desactualizados.",
+    "scheduleExpired": "El horario guardado ya no cubre hoy. Conéctate a internet para actualizarlo.",
+    "scheduleExpiredChecking": "El horario guardado ya no cubre hoy. Actualizando…",
     "updatedOn": "Datos del {{date}}"
   },
   "plan": {

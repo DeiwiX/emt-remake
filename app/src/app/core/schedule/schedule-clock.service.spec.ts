@@ -1,7 +1,8 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
-import { NetworkRepository, ScheduleRepository } from '../data/repositories';
+import { DataStatusService, NetworkRepository, ScheduleRepository } from '../data/repositories';
+import { DataStatus } from '../data/data-status';
 import { Line } from '../models/network.model';
 import { ScheduleClockService } from './schedule-clock.service';
 
@@ -67,6 +68,45 @@ describe('ScheduleClockService', () => {
     const service = setup(true);
     await service.load();
     expect(service.nextBuses('1', 1, 'b').state).toBe('unavailable');
+  });
+
+  it('vuelve a cargar el horario cuando llegan datos nuevos, y avisa si ya no cubre hoy', async () => {
+    const ready = (day: number): DataStatus => ({
+      state: 'ready',
+      origin: 'network',
+      generatedAt: new Date(Date.UTC(2026, 9, day)),
+      updateFailed: false,
+      checking: false,
+    });
+    const status = signal<DataStatus>(ready(3));
+    let calls = 0;
+    const old = { services: new Map([['S', new Set(['20261003'])]]), departures: new Map() };
+    const fresh = {
+      services: new Map([['S', new Set(dateKeysAroundNow())]]),
+      departures: new Map(),
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: DataStatusService, useValue: { status, refresh: () => Promise.resolve() } },
+        {
+          provide: NetworkRepository,
+          useValue: { lines: signal([line]), stops: signal([]), getLine: () => line },
+        },
+        {
+          provide: ScheduleRepository,
+          useValue: { getTimetables: () => Promise.resolve(calls++ === 0 ? old : fresh) },
+        },
+      ],
+    });
+    const service = TestBed.inject(ScheduleClockService);
+    await service.load();
+    expect(service.expired()).toBe(true);
+
+    status.set(ready(16));
+    TestBed.tick();
+    await new Promise((r) => setTimeout(r));
+    expect(calls).toBe(2);
+    expect(service.expired()).toBe(false);
   });
 });
 

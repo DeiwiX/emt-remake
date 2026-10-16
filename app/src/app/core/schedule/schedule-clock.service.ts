@@ -1,6 +1,6 @@
-import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
+import { DestroyRef, Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 
-import { NetworkRepository, ScheduleRepository } from '../data/repositories';
+import { DataStatusService, NetworkRepository, ScheduleRepository } from '../data/repositories';
 import { ServiceClock, Timetables, madridClock, nextPassing } from './schedule';
 
 /** Cada cuánto se refresca "ahora" para recalcular los próximos buses. */
@@ -41,15 +41,38 @@ export class ScheduleClockService {
     return last || null;
   });
   private loading: Promise<void> | null = null;
+  /** Opcional: sin él (pruebas) el horario no se recarga al llegar datos nuevos. */
+  private readonly dataStatus = inject(DataStatusService, { optional: true });
+  /** Fecha de generación de los datos con los que se cargó el horario. */
+  private loadedFor: number | null = null;
+
+  /** El horario guardado ya no cubre hoy (hay que actualizar los datos). */
+  readonly expired = computed(() => {
+    const last = this.lastServiceDate();
+    return last !== null && last < this.clock().dateKey;
+  });
 
   constructor() {
     const timer = setInterval(() => this.nowSignal.set(new Date()), TICK_MS);
     inject(DestroyRef).onDestroy(() => clearInterval(timer));
+    // Si llegan datos nuevos con el horario ya cargado, se carga el nuevo. Antes se
+    // seguía usando el viejo hasta cerrar la app (y podía decir que no había buses).
+    effect(() => {
+      const status = this.dataStatus?.status();
+      if (!status) return;
+      if (status.state !== 'ready') return;
+      const generated = status.generatedAt.getTime();
+      untracked(() => {
+        if (this.loadedFor !== null && this.loadedFor !== generated) void this.reload(generated);
+      });
+    });
   }
 
   /** Pide el horario (una sola descarga; reintenta si la anterior falló). */
   load(): Promise<void> {
     if (this.timetablesSignal() && this.timetablesSignal() !== 'error') return Promise.resolve();
+    const status = this.dataStatus?.status();
+    this.loadedFor = status?.state === 'ready' ? status.generatedAt.getTime() : 0;
     this.loading ??= this.scheduleRepository
       .getTimetables()
       .then((timetables) => this.timetablesSignal.set(timetables))
@@ -59,6 +82,16 @@ export class ScheduleClockService {
       })
       .finally(() => (this.loading = null));
     return this.loading;
+  }
+
+  /** Carga el horario de los datos nuevos; mientras, se sigue usando el anterior. */
+  private async reload(generated: number): Promise<void> {
+    this.loadedFor = generated;
+    try {
+      this.timetablesSignal.set(await this.scheduleRepository.getTimetables());
+    } catch (error) {
+      console.warn('No se pudo cargar el horario nuevo; se mantiene el anterior', error);
+    }
   }
 
   /** Próximos pasos programados de una línea y sentido por una parada. */
