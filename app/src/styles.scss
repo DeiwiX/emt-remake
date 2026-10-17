@@ -48,3 +48,12 @@ ion-button::part(native) {
   padding-top: 6px;
   padding-bottom: 6px;
 }
+
+/*
+ * Cada pantalla tapa del todo a la de debajo durante el cambio de pantalla
+ * (17/10/2026): si no, mientras el mapa aún carga se veía la anterior a través
+ * y parecía un parpadeo.
+ */
+ion-router-outlet > .ion-page {
+  background: var(--ion-background-color);
+}
