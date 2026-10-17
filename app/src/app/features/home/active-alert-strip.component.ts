@@ -5,6 +5,7 @@ import { IonIcon } from '@ionic/angular';
 import { NetworkRepository } from '../../core/data/repositories';
 import { ArrivalAlertService } from '../../core/realtime/arrival-alert.service';
 import { RealtimeService } from '../../core/realtime/realtime.service';
+import { alertKey } from '../../core/realtime/alert-text';
 
 /**
  * Franja del aviso activo en el inicio (05/10/2026): de qué bus y parada es,
@@ -63,7 +64,7 @@ import { RealtimeService } from '../../core/realtime/realtime.service';
         <span class="bell" aria-hidden="true"><ion-icon name="notifications" /></span>
         <p>
           {{
-            'alert.strip'
+            alert.stripKey
               | transloco: { minutes: alert.minutes, line: alert.lineId, stop: alert.stop }
           }}
           @if (alert.left !== null) {
@@ -89,6 +90,7 @@ export class ActiveAlertStripComponent {
     return {
       minutes: alert.minutes,
       lineId: alert.lineId,
+      stripKey: alertKey('strip', this.network.getLine(alert.lineId)?.mode === 'metro'),
       stop: this.network.getStop(alert.stopId)?.name ?? alert.stopId,
       left: left >= 0 && left < 120 ? left : null,
     };

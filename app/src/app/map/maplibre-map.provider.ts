@@ -78,6 +78,7 @@ const LAYER = {
   traffic: 'traffic',
   trafficLabels: 'traffic-labels',
   congestion: 'congestion',
+  arrows: 'routes-arrows',
 } as const;
 const SOURCE = {
   routes: 'routes',
@@ -109,6 +110,43 @@ function busImageName(color: string): string {
  * carrocería del color de la línea con borde blanco, parabrisas delante, luna
  * trasera y ventanillas. null si el entorno no tiene canvas (pruebas).
  */
+/** Flecha del sentido de una línea (17/10/2026): un galón blanco que apunta hacia delante. */
+const ARROW_IMAGE = 'route-arrow';
+
+function drawArrow(): ImageData | null {
+  const size = 20 * BUS_PIXEL_RATIO;
+  const canvas = typeof document === 'undefined' ? null : document.createElement('canvas');
+  const ctx = canvas?.getContext('2d');
+  if (!canvas || !ctx) return null;
+  canvas.width = size;
+  canvas.height = size;
+  const r = BUS_PIXEL_RATIO;
+  // Punta de flecha rellena (se tiñe del color de la línea: imagen SDF).
+  ctx.fillStyle = '#FFFFFF';
+  ctx.beginPath();
+  ctx.moveTo(4 * r, 4 * r);
+  ctx.lineTo(16 * r, 10 * r);
+  ctx.lineTo(4 * r, 16 * r);
+  ctx.lineTo(7.5 * r, 10 * r);
+  ctx.closePath();
+  ctx.fill();
+  return ctx.getImageData(0, 0, size, size);
+}
+
+/** Tono más claro de un color (#RRGGBB), para la vuelta de una línea. */
+function lighter(color: string, amount = 0.45): string {
+  const match = /^#?([0-9a-f]{6})$/i.exec(color);
+  if (!match) return color;
+  const value = parseInt(match[1]!, 16);
+  const channel = (shift: number) => {
+    const c = (value >> shift) & 255;
+    return Math.round(c + (255 - c) * amount)
+      .toString(16)
+      .padStart(2, '0');
+  };
+  return `#${channel(16)}${channel(8)}${channel(0)}`;
+}
+
 function drawBus(color: string): ImageData | null {
   const width = 22 * BUS_PIXEL_RATIO;
   const height = 48 * BUS_PIXEL_RATIO;
@@ -437,26 +475,66 @@ class MapLibreView implements MapView {
     map.addSource(SOURCE.stops, { type: 'geojson', data: this.stopsGeoJson() });
     map.addSource(SOURCE.selectedStop, { type: 'geojson', data: this.selectedStopGeoJson() });
 
+    // Ida y vuelta de una línea van separadas, cada una a la derecha de su sentido
+    // (como los autobuses por la calle): así no se tapan cuando comparten calle.
+    const offset: ExpressionSpecification = [
+      'interpolate',
+      ['linear'],
+      ['zoom'],
+      12,
+      0,
+      15,
+      3,
+      18,
+      5,
+    ];
     map.addLayer({
       id: LAYER.casing,
       type: 'line',
       source: SOURCE.routes,
       layout: { 'line-join': 'round', 'line-cap': 'round' },
-      paint: { 'line-color': casingColor },
+      paint: { 'line-color': casingColor, 'line-offset': offset },
     });
     map.addLayer({
       id: LAYER.line,
       type: 'line',
       source: SOURCE.routes,
       layout: { 'line-join': 'round', 'line-cap': 'round' },
-      paint: { 'line-color': ['get', 'color'] },
+      paint: { 'line-color': ['get', 'color'], 'line-offset': offset },
     });
     map.addLayer({
       id: LAYER.approximate,
       type: 'line',
       source: SOURCE.routes,
       layout: { 'line-join': 'round' },
-      paint: { 'line-color': ['get', 'color'], 'line-dasharray': [2, 2] },
+      paint: { 'line-color': ['get', 'color'], 'line-dasharray': [2, 2], 'line-offset': offset },
+    });
+    // Flechas del sentido sobre cada recorrido (17/10/2026): se ve hacia dónde va.
+    const arrow = drawArrow();
+    if (arrow && !map.hasImage(ARROW_IMAGE)) {
+      map.addImage(ARROW_IMAGE, arrow, { pixelRatio: BUS_PIXEL_RATIO, sdf: true });
+    }
+    map.addLayer({
+      id: LAYER.arrows,
+      type: 'symbol',
+      source: SOURCE.routes,
+      minzoom: 11,
+      filter: ['has', 'directionId'],
+      layout: {
+        'symbol-placement': 'line',
+        'symbol-spacing': 45,
+        'icon-image': ARROW_IMAGE,
+        'icon-size': ['interpolate', ['linear'], ['zoom'], 11, 0.9, 16, 1.4],
+        'icon-rotation-alignment': 'map',
+        'icon-allow-overlap': true,
+        'icon-ignore-placement': true,
+      },
+      // Flechas del color de la línea (el fuerte, también en la vuelta) con borde blanco.
+      paint: {
+        'icon-color': ['get', 'labelColor'],
+        'icon-halo-color': '#FFFFFF',
+        'icon-halo-width': 1.5,
+      },
     });
     // Número de línea sobre el recorrido: el color nunca es la única pista.
     map.addLayer({
@@ -475,7 +553,8 @@ class MapLibreView implements MapView {
       },
       paint: {
         'text-color': ['get', 'textColor'],
-        'text-halo-color': ['get', 'color'],
+        // El número va sobre el color de la línea (no el tono claro de la vuelta): se lee igual.
+        'text-halo-color': ['get', 'labelColor'],
         'text-halo-width': 4,
       },
     });
@@ -607,7 +686,8 @@ class MapLibreView implements MapView {
       },
       paint: {
         'text-color': ['get', 'textColor'],
-        'text-halo-color': ['get', 'color'],
+        // El número va sobre el color de la línea (no el tono claro de la vuelta): se lee igual.
+        'text-halo-color': ['get', 'labelColor'],
         'text-halo-width': 2,
       },
     });
@@ -663,6 +743,7 @@ class MapLibreView implements MapView {
     map.setFilter(LAYER.line, official);
     map.setFilter(LAYER.approximate, approximate);
     map.setFilter(LAYER.labels, all);
+    map.setFilter(LAYER.arrows, ['all', visible, ['has', 'directionId']]);
 
     const h = this.highlighted;
     const isHighlighted: ExpressionSpecification = [
@@ -691,6 +772,7 @@ class MapLibreView implements MapView {
     map.setPaintProperty(LAYER.casing, 'line-width', width(4, 7));
     map.setPaintProperty(LAYER.casing, 'line-opacity', opacity);
     map.setPaintProperty(LAYER.labels, 'text-opacity', opacity);
+    map.setPaintProperty(LAYER.arrows, 'icon-opacity', opacity);
     // Las líneas resaltadas se dibujan por encima del resto.
     const sortKey: ExpressionSpecification | number = h ? ['case', isHighlighted, 1, 0] : 0;
     map.setLayoutProperty(LAYER.casing, 'line-sort-key', sortKey);
@@ -710,7 +792,10 @@ class MapLibreView implements MapView {
         properties: {
           lineId: route.lineId,
           label: route.label ?? route.lineId,
-          color: route.color,
+          // La vuelta, en un tono más claro: se distingue de la ida aunque se crucen.
+          color: route.directionId === 2 ? lighter(route.color) : route.color,
+          labelColor: route.color,
+          ...(route.directionId ? { directionId: route.directionId } : {}),
           textColor: route.textColor,
           approximate: route.approximate,
         },

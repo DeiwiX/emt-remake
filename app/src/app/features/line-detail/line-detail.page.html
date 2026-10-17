@@ -53,7 +53,9 @@
             </p>
           }
           <!-- Desvíos e incidencias publicados por la EMT en su web (Fase 7). -->
-          <app-emt-notices [lines]="[line.id]" />
+          @if (line.mode !== 'metro') {
+            <app-emt-notices [lines]="[line.id]" />
+          }
         </div>
 
         @if (line.directions.length > 1) {

@@ -22,6 +22,11 @@ export interface MapRoute {
   readonly points: readonly LatLon[];
   /** Texto sobre el recorrido; por defecto, el número de línea (p. ej. "6 min a pie"). */
   readonly label?: string;
+  /**
+   * Sentido de la línea (1 ida, 2 vuelta), si es un recorrido de autobús o metro.
+   * La vuelta se dibuja en un tono más claro y cada sentido lleva flechas.
+   */
+  readonly directionId?: number;
 }
 
 /** Autobús en el mapa (tiempo real): dibujo de un bus del color de su línea con el número. */

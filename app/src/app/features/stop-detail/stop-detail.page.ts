@@ -118,7 +118,10 @@ import { LocateBusButtonComponent } from '../../shared/locate-bus-button/locate-
               <!-- Abre el Mapa siguiendo el autobús que antes llega a esta parada. -->
               <app-locate-bus-button [stop]="stop" />
               <!-- Desvíos e incidencias de sus líneas publicados por la EMT (Fase 7). -->
-              <app-emt-notices [lines]="lineIds()" />
+              <!-- Solo las líneas de autobús: los avisos de la EMT no afectan al metro. -->
+              @if (busLineIds().length > 0) {
+                <app-emt-notices [lines]="busLineIds()" />
+              }
               @if (stop.address) {
                 <p>{{ 'stopDetail.address' | transloco: { address: stop.address } }}</p>
               }
@@ -248,6 +251,11 @@ export class StopDetailPage {
   protected readonly lineIds = computed(() => [
     ...new Set((this.stop()?.services ?? []).map((s) => s.lineId)),
   ]);
+
+  /** Líneas de autobús que paran aquí (para los avisos de la EMT). */
+  protected readonly busLineIds = computed(() =>
+    this.lineIds().filter((id) => this.network.getLine(id)?.mode !== 'metro'),
+  );
 
   protected readonly services = computed(() =>
     (this.stop()?.services ?? []).map((service) => ({

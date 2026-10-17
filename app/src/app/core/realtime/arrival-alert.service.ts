@@ -6,6 +6,7 @@ import { ArrivalAlert, LiveArrival, createAlert, parseAlert, updateAlert } from 
 import { ArrivalNotifier, NotificationText, TrackingRequest } from './arrival-notifier';
 import { formatClock, madridClock } from '../schedule/schedule';
 import { estimateArrivals } from './realtime';
+import { alertKey } from './alert-text';
 import { tripProfileAt } from './live-estimate';
 import { RealtimeService } from './realtime.service';
 import { ArrivalContextService } from './arrival-context.service';
@@ -166,22 +167,27 @@ export class ArrivalAlertService {
       vehicleId: alert.vehicleId,
       expectedAt: alert.expectedAt,
       notifyAt: alert.notifyAt,
-      title: this.transloco.translate('alert.title', params),
+      title: this.transloco.translate(this.key(alert, 'title'), params),
       body: this.transloco.translate('alert.body', params),
       bodyNow: this.transloco.translate('alert.bodyNow', params),
-      trackingTitle: this.transloco.translate('alert.trackingTitle', params),
+      trackingTitle: this.transloco.translate(this.key(alert, 'trackingTitle'), params),
       trackingText: this.transloco.translate('alert.trackingText', params),
-      trackingWaiting: this.transloco.translate('alert.trackingWaiting', {
+      trackingWaiting: this.transloco.translate(this.key(alert, 'trackingWaiting'), {
         ...params,
         time: formatClock(notifyAt.minutes),
       }),
     };
   }
 
+  /** Texto del aviso según sea de autobús o de metro. */
+  private key(alert: ArrivalAlert, name: string): string {
+    return alertKey(name, this.network.getLine(alert.lineId)?.mode === 'metro');
+  }
+
   private text(alert: ArrivalAlert, minutes: number): NotificationText {
     const stop = this.network.getStop(alert.stopId);
     return {
-      title: this.transloco.translate('alert.title', { line: alert.lineId }),
+      title: this.transloco.translate(this.key(alert, 'title'), { line: alert.lineId }),
       body: this.transloco.translate(minutes === 0 ? 'alert.bodyNow' : 'alert.body', {
         minutes,
         stop: stop?.name ?? alert.stopId,

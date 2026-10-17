@@ -35,6 +35,7 @@ import { StopListComponent } from '../../shared/stop-list/stop-list.component';
 import { ActiveAlertStripComponent } from './active-alert-strip.component';
 import { FavoritesSectionComponent } from './favorites-section.component';
 import { SearchbarLabelDirective } from '../../shared/searchbar-label/searchbar-label.directive';
+import { NoticesService } from '../../core/notices/notices.service';
 
 const MAX_STOP_RESULTS = 30;
 
@@ -87,6 +88,19 @@ export class HomePage {
 
   private readonly favorites = inject(FavoritesService).favorites;
   protected readonly hasFavorites = computed(() => this.favorites().length > 0);
+  private readonly noticesService = inject(NoticesService);
+  /** Avisos de la EMT cerrados que siguen vigentes (triángulo rojo en el lateral). */
+  protected readonly closedNotices = computed(
+    () => this.noticesService.dismissedFor(this.favoriteLineIds()).length,
+  );
+
+  /** Lleva a los avisos cerrados, abajo del todo. */
+  protected goToClosedNotices(): void {
+    const target = document.getElementById('closed-notices');
+    target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    target?.querySelector<HTMLElement>('a')?.focus({ preventScroll: true });
+  }
+
   /** Líneas guardadas y las de las paradas guardadas: sus avisos de la EMT salen en el inicio. */
   protected readonly favoriteLineIds = computed(() => {
     const stops = new Map(this.network.stops().map((s) => [s.id, s]));

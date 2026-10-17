@@ -16,6 +16,7 @@ import { ArrivalContextService } from '../../core/realtime/arrival-context.servi
 import { ScheduleClockService } from '../../core/schedule/schedule-clock.service';
 import { dateKeyOf, dayOffsetOf, formatClock } from '../../core/schedule/schedule';
 import { ArrivalAlertPickerComponent } from '../arrival-alert-picker/arrival-alert-picker.component';
+import { alertKey } from '../../core/realtime/alert-text';
 
 /** Cuántos pasos se muestran: el próximo y los dos siguientes. */
 const COUNT = 3;
@@ -188,7 +189,7 @@ interface Passing {
                 [class.live]="passing.live"
                 [class.selected]="selected().has(passing.key)"
                 [attr.aria-pressed]="selected().has(passing.key)"
-                [attr.aria-label]="'alert.notifyForBus' | transloco: { bus: passing.spoken }"
+                [attr.aria-label]="notifyKey() | transloco: { bus: passing.spoken }"
                 (click)="picker()?.select(passing.key)"
               >
                 <span class="main">
@@ -259,6 +260,10 @@ export class NextBusComponent {
   readonly stopId = input.required<string>();
 
   protected readonly picker = viewChild(ArrivalAlertPickerComponent);
+  /** "Avísame de este bus" o, en el metro, "de este tren". */
+  protected readonly notifyKey = computed(() =>
+    alertKey('notifyForBus', this.network.getLine(this.lineId())?.mode === 'metro'),
+  );
   /** Pasos que se pueden tocar para "Avísame" (solo en la app del móvil y sin aviso en esta línea). */
   protected readonly selectable = computed(
     () => this.picker()?.selectableKeys() ?? new Set<string>(),

@@ -170,7 +170,7 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
 
 - La app lee las noticias de la web de la EMT (`https://www.emtmalaga.es/rss.xml`), donde publica desvíos, paradas trasladadas y cortes, como mucho cada 15 min y solo en la app del móvil (el servidor no permite CORS). Se guardan en el dispositivo, así no se pierden cuando salen del canal (que solo trae los 6 últimos).
 - Las líneas afectadas se leen del principio del título ("L-15-18-N2: ..."); sin ese prefijo el aviso es general. Cada aviso se ve 60 días desde que se publica (los generales, 7).
-- Dónde se ven: en el detalle de línea y en el de parada (los de sus líneas y los generales), en el inicio (los generales y los de tus favoritas, solo el título; cada uno se cierra con la ✕ o todos con "Cerrar todos", y cerrados no vuelven a salir ahí aunque siguen en los detalles) y con un punto naranja en las paradas favoritas afectadas. Al tocar uno se abre su página en la web de la EMT. ADR 0014.
+- Dónde se ven: en el detalle de línea y en el de parada (los de sus líneas y los generales), en el inicio (los generales y los de tus favoritas, solo el título; cada uno se cierra con la ✕ o todos con "Cerrar todos", y cerrados no vuelven a salir ahí aunque siguen en los detalles) y con un punto naranja en las paradas favoritas afectadas. Al tocar uno se abre su página en la web de la EMT. Los que cierras en el inicio pasan abajo del todo y un triángulo rojo animado en el lateral lleva a ellos. No se muestran en el metro (no le afectan). ADR 0014.
 
 ### Atascos estimados (Fase 8)
 
@@ -188,6 +188,10 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
 - El flujo "Recogida de retrasos" de GitHub mira cada 5 min dónde va cada autobús, calcula cuánto va tarde frente a su viaje del horario y lo guarda en la rama `historico-retrasos` (`data/AAAAMMDD.csv`). Se puede lanzar a mano con `npm run collect-delays -- --history <carpeta> --rounds 1` en `pipeline/`.
 - El script de datos junta las 8 últimas semanas (`--delays-history <carpeta>`) y publica `delays.json`: la mediana del retraso por línea, sentido, tipo de día, hora y tramo de 5 paradas (no cuenta en `dataVersion`).
 - En la app, las horas del horario se corrigen con ese retraso y lo dicen ("18:27 · +3 habitual"). El tiempo real, cuando lo hay, manda. Hacen falta unas 2 semanas de datos para que se note. ADR 0016.
+
+### Sentido de las líneas en el mapa (17/10/2026)
+
+- Cada recorrido lleva flechas de su color que indican hacia dónde va. La vuelta se dibuja en un tono más claro que la ida y cada sentido va un poco desplazado a su derecha, así no se tapan cuando comparten calle.
 
 ### Cortes de tráfico
 

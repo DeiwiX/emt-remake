@@ -335,12 +335,27 @@
     "stoppedAt": "Parado en {{stop}} ({{code}}): suben y bajan viajeros"
   },
   "notices": {
+    "closedTitle": "Avisos de la EMT que cerraste",
+    "goToClosed": "Ver los avisos de la EMT que cerraste ({{count}})",
     "close": "Cerrar el aviso: {{title}}",
     "closeAll": "Cerrar todos",
     "title": "Avisos de la EMT",
     "published": "Publicado el {{date}}",
     "open": "Ver en la web de la EMT",
     "stopHasNotice": "Hay avisos de la EMT para sus líneas"
+  },
+  "alertMetro": {
+    "notifyForBus": "Avísame de este tren: {{bus}}",
+    "notifyMeLine": "Avísame del metro {{line}}",
+    "chooseBus": "¿De qué tren quieres el aviso?",
+    "chooseMinutesFor": "¿Cuántos minutos antes del tren de las {{time}}?",
+    "activeToday": "Te aviso {{minutes}} min antes del tren de las {{time}}.",
+    "activeTomorrow": "Te aviso {{minutes}} min antes del tren de mañana a las {{time}}.",
+    "activeLater": "Te aviso {{minutes}} min antes del tren del {{day}} a las {{time}}.",
+    "title": "Metro {{line}}",
+    "trackingTitle": "Siguiendo tu tren · Metro {{line}}",
+    "trackingWaiting": "Según el horario del metro · aviso previsto a las {{time}}",
+    "strip": "Te aviso {{minutes}} min antes del metro {{line}} en {{stop}}"
   },
   "alert": {
     "notifyMe": "Avísame",

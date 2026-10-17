@@ -16,6 +16,7 @@ import {
   madridClock,
   madridInstantOf,
 } from '../../core/schedule/schedule';
+import { alertKey } from '../../core/realtime/alert-text';
 
 /** Pasos del horario que se ofrecen: los mismos que se ven en la parada y, con "Más horarios", hasta 12. */
 const SCHEDULED_COUNT = 3;
@@ -76,7 +77,7 @@ interface Candidate {
         </div>
       } @else if (step() === 'bus') {
         <div class="alert" role="group" [attr.aria-labelledby]="labelId('bus')">
-          <span class="question" [id]="labelId('bus')">{{ 'alert.chooseBus' | transloco }}</span>
+          <span class="question" [id]="labelId('bus')">{{ key('chooseBus') | transloco }}</span>
           @for (candidate of shownCandidates(); track candidate.key) {
             <ion-button size="small" fill="outline" (click)="pick(candidate.target)">{{
               candidate.label.key | transloco: candidate.label.params
@@ -95,7 +96,7 @@ interface Candidate {
         <div class="alert" role="group" [attr.aria-labelledby]="labelId('minutes')">
           <!-- Dice de qué bus es: se puede haber elegido tocando cualquiera de sus horas. -->
           <span class="question" [id]="labelId('minutes')">{{
-            'alert.chooseMinutesFor' | transloco: { time: targetTime() }
+            key('chooseMinutesFor') | transloco: { time: targetTime() }
           }}</span>
           @for (minutes of options(); track minutes) {
             <ion-button
@@ -115,7 +116,7 @@ interface Candidate {
           <ion-button
             size="small"
             fill="clear"
-            [attr.aria-label]="'alert.notifyMeLine' | transloco: { line: lineId() }"
+            [attr.aria-label]="key('notifyMeLine') | transloco: { line: lineId() }"
             (click)="step.set('bus')"
           >
             <ion-icon slot="start" name="notifications-outline" aria-hidden="true" />
@@ -140,6 +141,13 @@ export class ArrivalAlertPickerComponent {
   readonly lineId = input.required<string>();
   readonly directionId = input.required<number>();
   readonly stopId = input.required<string>();
+
+  /** Es una línea de metro: los textos hablan de trenes. */
+  private readonly metro = computed(() => this.network.getLine(this.lineId())?.mode === 'metro');
+
+  protected key(name: string): string {
+    return alertKey(name, this.metro());
+  }
 
   protected readonly step = signal<'idle' | 'bus' | 'minutes'>('idle');
   private readonly target = signal<AlertTarget | null>(null);
@@ -166,10 +174,10 @@ export class ArrivalAlertPickerComponent {
     const today = this.schedule.clock().dateKey;
     const key =
       at.dateKey === today
-        ? 'alert.activeToday'
+        ? this.key('activeToday')
         : at.dateKey === addDays(today, 1)
-          ? 'alert.activeTomorrow'
-          : 'alert.activeLater';
+          ? this.key('activeTomorrow')
+          : this.key('activeLater');
     return {
       key,
       params: {

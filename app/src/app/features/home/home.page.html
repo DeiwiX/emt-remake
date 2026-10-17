@@ -176,6 +176,32 @@
         </div>
       </nav>
 
+      <!-- Avisos cerrados: abajo del todo (17/10/2026). -->
+      <div id="closed-notices" class="closed-notices">
+        <app-emt-notices [lines]="favoriteLineIds()" [compact]="true" [dismissedOnly]="true" />
+      </div>
+      @if (closedNotices() > 0) {
+        <!-- Triángulo rojo en el lateral: lleva a los avisos cerrados. -->
+        <button
+          type="button"
+          class="notices-fab"
+          [attr.aria-label]="'notices.goToClosed' | transloco: { count: closedNotices() }"
+          (click)="goToClosedNotices()"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M12 2.5 23 21.5H1z"
+              fill="#d32f2f"
+              stroke="#fff"
+              stroke-width="1.5"
+              stroke-linejoin="round"
+            />
+            <path d="M12 9v6" stroke="#fff" stroke-width="2.4" stroke-linecap="round" />
+            <circle cx="12" cy="18.2" r="1.4" fill="#fff" />
+          </svg>
+        </button>
+      }
+
       <p class="notice">
         <ion-note>{{ 'app.unofficialNotice' | transloco }}</ion-note>
       </p>

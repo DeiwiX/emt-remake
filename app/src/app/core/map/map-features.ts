@@ -25,6 +25,7 @@ export function toMapRoutes(
           textColor: color.text,
           approximate: direction.shapeQuality === 'approximate',
           points,
+          directionId: direction.id,
         },
       ];
     });

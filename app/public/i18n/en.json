@@ -335,12 +335,27 @@
     "stoppedAt": "Stopped at {{stop}} ({{code}}): passengers boarding"
   },
   "notices": {
+    "closedTitle": "EMT notices you closed",
+    "goToClosed": "See the EMT notices you closed ({{count}})",
     "close": "Close the notice: {{title}}",
     "closeAll": "Close all",
     "title": "EMT notices",
     "published": "Published on {{date}}",
     "open": "Open on the EMT website",
     "stopHasNotice": "There are EMT notices for its lines"
+  },
+  "alertMetro": {
+    "notifyForBus": "Notify me about this train: {{bus}}",
+    "notifyMeLine": "Notify me about metro {{line}}",
+    "chooseBus": "Which train should I notify you about?",
+    "chooseMinutesFor": "How many minutes before the {{time}} train?",
+    "activeToday": "I will notify you {{minutes}} min before the {{time}} train.",
+    "activeTomorrow": "I will notify you {{minutes}} min before tomorrow's {{time}} train.",
+    "activeLater": "I will notify you {{minutes}} min before the {{day}} {{time}} train.",
+    "title": "Metro {{line}}",
+    "trackingTitle": "Following your train · Metro {{line}}",
+    "trackingWaiting": "From the metro timetable · alert due at {{time}}",
+    "strip": "I will notify you {{minutes}} min before metro {{line}} at {{stop}}"
   },
   "alert": {
     "notifyMe": "Notify me",

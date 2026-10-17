@@ -143,9 +143,9 @@ const DATE_FORMAT = new Intl.DateTimeFormat('es-ES', {
         <div class="head">
           <h2>
             <ion-icon name="warning-outline" aria-hidden="true" />
-            {{ 'notices.title' | transloco }}
+            {{ (dismissedOnly() ? 'notices.closedTitle' : 'notices.title') | transloco }}
           </h2>
-          @if (dismissible() && shown().length > 1) {
+          @if (dismissible() && !dismissedOnly() && shown().length > 1) {
             <button type="button" class="close-all" (click)="dismissAll()">
               {{ 'notices.closeAll' | transloco }}
             </button>
@@ -169,7 +169,7 @@ const DATE_FORMAT = new Intl.DateTimeFormat('es-ES', {
                   </span>
                 </span>
               </a>
-              @if (dismissible()) {
+              @if (dismissible() && !dismissedOnly()) {
                 <button
                   type="button"
                   class="close"
@@ -197,9 +197,13 @@ export class EmtNoticesComponent {
   readonly compact = input(false);
   /** Se pueden cerrar (en el inicio); cerrados no vuelven a salir ahí. */
   readonly dismissible = input(false);
+  /** Muestra solo los avisos que se cerraron en el inicio (abajo del todo, 17/10/2026). */
+  readonly dismissedOnly = input(false);
 
   protected readonly shown = computed(() =>
-    this.notices.forLines(this.lines(), this.includeGeneral(), this.dismissible()),
+    this.dismissedOnly()
+      ? this.notices.dismissedFor(this.lines(), this.includeGeneral())
+      : this.notices.forLines(this.lines(), this.includeGeneral(), this.dismissible()),
   );
 
   protected dismiss(id: string): void {

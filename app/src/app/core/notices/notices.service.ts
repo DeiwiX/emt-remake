@@ -69,6 +69,12 @@ export class NoticesService {
     return noticesFor(hideDismissed ? this.open() : this.notices(), lineIds, includeGeneral);
   }
 
+  /** Los que el usuario ha cerrado en el inicio (se ven abajo del todo). */
+  dismissedFor(lineIds: readonly string[], includeGeneral = true): EmtNotice[] {
+    const dismissed = this.dismissedSignal();
+    return noticesFor(this.notices(), lineIds, includeGeneral).filter((n) => dismissed.has(n.id));
+  }
+
   /** Cierra unos avisos en el inicio. Se recuerda solo mientras el aviso se siga viendo. */
   dismiss(ids: readonly string[]): void {
     const visible = new Set(this.notices().map((n) => n.id));
