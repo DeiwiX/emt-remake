@@ -182,7 +182,7 @@
     "samePlace": "El origen y el destino son el mismo lugar.",
     "noOptions": "No hay líneas que lleven del origen al destino, ni directas ni con un transbordo.",
     "optionCount": "{{count}} opciones",
-    "timesNote": "Horas según el horario programado de la EMT, no en tiempo real. La recomendada es la que llega antes (o, en «Llegar a las», la que sale más tarde).",
+    "timesNote": "Horas según el horario de la EMT y del metro; el primer autobús, en tiempo real si se ve. La recomendada es la que llega antes (o, en «Llegar a las», la que sale más tarde).",
     "minutes": "~{{minutes}} min",
     "boardAt": "Sube en {{stop}} ({{code}})",
     "alightAt": "Baja en {{stop}} ({{code}})",

@@ -474,7 +474,14 @@ export class PlanPage {
 
   /** "Nombre (código)" de una parada, como se muestra en los transbordos. */
   protected stopLabel(stopId: string): string {
-    return `${this.stopName(stopId)} (${stopId})`;
+    return `${this.stopName(stopId)} (${this.stopCode(stopId)})`;
+  }
+
+  /** Código de la parada, o "metro" en las estaciones (su código interno no dice nada). */
+  protected stopCode(stopId: string): string {
+    return this.network.getStop(stopId)?.mode === 'metro'
+      ? this.transloco.translate('metro.title').toLowerCase()
+      : stopId;
   }
 
   /** Sin horas: o alguna línea no publica horario, o no hay buses ese día ni el siguiente. */

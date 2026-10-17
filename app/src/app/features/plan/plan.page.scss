@@ -152,7 +152,7 @@
 .plan-map {
   display: block;
   /* Más bajo en el móvil (17/10/2026): así se ven las opciones sin tener que bajar. */
-  height: min(32vh, 240px);
+  height: min(24vh, 180px);
   border-radius: 16px;
   overflow: hidden;
 }

@@ -10,7 +10,7 @@ Metro de Málaga publica su horario en GTFS (`https://metromalaga.es/GTFS/GTFS_M
 
 - **Datos** (`pipeline/src/build/build-metro.ts`): el script de datos descarga el GTFS del metro y lo publica dentro de `network.json`, trazados y `timetables.json`, con el mismo formato que la EMT. Líneas `L1` y `L2` con `mode: "metro"` y su color oficial; estaciones con código `M` + código del operador (`MPCH`) y `mode: "metro"`. Los andenes de cada línea se juntan en una sola estación, así el transbordo L1–L2 es en la misma parada. Es opcional: si la descarga falla se publica sin metro. Se añade antes de calcular barrios y distritos, para que sus estaciones cuenten en ellos.
 - **App**: al ser líneas y paradas como las demás, el metro sale solo en el buscador, Cerca de mí (con filtro Todo / Bus / Metro), favoritos, el detalle de estación (próximos trenes y panel de salidas) y "Cómo llegar" (directo y con transbordo a pie entre bus y metro). Además: tarjeta "Metro" en el inicio y pantalla con el esquema de cada línea; colores oficiales en insignias y mapa; sin "Ubicar bus" en estaciones (no hay tiempo real).
-- **"Cómo llegar"**: hasta 8 opciones (antes 6) y el mapa más bajo en el móvil (32 % de la pantalla, como mucho 240 px) para que se vean las opciones.
+- **"Cómo llegar"**: hasta 8 opciones (antes 6) y el mapa más bajo en el móvil (24 % de la pantalla, como mucho 180 px) para que se vean las opciones.
 
 ## Alternativas
 

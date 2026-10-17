@@ -233,7 +233,7 @@
                                 : {
                                     time: time(t.departure),
                                     stop: stopName(leg.fromStopId),
-                                    code: leg.fromStopId,
+                                    code: stopCode(leg.fromStopId),
                                   }
                           }}
                         </span>
@@ -244,7 +244,7 @@
                                 : {
                                     time: time(t.arrival),
                                     stop: stopName(leg.toStopId),
-                                    code: leg.toStopId,
+                                    code: stopCode(leg.toStopId),
                                   }
                           }}
                         </span>

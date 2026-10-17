@@ -182,7 +182,7 @@
     "samePlace": "The start and the destination are the same place.",
     "noOptions": "No lines go from the start to the destination, either direct or with one change.",
     "optionCount": "{{count}} options",
-    "timesNote": "Times from EMT's published timetable, not real time. The recommended option arrives first (or, with “Arrive by”, leaves latest).",
+    "timesNote": "Times from the EMT and metro timetables; the first bus in real time when it is visible. The recommended option arrives first (or, with “Arrive by”, leaves latest).",
     "minutes": "~{{minutes}} min",
     "boardAt": "Board at {{stop}} ({{code}})",
     "alightAt": "Get off at {{stop}} ({{code}})",
