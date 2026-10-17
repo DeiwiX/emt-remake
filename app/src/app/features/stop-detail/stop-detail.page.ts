@@ -28,6 +28,7 @@ import { VehicleTrackerService } from '../../core/realtime/vehicle-tracker.servi
 import { LatLon, Line } from '../../core/models/network.model';
 import { MapViewComponent } from '../../shared/map-view/map-view.component';
 import { EmtNoticesComponent } from '../../shared/emt-notices/emt-notices.component';
+import { DeparturesBoardComponent } from '../../shared/departures-board/departures-board.component';
 import { DataDateComponent } from '../../shared/data-date/data-date.component';
 import { DataStatusBannerComponent } from '../../shared/data-status-banner/data-status-banner.component';
 import { FavoriteButtonComponent } from '../../shared/favorite-button/favorite-button.component';
@@ -40,6 +41,7 @@ import { LocateBusButtonComponent } from '../../shared/locate-bus-button/locate-
   selector: 'app-stop-detail',
   imports: [
     DataDateComponent,
+    DeparturesBoardComponent,
     EmtNoticesComponent,
     RouterLink,
     TranslocoPipe,
@@ -120,6 +122,9 @@ import { LocateBusButtonComponent } from '../../shared/locate-bus-button/locate-
                 <p>{{ 'stopDetail.coordinates' | transloco: { lat: stop.lat, lon: stop.lon } }}</p>
               }
             </div>
+            <!-- Panel de salidas: todas las líneas juntas, por orden de paso (17/10/2026). -->
+            <h2 class="ion-padding-horizontal">{{ 'departures.title' | transloco }}</h2>
+            <app-departures-board class="ion-padding-horizontal" [stop]="stop" />
             <h2 class="ion-padding-horizontal">{{ 'stopDetail.lines' | transloco }}</h2>
             <ion-list [attr.aria-label]="'stopDetail.lines' | transloco">
               @for (service of services(); track service.lineId + '-' + service.directionId) {

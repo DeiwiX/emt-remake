@@ -51,6 +51,10 @@
     "showMore": "Mostrar más paradas",
     "mapLabel": "Mapa de las paradas"
   },
+  "departures": {
+    "title": "Próximas salidas",
+    "none": "No hay más salidas hoy ni mañana según el horario."
+  },
   "stopDetail": {
     "title": "Parada {{id}}",
     "address": "Dirección: {{address}}",

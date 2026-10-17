@@ -51,6 +51,10 @@
     "showMore": "Show more stops",
     "mapLabel": "Map of the stops"
   },
+  "departures": {
+    "title": "Next departures",
+    "none": "No more departures today or tomorrow according to the timetable."
+  },
   "stopDetail": {
     "title": "Stop {{id}}",
     "address": "Address: {{address}}",
