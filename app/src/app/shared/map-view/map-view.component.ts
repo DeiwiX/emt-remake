@@ -1,11 +1,11 @@
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
-  DestroyRef,
-  ElementRef,
-  afterNextRender,
   computed,
+  DestroyRef,
   effect,
+  ElementRef,
   inject,
   input,
   output,
@@ -34,6 +34,8 @@ import { ColorSchemeService, prefersReducedMotion } from '../../core/theme/color
 
 /** Centro de Málaga. */
 const MALAGA_CENTER: LatLon = [36.7213, -4.4214];
+/** Tras mover el mapa siguiendo un autobús, se vuelve a centrar en él a los 12 s. */
+const FOLLOW_RESUME_MS = 12_000;
 const INITIAL_ZOOM = 12;
 
 type MapState = 'loading' | 'ready' | 'unsupported' | 'error';
@@ -144,6 +146,11 @@ const LAYER_CHOICES: readonly Exclude<MapStylePreference, 'auto'>[] = [
     .side-actions {
       align-items: flex-end;
     }
+    /* "Volver al bus": en coral, para distinguirlo de los otros botones. */
+    .side-actions button.back-to-bus {
+      background: var(--app-accent, #b9472f);
+      color: #fff;
+    }
     .side-actions button:disabled {
       opacity: 0.6;
     }
@@ -208,6 +215,17 @@ const LAYER_CHOICES: readonly Exclude<MapStylePreference, 'auto'>[] = [
             }
           </button>
         }
+        @if (followPoint() && followPaused()) {
+          <!-- Has movido el mapa: vuelve solo en unos segundos o al tocar aquí. -->
+          <button
+            type="button"
+            class="back-to-bus"
+            [attr.aria-label]="'vehicle.backToBus' | transloco"
+            (click)="resumeFollow()"
+          >
+            <ion-icon name="bus-outline" aria-hidden="true" />
+          </button>
+        }
         @if (refreshButton()) {
           <button
             type="button"
@@ -267,6 +285,9 @@ export class MapViewComponent {
   readonly vehicleSelected = output<string>();
   /** Punto en el que mantener centrado el mapa (seguir a un autobús); null = libre. */
   readonly followPoint = input<LatLon | null>(null);
+  /** El usuario ha movido el mapa mientras seguía un autobús: no se recentra un rato. */
+  protected readonly followPaused = signal(false);
+  private followTimer: ReturnType<typeof setTimeout> | undefined;
   /** Margen de error de la posición del usuario, en metros (círculo alrededor del punto). */
   readonly userAccuracy = input(0);
   /**
@@ -349,8 +370,13 @@ export class MapViewComponent {
     effect(() => {
       const view = this.view();
       const point = this.followPoint();
-      if (view && point) view.centerOn(point);
+      if (view && point && !this.followPaused()) view.centerOn(point);
     });
+    // Al dejar de seguir, se olvida la pausa.
+    effect(() => {
+      if (!this.followPoint()) untracked(() => this.resumeFollow(false));
+    });
+    inject(DestroyRef).onDestroy(() => clearTimeout(this.followTimer));
     effect(() => this.view()?.setTraffic(this.traffic()));
     effect(() => this.view()?.setCongestion(this.congestion()));
     effect(() => {
@@ -403,6 +429,26 @@ export class MapViewComponent {
     await this.init();
   }
 
+  /**
+   * Siguiendo un autobús, si el usuario mueve el mapa se deja de centrar en él
+   * durante unos segundos (petición del desarrollador, 17/10/2026: antes lo
+   * recolocaba al momento). Cada movimiento vuelve a contar el tiempo.
+   */
+  private pauseFollow(): void {
+    if (!this.followPoint()) return;
+    this.followPaused.set(true);
+    clearTimeout(this.followTimer);
+    this.followTimer = setTimeout(() => this.followPaused.set(false), FOLLOW_RESUME_MS);
+  }
+
+  /** Vuelve a centrar en el autobús seguido (botón "Volver al bus" o al pasar el tiempo). */
+  protected resumeFollow(center = true): void {
+    clearTimeout(this.followTimer);
+    this.followPaused.set(false);
+    const point = this.followPoint();
+    if (center && point) this.view()?.centerOn(point);
+  }
+
   private async init(): Promise<void> {
     if (!this.provider.isSupported()) {
       this.state.set('unsupported');
@@ -426,6 +472,7 @@ export class MapViewComponent {
           trafficSelected: (id) => this.trafficSelected.emit(id),
           vehicleSelected: (id) => this.vehicleSelected.emit(id),
           zoomChanged: (zoom) => this.zoomChanged.emit(zoom),
+          userMoved: () => this.pauseFollow(),
         },
       );
       this.view.set(view);

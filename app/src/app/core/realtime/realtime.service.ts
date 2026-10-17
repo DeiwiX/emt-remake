@@ -27,6 +27,12 @@ class NoRealtimeSource extends RealtimeSource {
  * la fuente se renueva cada ~5 min, pero así el dato nuevo se coge antes.
  */
 const POLL_MS = 30_000;
+/**
+ * Justo después de un dato nuevo no llega otro hasta pasados unos 5 min: en los
+ * primeros 3 min no se pregunta (optimización 1, 17/10/2026). La fuente no
+ * permite preguntar "solo si ha cambiado" (no envía ETag ni Last-Modified).
+ */
+const QUIET_AFTER_CHANGE_MS = 3 * 60_000;
 
 /**
  * Posiciones de los autobuses (Fase 3). Solo se descargan mientras alguna
@@ -42,6 +48,8 @@ export class RealtimeService {
   private readonly previousSignal = signal<ReadonlyMap<string, Vehicle>>(new Map());
   private watchers = 0;
   private timer: ReturnType<typeof setInterval> | null = null;
+  /** Cuándo se vio cambiar la fuente por última vez (0 = nunca). */
+  private lastChangeAt = 0;
 
   readonly available = this.source.available;
   readonly vehicles = this.vehiclesSignal.asReadonly();
@@ -67,17 +75,35 @@ export class RealtimeService {
   watch(destroyRef: Pick<DestroyRef, 'onDestroy'> = inject(DestroyRef)): void {
     if (!this.available) return;
     this.watchers++;
-    if (this.watchers === 1) {
-      void this.refresh();
-      this.timer = setInterval(() => void this.refresh(), POLL_MS);
-    }
+    if (this.watchers === 1) this.startPolling();
     destroyRef.onDestroy(() => {
       this.watchers--;
-      if (this.watchers === 0 && this.timer) {
-        clearInterval(this.timer);
-        this.timer = null;
-      }
+      if (this.watchers === 0) this.stopPolling();
     });
+  }
+
+  /** Con la app en segundo plano no se descarga nada; al volver, se pide al momento. */
+  private readonly onVisibility = () => {
+    if (this.watchers === 0) return;
+    if (document.visibilityState === 'hidden') this.stopPolling();
+    else this.startPolling();
+  };
+
+  constructor() {
+    if (this.available) document.addEventListener('visibilitychange', this.onVisibility);
+  }
+
+  private startPolling(): void {
+    if (this.timer || document.visibilityState === 'hidden') return;
+    void this.refresh();
+    this.timer = setInterval(() => {
+      if (Date.now() - this.lastChangeAt >= QUIET_AFTER_CHANGE_MS) void this.refresh();
+    }, POLL_MS);
+  }
+
+  private stopPolling(): void {
+    if (this.timer) clearInterval(this.timer);
+    this.timer = null;
   }
 
   private async refresh(): Promise<void> {
@@ -85,6 +111,9 @@ export class RealtimeService {
     this.refreshingSignal.set(true);
     try {
       const vehicles = parseVehicles(await this.source.fetchVehicles());
+      if (newestReport(vehicles) !== newestReport(this.vehiclesSignal())) {
+        this.lastChangeAt = Date.now();
+      }
       this.previousSignal.set(
         previousReports(this.vehiclesSignal(), vehicles, this.previousSignal()),
       );
@@ -98,6 +127,16 @@ export class RealtimeService {
       this.nowSignal.set(madridInstant(new Date()));
     }
   }
+}
+
+/** Hora del dato más reciente (para saber si la fuente ha cambiado). */
+function newestReport(vehicles: readonly Vehicle[]): string {
+  let newest = '';
+  for (const v of vehicles) {
+    const key = `${v.dateKey}${String(v.seconds).padStart(5, '0')}`;
+    if (key > newest) newest = key;
+  }
+  return newest;
 }
 
 /**

@@ -134,7 +134,7 @@ export class LineDetailPage {
   });
 
   constructor() {
-    this.tracker.watch();
+    this.tracker.watch(undefined, () => new Set([this.lineId()]));
     inject(ShapeRepository)
       .getShapes('detail')
       .then((shapes) => this.geometries.set(shapes))

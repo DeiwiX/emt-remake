@@ -224,6 +224,10 @@ class MapLibreView implements MapView {
     // Cambiar de estilo (tema) borra las capas propias: se vuelven a crear.
     map.on('style.load', () => this.installLayers());
     map.on('zoomend', () => events.zoomChanged(map.getZoom()));
+    // Solo los movimientos del usuario traen el evento del dedo o del ratón.
+    map.on('movestart', (event) => {
+      if (event.originalEvent) events.userMoved?.();
+    });
     map.on('click', (event) => {
       const { x, y } = event.point;
       const box: [[number, number], [number, number]] = [

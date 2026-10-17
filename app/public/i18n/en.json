@@ -299,6 +299,7 @@
     "none": "No active or upcoming traffic closures."
   },
   "vehicle": {
+    "backToBus": "Back to the bus you follow",
     "towards": "Towards {{headsign}}",
     "nextStop": "Next stop: {{stop}} ({{code}})",
     "estimated": "Estimated position from data {{age}} min old",

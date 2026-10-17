@@ -416,6 +416,23 @@ export class MapPage {
     return toMapStops([...ids].map((id) => this.network.getStop(id)));
   });
 
+  /**
+   * Líneas cuyos autobuses se dibujan: las visibles (y resaltadas, si hay) y la
+   * del autobús elegido. Solo de esas se calcula la posición cada segundo.
+   */
+  private readonly trackedLines = computed<ReadonlySet<string> | null>(() => {
+    const visible = this.visibleLines();
+    const highlighted = this.highlightedLines();
+    const lines = new Set<string>(
+      highlighted ? [...highlighted].filter((id) => !visible || visible.has(id)) : (visible ?? []),
+    );
+    if (!highlighted && !visible) return null;
+    const selected = this.selectedVehicleId() ?? this.bus();
+    const bus = selected ? this.realtime.vehicles().find((v) => v.id === selected) : undefined;
+    if (bus) lines.add(bus.lineId);
+    return lines;
+  });
+
   protected readonly visibleLines = computed(() => {
     const hidden = this.hiddenLines();
     if (hidden.size === 0) return null;
@@ -448,7 +465,7 @@ export class MapPage {
   });
 
   constructor() {
-    this.tracker.watch();
+    this.tracker.watch(undefined, () => this.trackedLines());
     inject(TrafficRepository)
       .getTraffic()
       .then((items) => this.trafficItems.set(items))

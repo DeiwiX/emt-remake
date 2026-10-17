@@ -70,6 +70,21 @@ export class VehicleTrackerService {
   private timer: ReturnType<typeof setInterval> | null = null;
   private readonly tracks = new Map<string, RouteTrack | null>();
   private readonly live = inject(LiveContextService);
+  /**
+   * Líneas que quiere cada pantalla que sigue a los autobuses (null = todas). Solo
+   * se calcula la posición de esas: con el mapa de una línea no se mueven los
+   * 200 autobuses de la red cada segundo (optimización 4, 17/10/2026).
+   */
+  private readonly scopes = signal<readonly (() => ReadonlySet<string> | null)[]>([]);
+  private readonly wantedLines = computed<ReadonlySet<string> | null>(() => {
+    const wanted = new Set<string>();
+    for (const scope of this.scopes()) {
+      const lines = scope();
+      if (lines === null) return null;
+      for (const id of lines) wanted.add(id);
+    }
+    return wanted;
+  });
   /** Lo último dibujado de cada autobús, para moverlo con suavidad (Fase 6). */
   private smooth = new Map<string, SmoothState & { key: string }>();
 
@@ -90,9 +105,11 @@ export class VehicleTrackerService {
     const now = this.nowSignal();
     const geometries = this.geometries();
     const context = this.live.context();
+    const wanted = this.wantedLines();
     this.network.lines();
     const smooth = new Map<string, SmoothState & { key: string }>();
     const result = this.realtime.vehicles().flatMap((vehicle): TrackedVehicle[] => {
+      if (wanted && !wanted.has(vehicle.lineId)) return [];
       if (vehicle.dateKey !== now.dateKey) return [];
       const age = Math.max(0, (now.seconds - vehicle.seconds) / 60);
       if (age > MAX_AGE_MINUTES) return [];
@@ -205,24 +222,51 @@ export class VehicleTrackerService {
     });
   });
 
-  /** Empieza a seguir a los autobuses mientras viva quien llama. */
-  watch(destroyRef = inject(DestroyRef)): void {
+  /**
+   * Empieza a seguir a los autobuses mientras viva quien llama. `lines` dice de
+   * qué líneas necesita la posición (sin él, de todas).
+   */
+  watch(
+    destroyRef: Pick<DestroyRef, 'onDestroy'> = inject(DestroyRef),
+    lines: () => ReadonlySet<string> | null = () => null,
+  ): void {
     if (!this.available) return;
     this.realtime.watch(destroyRef);
     void this.loadShapes();
     this.watchers++;
+    this.scopes.update((list) => [...list, lines]);
     this.activeSignal.set(true);
-    if (this.watchers === 1) {
-      this.timer = setInterval(() => this.nowSignal.set(madridInstant(new Date())), TICK_MS);
-    }
+    if (this.watchers === 1) this.startTicking();
     destroyRef.onDestroy(() => {
       this.watchers--;
-      if (this.watchers === 0) this.activeSignal.set(false);
-      if (this.watchers === 0 && this.timer) {
-        clearInterval(this.timer);
-        this.timer = null;
+      this.scopes.update((list) => list.filter((scope) => scope !== lines));
+      if (this.watchers === 0) {
+        this.activeSignal.set(false);
+        this.stopTicking();
       }
     });
+  }
+
+  /** Con la app en segundo plano no se mueve nada: se ahorra batería (optimización 2). */
+  private readonly onVisibility = () => {
+    if (this.watchers === 0) return;
+    if (document.visibilityState === 'hidden') this.stopTicking();
+    else this.startTicking();
+  };
+
+  constructor() {
+    document.addEventListener('visibilitychange', this.onVisibility);
+  }
+
+  private startTicking(): void {
+    if (this.timer || document.visibilityState === 'hidden') return;
+    this.nowSignal.set(madridInstant(new Date()));
+    this.timer = setInterval(() => this.nowSignal.set(madridInstant(new Date())), TICK_MS);
+  }
+
+  private stopTicking(): void {
+    if (this.timer) clearInterval(this.timer);
+    this.timer = null;
   }
 
   /** Cuántas líneas paran en cada parada (para estimar cuánto se para allí). */

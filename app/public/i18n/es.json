@@ -299,6 +299,7 @@
     "none": "No hay cortes de tráfico activos ni previstos."
   },
   "vehicle": {
+    "backToBus": "Volver al autobús que sigues",
     "towards": "Hacia {{headsign}}",
     "nextStop": "Próxima parada: {{stop}} ({{code}})",
     "estimated": "Posición estimada a partir de un dato de hace {{age}} min",

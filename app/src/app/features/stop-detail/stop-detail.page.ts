@@ -223,7 +223,7 @@ export class StopDetailPage {
   });
 
   constructor() {
-    this.tracker.watch();
+    this.tracker.watch(undefined, () => new Set(this.lineIds()));
     inject(ShapeRepository)
       .getShapes('detail')
       .then((shapes) => this.geometries.set(shapes))

@@ -80,6 +80,8 @@ export interface MapViewEvents {
   /** Se ha tocado un autobús en tiempo real. */
   vehicleSelected?(id: string): void;
   zoomChanged(zoom: number): void;
+  /** El usuario ha empezado a mover el mapa (arrastrar, pellizcar), no la app. */
+  userMoved?(): void;
 }
 
 export interface MapView {
