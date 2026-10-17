@@ -19,6 +19,7 @@ cd app
 npm install
 npm start                    # servidor de desarrollo en http://localhost:4200
 npm test -- --watch=false    # pruebas unitarias (Vitest)
+npm run e2e                  # extremo a extremo (Playwright con el Chrome instalado; arranca ng serve en el puerto 4300 y usa los datos de public/data-snapshot)
 npm run lint                 # ESLint, con reglas de accesibilidad de plantillas
 npm run build                # compilación de producción en app/dist/
 npm run data:snapshot        # actualiza la copia de datos incluida en la app (public/data-snapshot)
