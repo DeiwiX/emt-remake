@@ -1,9 +1,9 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 
 import { LatLon } from '../models/network.model';
 import { NetworkRepository, WalkGraphRepository } from '../data/repositories';
-import { NearbyStop, Place } from '../planner/planner';
-import { streetTransfers, withStreetWalks } from './walk-access';
+import { JourneyOption, Place } from '../planner/planner';
+import { streetMinutesBetween, withStreetTransfers, withStreetWalks } from './walk-access';
 import { WalkGraph, WalkPath } from './walk-graph';
 
 /**
@@ -37,15 +37,19 @@ export class WalkingService {
     return place && graph ? withStreetWalks(place, graph, (id) => this.network.getStop(id)) : place;
   }
 
-  /**
-   * Transbordos a pie entre paradas con los minutos del camino real (16/10/2026).
-   * Sin red peatonal, los de siempre (línea recta con margen de rodeo).
-   */
-  transferWalks(
-    nearby: (stopId: string) => readonly NearbyStop[],
-  ): (stopId: string) => readonly NearbyStop[] {
+  /** Minutos por la calle entre paradas, con caché mientras no cambie la red peatonal. */
+  private readonly between = computed(() => {
     const graph = this.graphSignal();
-    return graph ? streetTransfers(nearby, graph, (id) => this.network.getStop(id)) : nearby;
+    return graph ? streetMinutesBetween(graph, (id) => this.network.getStop(id)) : null;
+  });
+
+  /**
+   * La opción con los minutos del camino real en sus transbordos a pie
+   * (16/10/2026). Sin red peatonal, tal cual (línea recta con margen).
+   */
+  refineTransfers(option: JourneyOption): JourneyOption {
+    const between = this.between();
+    return between ? withStreetTransfers(option, between) : option;
   }
 
   /** Camino por las calles entre dos puntos (null sin red o sin camino). */

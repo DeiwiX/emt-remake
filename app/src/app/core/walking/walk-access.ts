@@ -1,6 +1,6 @@
 import { WALK_METRES_PER_MINUTE } from '../location/geo';
 import { LatLon, Stop } from '../models/network.model';
-import { NearbyStop, Place } from '../planner/planner';
+import { JourneyOption, Place } from '../planner/planner';
 import { WalkGraph } from './walk-graph';
 
 /** Hasta dónde se buscan caminos desde un lugar a sus paradas (las candidatas están a < 1 km). */
@@ -44,33 +44,49 @@ export function withStreetWalks(
   return { ...place, accessMinutes: refined };
 }
 
-/** Hasta dónde se buscan caminos desde una parada a las cercanas (transbordos, < 250 m en línea recta). */
-const TRANSFER_SEARCH_METRES = 800;
+/** Hasta dónde se buscan caminos entre las paradas de un transbordo (< 250 m en línea recta). */
+const TRANSFER_SEARCH_METRES = 600;
 
 /**
- * Transbordos a pie con los minutos del camino real por la calle. Se calculan
- * la primera vez que se pide cada parada y se guardan. Si no hay camino por la
- * red, se queda la estimación en línea recta.
+ * Cambia los minutos andando de los transbordos de una opción por los del
+ * camino real por la calle, y ajusta su tiempo total (17/10/2026). Se hace
+ * solo con las opciones que salen, no al buscar: calcular caminos desde las
+ * 1.100 paradas tardaba más de medio segundo (varios en el móvil).
  */
-export function streetTransfers(
-  nearby: (stopId: string) => readonly NearbyStop[],
+export function withStreetTransfers(
+  option: JourneyOption,
+  minutesBetween: (fromStopId: string, toStopId: string) => number | null,
+): JourneyOption {
+  let delta = 0;
+  const transferWalks = option.transferWalks.map((walk, i) => {
+    const from = option.legs[i]?.toStopId;
+    const to = option.legs[i + 1]?.fromStopId;
+    if (!from || !to || from === to) return walk;
+    const street = minutesBetween(from, to);
+    if (street === null) return walk;
+    delta += street - walk;
+    return street;
+  });
+  return delta === 0 && transferWalks.every((w, i) => w === option.transferWalks[i])
+    ? option
+    : { ...option, transferWalks, totalMinutes: option.totalMinutes + delta };
+}
+
+/** Minutos andando por la calle entre dos paradas (con caché), o null sin camino. */
+export function streetMinutesBetween(
   graph: WalkGraph,
   stopById: (id: string) => Stop | undefined,
-): (stopId: string) => readonly NearbyStop[] {
-  const cache = new Map<string, readonly NearbyStop[]>();
-  return (stopId) => {
-    const cached = cache.get(stopId);
-    if (cached) return cached;
-    const list = nearby(stopId);
-    const stop = stopById(stopId);
-    const tree =
-      stop && list.length > 0 ? graph.from([stop.lat, stop.lon], TRANSFER_SEARCH_METRES) : null;
-    const result = list.map((n) => {
-      const other = stopById(n.stopId);
-      const metres = tree && other ? tree.metresTo([other.lat, other.lon]) : null;
-      return metres === null ? n : { ...n, minutes: streetWalkMinutes(metres) };
-    });
-    cache.set(stopId, result);
-    return result;
+): (fromStopId: string, toStopId: string) => number | null {
+  const cache = new Map<string, number | null>();
+  return (fromId, toId) => {
+    const key = `${fromId}>${toId}`;
+    if (cache.has(key)) return cache.get(key)!;
+    const from = stopById(fromId);
+    const to = stopById(toId);
+    const tree = from ? graph.from([from.lat, from.lon], TRANSFER_SEARCH_METRES) : null;
+    const metres = tree && to ? tree.metresTo([to.lat, to.lon]) : null;
+    const minutes = metres === null ? null : streetWalkMinutes(metres);
+    cache.set(key, minutes);
+    return minutes;
   };
 }
