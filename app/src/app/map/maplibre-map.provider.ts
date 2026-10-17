@@ -842,10 +842,13 @@ class MapLibreView implements MapView {
         : ['interpolate', ['linear'], ['zoom'], 11, normal, 16, normal * 2];
     const opacity: ExpressionSpecification | number = h ? ['case', isHighlighted, 1, 0.2] : 1;
 
-    // Las resaltadas, algo más gruesas: llevan dentro las flechas del sentido.
-    for (const layer of [LAYER.line, LAYER.approximate, LAYER.arrows]) {
+    // Las resaltadas, algo más gruesas: llevan encima las flechas del sentido.
+    for (const layer of [LAYER.line, LAYER.approximate]) {
       map.setPaintProperty(layer, 'line-width', width(2, 5));
     }
+    // El patrón de flechas se ajusta al grosor de su capa: algo más ancha que la
+    // línea, así las flechas sobresalen un poco de ella (17/10/2026).
+    map.setPaintProperty(LAYER.arrows, 'line-width', width(4, 9));
     map.setPaintProperty(LAYER.line, 'line-opacity', opacity);
     map.setPaintProperty(LAYER.approximate, 'line-opacity', opacity);
     // Flechas solo en las líneas resaltadas (si hay alguna): en las demás no se verían.
