@@ -305,7 +305,7 @@
     "show": "Mostrar atascos",
     "hide": "Ocultar atascos",
     "summary": "Atascos estimados con los autobuses: {{slow}} tramos lentos (naranja) y {{jams}} atascos (rojo)",
-    "none": "Sin atascos detectados por los autobuses. Se miden comparando dos datos de cada autobús (unos 5 min con el mapa abierto).",
+    "none": "Sin atascos detectados por los autobuses. Se miden con el tiempo de cada autobús entre paradas (hacen falta unos minutos con el mapa abierto).",
     "slowItem": "Línea {{line}}, de {{from}} a {{to}}: lento, {{minutes}} min de más",
     "jamItem": "Línea {{line}}, de {{from}} a {{to}}: atasco, {{minutes}} min de más"
   },
