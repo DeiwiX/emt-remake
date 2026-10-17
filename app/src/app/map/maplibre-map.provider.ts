@@ -106,31 +106,38 @@ function busImageName(color: string): string {
 }
 
 /**
- * Autobús visto desde arriba, mirando al norte (la capa lo gira según su rumbo):
- * carrocería del color de la línea con borde blanco, parabrisas delante, luna
- * trasera y ventanillas. null si el entorno no tiene canvas (pruebas).
+ * Flechas del sentido de una línea (17/10/2026), pintadas dentro de la propia
+ * línea como un patrón (igual que las marcas de un carril): así siguen al trazo
+ * desplazado en curvas y con cualquier zoom. Blanca sobre la ida (color fuerte)
+ * y oscura sobre la vuelta (tono claro), con borde para que se vean.
  */
-/** Flecha del sentido de una línea (17/10/2026): un galón blanco que apunta hacia delante. */
-const ARROW_IMAGE = 'route-arrow';
+const ARROW_PATTERNS = { 1: 'route-arrow-out', 2: 'route-arrow-back' } as const;
 
-function drawArrow(): ImageData | null {
-  const size = 20 * BUS_PIXEL_RATIO;
+/** Un tramo del patrón: la flecha y hueco hasta la siguiente (el alto se ajusta al grosor de la línea). */
+function drawArrowPattern(fill: string, stroke: string): ImageData | null {
+  const r = BUS_PIXEL_RATIO;
+  const height = 12 * r;
+  const width = 6 * height;
   const canvas = typeof document === 'undefined' ? null : document.createElement('canvas');
   const ctx = canvas?.getContext('2d');
   if (!canvas || !ctx) return null;
-  canvas.width = size;
-  canvas.height = size;
-  const r = BUS_PIXEL_RATIO;
-  // Punta de flecha rellena (se tiñe del color de la línea: imagen SDF).
-  ctx.fillStyle = '#FFFFFF';
+  canvas.width = width;
+  canvas.height = height;
+  const cy = height / 2;
+  const x = width / 2;
   ctx.beginPath();
-  ctx.moveTo(4 * r, 4 * r);
-  ctx.lineTo(16 * r, 10 * r);
-  ctx.lineTo(4 * r, 16 * r);
-  ctx.lineTo(7.5 * r, 10 * r);
+  ctx.moveTo(x - 4 * r, cy - 4.5 * r);
+  ctx.lineTo(x + 4.5 * r, cy);
+  ctx.lineTo(x - 4 * r, cy + 4.5 * r);
+  ctx.lineTo(x - 1.5 * r, cy);
   ctx.closePath();
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = 1.5 * r;
+  ctx.strokeStyle = stroke;
+  ctx.stroke();
+  ctx.fillStyle = fill;
   ctx.fill();
-  return ctx.getImageData(0, 0, size, size);
+  return ctx.getImageData(0, 0, width, height);
 }
 
 /** Tono más claro de un color (#RRGGBB), para la vuelta de una línea. */
@@ -147,6 +154,11 @@ function lighter(color: string, amount = 0.45): string {
   return `#${channel(16)}${channel(8)}${channel(0)}`;
 }
 
+/**
+ * Autobús visto desde arriba, mirando al norte (la capa lo gira según su rumbo):
+ * carrocería del color de la línea con borde blanco, parabrisas delante, luna
+ * trasera y ventanillas. null si el entorno no tiene canvas (pruebas).
+ */
 function drawBus(color: string): ImageData | null {
   const width = 22 * BUS_PIXEL_RATIO;
   const height = 48 * BUS_PIXEL_RATIO;
@@ -510,30 +522,27 @@ class MapLibreView implements MapView {
       paint: { 'line-color': ['get', 'color'], 'line-dasharray': [2, 2], 'line-offset': offset },
     });
     // Flechas del sentido sobre cada recorrido (17/10/2026): se ve hacia dónde va.
-    const arrow = drawArrow();
-    if (arrow && !map.hasImage(ARROW_IMAGE)) {
-      map.addImage(ARROW_IMAGE, arrow, { pixelRatio: BUS_PIXEL_RATIO, sdf: true });
+    const arrows: [string, ImageData | null][] = [
+      [ARROW_PATTERNS[1], drawArrowPattern('#FFFFFF', 'rgba(0, 0, 0, 0.5)')],
+      [ARROW_PATTERNS[2], drawArrowPattern('#1F2933', 'rgba(255, 255, 255, 0.9)')],
+    ];
+    for (const [name, image] of arrows) {
+      if (image && !map.hasImage(name)) map.addImage(name, image, { pixelRatio: BUS_PIXEL_RATIO });
     }
     map.addLayer({
       id: LAYER.arrows,
-      type: 'symbol',
+      type: 'line',
       source: SOURCE.routes,
-      minzoom: 11,
+      minzoom: 13,
       filter: ['has', 'directionId'],
-      layout: {
-        'symbol-placement': 'line',
-        'symbol-spacing': 45,
-        'icon-image': ARROW_IMAGE,
-        'icon-size': ['interpolate', ['linear'], ['zoom'], 11, 0.9, 16, 1.4],
-        'icon-rotation-alignment': 'map',
-        'icon-allow-overlap': true,
-        'icon-ignore-placement': true,
-      },
-      // Flechas del color de la línea (el fuerte, también en la vuelta) con borde blanco.
       paint: {
-        'icon-color': ['get', 'labelColor'],
-        'icon-halo-color': '#FFFFFF',
-        'icon-halo-width': 1.5,
+        'line-pattern': [
+          'case',
+          ['==', ['get', 'directionId'], 2],
+          ARROW_PATTERNS[2],
+          ARROW_PATTERNS[1],
+        ],
+        'line-offset': offset,
       },
     });
     // Número de línea sobre el recorrido: el color nunca es la única pista.
@@ -765,19 +774,23 @@ class MapLibreView implements MapView {
         : ['interpolate', ['linear'], ['zoom'], 11, normal, 16, normal * 2];
     const opacity: ExpressionSpecification | number = h ? ['case', isHighlighted, 1, 0.2] : 1;
 
-    for (const layer of [LAYER.line, LAYER.approximate]) {
-      map.setPaintProperty(layer, 'line-width', width(2, 4));
-      map.setPaintProperty(layer, 'line-opacity', opacity);
+    // Las resaltadas, algo más gruesas: llevan dentro las flechas del sentido.
+    for (const layer of [LAYER.line, LAYER.approximate, LAYER.arrows]) {
+      map.setPaintProperty(layer, 'line-width', width(2, 5));
     }
-    map.setPaintProperty(LAYER.casing, 'line-width', width(4, 7));
+    map.setPaintProperty(LAYER.line, 'line-opacity', opacity);
+    map.setPaintProperty(LAYER.approximate, 'line-opacity', opacity);
+    // Flechas solo en las líneas resaltadas (si hay alguna): en las demás no se verían.
+    map.setPaintProperty(LAYER.arrows, 'line-opacity', h ? ['case', isHighlighted, 1, 0] : 1);
+    map.setPaintProperty(LAYER.casing, 'line-width', width(4, 8));
     map.setPaintProperty(LAYER.casing, 'line-opacity', opacity);
     map.setPaintProperty(LAYER.labels, 'text-opacity', opacity);
-    map.setPaintProperty(LAYER.arrows, 'icon-opacity', opacity);
     // Las líneas resaltadas se dibujan por encima del resto.
     const sortKey: ExpressionSpecification | number = h ? ['case', isHighlighted, 1, 0] : 0;
     map.setLayoutProperty(LAYER.casing, 'line-sort-key', sortKey);
     map.setLayoutProperty(LAYER.line, 'line-sort-key', sortKey);
     map.setLayoutProperty(LAYER.approximate, 'line-sort-key', sortKey);
+    map.setLayoutProperty(LAYER.arrows, 'line-sort-key', sortKey);
   }
 
   private source(id: string): GeoJSONSource | undefined {
