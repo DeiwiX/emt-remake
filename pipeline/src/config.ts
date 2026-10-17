@@ -57,6 +57,12 @@ export const SOURCES = {
     url: 'https://nap.dgt.es/datex2/v3/dgt/SituationPublication/datex2_v36.xml',
   },
   /** Calles por las que se puede andar (OpenStreetMap vía Overpass API, ODbL). */
+  /** Posiciones de los autobuses (Fase 10: se guardan para aprender los retrasos habituales). */
+  vehicles: {
+    name: 'Ubicaciones de autobuses EMT en tiempo real',
+    dataset: 'https://datosabiertos.malaga.eu/dataset/ubicaciones-de-autobuses-emt-en-tiempo-real',
+    url: `${BASE}/EMTlineasUbicaciones/lineasyubicaciones.geojson`,
+  },
   osmWalk: {
     name: 'OpenStreetMap – red peatonal (© colaboradores de OpenStreetMap, ODbL)',
     dataset: 'https://www.openstreetmap.org/copyright',
@@ -118,3 +124,6 @@ export const FETCH = {
   // Overpass rechaza las peticiones sin identificar (HTTP 406).
   userAgent: 'emt-remake-pipeline (https://github.com/DeiwiX/emt-remake)',
 } as const;
+
+/** Datos ya publicados (GitHub Pages): la recogida de retrasos usa su red y su horario. */
+export const PUBLISHED_BASE_URL = 'https://deiwix.github.io/emt-remake/data/v1/';

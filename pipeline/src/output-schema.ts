@@ -174,6 +174,8 @@ export interface Manifest {
     traffic?: FileEntry;
     /** Opcional: red peatonal (OpenStreetMap). */
     walkGraph?: FileEntry;
+    /** Opcional: retrasos habituales (Fase 10), si hay histórico. */
+    delays?: FileEntry;
   };
   sources: {
     name: string;

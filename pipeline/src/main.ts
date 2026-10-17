@@ -32,6 +32,7 @@ import {
 } from './sources/traffic.ts';
 import { buildTimetables, countDepartures } from './build/build-timetables.ts';
 import { ValidationError } from './validation.ts';
+import { aggregateDelays, historyDays, parseObservations } from './delays/delays.ts';
 
 async function main(): Promise<void> {
   const { values } = parseArgs({
@@ -39,6 +40,7 @@ async function main(): Promise<void> {
       out: { type: 'string' },
       previous: { type: 'string' },
       'previous-walk': { type: 'string' },
+      'delays-history': { type: 'string' },
     },
   });
   if (!values.out) throw new Error('Falta --out <carpeta>');
@@ -121,6 +123,9 @@ async function main(): Promise<void> {
     new Date(),
   );
 
+  // Retrasos habituales (Fase 10): opcional, del histórico de la rama historico-retrasos.
+  const delays = values['delays-history'] ? await buildDelays(values['delays-history']) : null;
+
   const counts: Manifest['counts'] = {
     lines: dataset.network.lines.length,
     stops: dataset.network.stops.length,
@@ -156,6 +161,7 @@ async function main(): Promise<void> {
   };
   const trafficEntry = contents.traffic ? entry('traffic.json', contents.traffic) : null;
   const walkEntry = walk ? entry('walk-graph.json', walk.content) : null;
+  const delaysEntry = delays ? entry('delays.json', delays) : null;
 
   const manifest: Manifest = {
     schemaVersion: SCHEMA_VERSION,
@@ -168,11 +174,13 @@ async function main(): Promise<void> {
     counts,
     // El tráfico no cuenta en dataVersion: cambia cada hora y no debe obligar a la app
     // a descargar de nuevo la red.
-    // Tampoco la red peatonal, que se renueva cada semana y la app descarga aparte.
+    // Tampoco la red peatonal, que se renueva cada semana y la app descarga aparte,
+    // ni los retrasos habituales, que cambian cada hora con el histórico.
     files: {
       ...files,
       ...(trafficEntry ? { traffic: trafficEntry } : {}),
       ...(walkEntry ? { walkGraph: walkEntry } : {}),
+      ...(delaysEntry ? { delays: delaysEntry } : {}),
     },
     sources: [
       { ...SOURCES.emtLines, lastModified: emtRaw.lastModified },
@@ -203,6 +211,7 @@ async function main(): Promise<void> {
       ? [writeFile(join(values.out, trafficEntry.path), contents.traffic)]
       : []),
     ...(walkEntry && walk ? [writeFile(join(values.out, walkEntry.path), walk.content)] : []),
+    ...(delaysEntry && delays ? [writeFile(join(values.out, delaysEntry.path), delays)] : []),
     writeFile(join(values.out, 'report.json'), JSON.stringify(dataset.report, null, 2)),
   ]);
   // El manifest se escribe el último: solo existe si todo lo anterior ha ido bien.
@@ -214,6 +223,23 @@ async function main(): Promise<void> {
       `red peatonal ${walk ? `${walk.edges} tramos (${walk.reused ? 'reutilizada' : 'nueva'})` : 'no disponible'}, ` +
       `${dataset.report.stopConflicts.length} conflictos de paradas.`,
   );
+}
+
+/** delays.json a partir de los ficheros del histórico de las últimas 8 semanas (null sin datos). */
+async function buildDelays(folder: string): Promise<string | null> {
+  const today = madridLocal(new Date().toISOString())!.slice(0, 10).replaceAll('-', '');
+  const observations = [];
+  let days = 0;
+  for (const day of historyDays(today)) {
+    const path = join(folder, `${day}.csv`);
+    if (!existsSync(path)) continue;
+    observations.push(...parseObservations(day, await readFile(path, 'utf8')));
+    days++;
+  }
+  if (days === 0) return null;
+  const file = aggregateDelays(observations, days, SCHEMA_VERSION);
+  console.log(`Retrasos habituales: ${observations.length} datos de ${days} días.`);
+  return JSON.stringify(file);
 }
 
 async function readPreviousCounts(
