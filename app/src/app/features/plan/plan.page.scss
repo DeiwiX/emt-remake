@@ -246,3 +246,22 @@
   justify-content: flex-end;
   margin-top: 8px;
 }
+
+/* Primer bus visto en tiempo real ("Salir ahora"). */
+.live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #17703a;
+  font-weight: 600;
+}
+.live-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #1e8e3e;
+  box-shadow: 0 0 0 3px rgba(30, 142, 62, 0.2);
+}
+:host-context(.ion-palette-dark) .live {
+  color: #6fd08c;
+}

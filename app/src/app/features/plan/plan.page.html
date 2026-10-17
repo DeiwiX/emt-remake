@@ -219,6 +219,13 @@
                         {{ 'lineDetail.towards' | transloco: { headsign: leg.headsign } }}
                       </span>
                       @if (timedLeg(row, i); as t) {
+                        @if (t.live) {
+                          <!-- Ese bus se ha visto en tiempo real: su hora es la estimada. -->
+                          <span class="live">
+                            <span class="live-dot" aria-hidden="true"></span>
+                            {{ 'plan.liveBus' | transloco }}
+                          </span>
+                        }
                         <span>
                           {{
                             'plan.boardAtTime'

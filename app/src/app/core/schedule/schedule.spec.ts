@@ -201,6 +201,23 @@ describe('scheduleJourney', () => {
     ]);
   });
 
+  it('"salir ahora" con el primer bus visto en tiempo real', () => {
+    // El L1 programado pasa por a a las 7:00, pero en tiempo real llega a las 7:04:
+    // tarda lo del horario (10 min) y aún coge el L2 de las 7:20.
+    const journey = scheduleJourney(
+      transfer,
+      LINES,
+      TIMETABLES,
+      { dateKey: MONDAY, minutes: 400 },
+      'depart',
+      424,
+    );
+    expect(journey?.legs.map((l) => [l.departure, l.arrival, !!l.live])).toEqual([
+      [424, 434, true],
+      [440, 448, false],
+    ]);
+  });
+
   it('"llegar a las": el último bus con el que se llega a tiempo', () => {
     // Para llegar a d antes de las 8:00 (480): L1 7:30 → c 7:40; L2 7:50 → d 7:58.
     const journey = scheduleJourney(

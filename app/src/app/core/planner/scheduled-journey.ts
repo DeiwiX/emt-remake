@@ -20,6 +20,8 @@ export interface TimedLeg {
   /** Minutos desde la medianoche del día de referencia (ver schedule.ts). */
   readonly departure: number;
   readonly arrival: number;
+  /** El bus de este tramo se ha visto en tiempo real (su salida es la estimada). */
+  readonly live?: boolean;
 }
 
 export interface TimedJourney {
@@ -43,13 +45,20 @@ export function scheduleJourney(
   timetables: Timetables,
   clock: ServiceClock,
   mode: TimeMode,
+  /**
+   * "Salir ahora" con el primer bus visto en tiempo real (17/10/2026): minutos
+   * (en el reloj de `clock`) a los que pasa por la parada de subida.
+   */
+  liveFirstDeparture?: number,
 ): TimedJourney | null {
   const plans = option.legs.map((leg) => legPlan(leg, lines, timetables, clock.dateKey));
   if (plans.some((p) => p === null)) return null;
   const legPlans = plans as LegPlan[];
 
   // Desde "Mi ubicación" no se puede coger un bus antes de llegar andando a la parada.
-  if (mode === 'depart') return ride(option, legPlans, clock.minutes + option.accessMinutes);
+  if (mode === 'depart') {
+    return ride(option, legPlans, clock.minutes + option.accessMinutes, liveFirstDeparture);
+  }
 
   // "Llegar a las": el último primer bus con el que se llega a tiempo.
   const earliest = clock.minutes - MAX_ARRIVE_BY_WINDOW_MINUTES;
@@ -64,6 +73,20 @@ export function scheduleJourney(
     if (journey && journey.arrival <= clock.minutes) return journey;
   }
   return null;
+}
+
+/**
+ * Tramo con un bus visto en tiempo real: sale cuando dice la estimación y tarda
+ * lo que el viaje del horario más cercano (o lo típico del tramo).
+ */
+function liveTrip(plan: LegPlan, departure: number): PassingTrip {
+  const nearest = plan.trips.reduce<PassingTrip | null>(
+    (best, t) =>
+      !best || Math.abs(t.departure - departure) < Math.abs(best.departure - departure) ? t : best,
+    null,
+  );
+  const minutes = nearest ? nearest.arrival - nearest.departure : plan.leg.minutes;
+  return { departure, arrival: departure + minutes };
 }
 
 /** Ordena para recomendar: antes la que llega antes (salir) o la que sale más tarde (llegar). */
@@ -131,14 +154,24 @@ function legPlan(
   return trips.length > 0 ? { leg, trips } : null;
 }
 
-function ride(option: JourneyOption, plans: LegPlan[], from: number): TimedJourney | null {
+function ride(
+  option: JourneyOption,
+  plans: LegPlan[],
+  from: number,
+  liveFirstDeparture?: number,
+): TimedJourney | null {
   let ready = from;
   const legs: TimedLeg[] = [];
   for (const [i, plan] of plans.entries()) {
-    const trip = plan.trips.find((t) => t.departure >= ready);
+    const live = i === 0 && liveFirstDeparture !== undefined && liveFirstDeparture >= from;
+    const trip = live
+      ? liveTrip(plan, liveFirstDeparture)
+      : plan.trips.find((t) => t.departure >= ready);
     if (!trip) return null;
     const { departure, arrival } = trip;
-    legs.push({ leg: plan.leg, departure, arrival });
+    legs.push(
+      live ? { leg: plan.leg, departure, arrival, live } : { leg: plan.leg, departure, arrival },
+    );
     const isLast = i === plans.length - 1;
     ready = arrival + (isLast ? 0 : (option.transferWalks[i] ?? 0) + TRANSFER_BUFFER_MINUTES);
   }
@@ -146,6 +179,8 @@ function ride(option: JourneyOption, plans: LegPlan[], from: number): TimedJourn
   // siguiente. Así no se espera horas en un transbordo (16/10/2026: de noche
   // proponía un búho a la 01:36 para esperar hasta las 07:46 el siguiente bus).
   for (let i = legs.length - 2; i >= 0; i--) {
+    // El bus visto en tiempo real es el que hay: no se cambia por otro.
+    if (legs[i]!.live) continue;
     const deadline =
       legs[i + 1]!.departure - (option.transferWalks[i] ?? 0) - TRANSFER_BUFFER_MINUTES;
     const current = legs[i]!;

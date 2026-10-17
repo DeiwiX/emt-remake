@@ -149,6 +149,7 @@
     "updatedOn": "Data from {{date}}"
   },
   "plan": {
+    "liveBus": "Real-time bus",
     "title": "Get there",
     "origin": "From",
     "destination": "To",

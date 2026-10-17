@@ -149,6 +149,7 @@
     "updatedOn": "Datos del {{date}}"
   },
   "plan": {
+    "liveBus": "Bus en tiempo real",
     "title": "Cómo llegar",
     "origin": "Origen",
     "destination": "Destino",

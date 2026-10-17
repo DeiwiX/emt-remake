@@ -56,6 +56,9 @@ import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component
 import { MapViewComponent } from '../../shared/map-view/map-view.component';
 import { PlacePickerComponent } from '../../shared/place-picker/place-picker.component';
 import { FavoriteButtonComponent } from '../../shared/favorite-button/favorite-button.component';
+import { RealtimeService } from '../../core/realtime/realtime.service';
+import { ArrivalContextService } from '../../core/realtime/arrival-context.service';
+import { estimateArrivals } from '../../core/realtime/realtime';
 
 /** "Salir ahora", "Salir a las…" o "Llegar a las…". */
 type TimeChoice = 'now' | TimeMode;
@@ -119,6 +122,9 @@ export class PlanPage {
   private readonly network = inject(NetworkRepository);
   private readonly transloco = inject(TranslocoService);
   private readonly schedule = inject(ScheduleClockService);
+  /** Tiempo real para el primer bus de "Salir ahora" (solo en la app del móvil). */
+  private readonly realtime = inject(RealtimeService);
+  private readonly arrivalContext = inject(ArrivalContextService);
   private readonly colors = inject(LineColorsService);
 
   private readonly zonesStore = inject(ZonesStore);
@@ -216,7 +222,9 @@ export class PlanPage {
     const lines = this.network.lines();
     const rows = this.options().map((option) => ({
       option,
-      timed: timetables ? scheduleJourney(option, lines, timetables, reference, mode) : null,
+      timed: timetables
+        ? scheduleJourney(option, lines, timetables, reference, mode, this.liveDeparture(option))
+        : null,
     }));
     const sorted = rows
       .filter((r) => r.timed)
@@ -359,6 +367,7 @@ export class PlanPage {
   private readonly mapSection = viewChild<ElementRef<HTMLElement>>('mapSection');
 
   constructor() {
+    this.realtime.watch();
     void this.schedule.load();
     void this.walking.load();
     // Sin zonas se puede planificar igualmente entre paradas.
@@ -425,6 +434,30 @@ export class PlanPage {
   }
 
   /** Minutos que faltan para el primer bus (solo en "salir ahora"). */
+  /**
+   * "Salir ahora" (17/10/2026): cuándo pasa por la parada de subida el primer
+   * autobús del primer tramo visto en tiempo real al que da tiempo a llegar
+   * andando, en minutos del reloj de servicio. undefined si no hay ninguno.
+   */
+  private liveDeparture(option: JourneyOption): number | undefined {
+    if (this.timeChoice() !== 'now' || !this.realtime.available) return undefined;
+    const first = option.legs[0];
+    const direction = first
+      ? this.network.getLine(first.lineId)?.directions.find((d) => d.id === first.directionId)
+      : undefined;
+    if (!first || !direction) return undefined;
+    const now = this.schedule.clock().minutes;
+    const arrival = estimateArrivals(
+      this.realtime.vehicles(),
+      first.lineId,
+      direction,
+      direction.stopIds.indexOf(first.fromStopId),
+      this.realtime.now(),
+      this.arrivalContext.context(),
+    ).find((a) => a.minutes >= option.accessMinutes);
+    return arrival ? now + arrival.minutes : undefined;
+  }
+
   protected waitMinutes(row: Row): number | null {
     if (!row.timed || this.timeChoice() !== 'now') return null;
     return Math.max(0, Math.round(row.timed.leaveAt - this.schedule.clock().minutes));
