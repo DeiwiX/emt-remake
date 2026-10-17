@@ -217,7 +217,7 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
 ### Aspecto (Fase 5)
 
 - Identidad "Mediterráneo al atardecer" (mezcla de las propuestas A y C, ADR 0010): fondo arena, azul mar como color principal, coral de atardecer como acento y barras superiores azul noche; en el inicio, el sol poniéndose y unas olas bajo la cabecera.
-- Letras Lexend (texto) y Urbanist (títulos), incluidas en la app (`@fontsource-variable`), sin pedirlas a Google al abrirla.
+- Letras Figtree (texto) y Bricolage Grotesque (títulos) desde el 17/10/2026 (antes Lexend y Urbanist), incluidas en la app (`@fontsource-variable`), sin pedirlas a Google al abrirla. Identidad MalaGo: ADR 0018.
 - Los colores están en `app/src/theme/brand.scss` como variables de Ionic y `--app-*`, con su versión oscura; el alto contraste sigue usando la paleta de Ionic.
 
 ### Accesibilidad y rendimiento

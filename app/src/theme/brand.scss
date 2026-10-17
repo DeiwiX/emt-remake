@@ -1,8 +1,9 @@
 /*
  * Identidad visual "Mediterráneo al atardecer" (Fase 5, mezcla A + C elegida por
  * el desarrollador el 04/10/2026): fondo arena, azul mar como color principal,
- * coral de atardecer como acento y cabeceras azul noche. Letra Lexend (texto,
- * muy legible) y Urbanist (títulos), incluidas en la app.
+ * coral de atardecer como acento y cabeceras azul noche. Letra Figtree (texto) y
+ * Bricolage Grotesque (títulos), incluidas en la app (MalaGo, 17/10/2026; antes
+ * Lexend y Urbanist).
  *
  * Se carga después de las paletas de Ionic: en claro y oscuro estas variables
  * mandan; las de alto contraste de Ionic son más específicas y siguen mandando
@@ -13,8 +14,8 @@
  */
 
 :root {
-  --app-font-display: 'Urbanist Variable', 'Lexend Variable', system-ui, sans-serif;
-  --ion-font-family: 'Lexend Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --app-font-display: 'Bricolage Grotesque Variable', 'Figtree Variable', system-ui, sans-serif;
+  --ion-font-family: 'Figtree Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   /* Azul mar. */
   --ion-color-primary: #1d5d8a;
