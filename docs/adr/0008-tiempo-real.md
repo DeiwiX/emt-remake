@@ -1,6 +1,7 @@
 # ADR 0008 — Tiempo real y horario exacto (Fase 3)
 
 - Estado: aprobada por el desarrollador (04/10/2026): opciones 1 + 2 + 3 y B1. Queda abierto investigar cómo mejorar la precisión.
+- Sustituida en parte por el ADR 0019 (17/10/2026): el tiempo real sale del GTFS-RT de la EMT y la estimación propia se ha quitado.
 
 ## Contexto
 

@@ -7,6 +7,7 @@ import { Line } from '../models/network.model';
 import { ArrivalAlertService } from './arrival-alert.service';
 import { ArrivalNotifier } from './arrival-notifier';
 import { RealtimeSource } from './realtime.service';
+import { FeedTripUpdate, LiveIndex } from './realtime';
 
 const MIN = 60_000;
 const line: Line = {
@@ -25,20 +26,25 @@ const line: Line = {
   ],
 };
 
-/** Autobús 7 de la línea 1 que pasó por `stop` a las 15:45 (hora de Madrid). */
-const feed = (stop: string) => [
+/** Recorridos del tiempo real: el viaje 1 del bloque 001-01 hace a → b → c. */
+const live: LiveIndex = {
+  patterns: [{ lineId: '1', directionId: 1, stops: ['a', 'b', 'c'], minutes: [0, 4, 10] }],
+  trips: new Map([['G1L', new Map([['001-01', [0]]])]]),
+};
+
+/** El autobús 7 llega a "c" dentro de `minutes` minutos, según la EMT. */
+const feed = (minutes: number): FeedTripUpdate[] => [
   {
-    codBus: '7',
-    codLinea: '1.0',
-    sentido: '1',
-    codParIni: stop,
-    geometry: { type: 'Point', coordinates: ['-4.45', '36.7'] },
-    properties: { last_update: '2026-10-04 15:45:00' },
+    tripId: 'G1L_F1_001-01_1',
+    vehicleId: '7',
+    start: null,
+    timestamp: Date.now() / 1000,
+    stops: [{ sequence: 3, time: Date.now() / 1000 + minutes * 60, skipped: false }],
   },
 ];
 
 describe('ArrivalAlertService', () => {
-  let records: unknown[];
+  let trips: FeedTripUpdate[];
   const notifier = {
     available: true,
     requestPermission: vi.fn(() => Promise.resolve(true)),
@@ -56,14 +62,20 @@ describe('ArrivalAlertService', () => {
         },
         {
           provide: RealtimeSource,
-          useValue: { available: true, fetchVehicles: () => Promise.resolve(records) },
+          useValue: {
+            available: true,
+            fetchFeeds: () => Promise.resolve({ vehicles: [], trips }),
+          },
         },
         { provide: ArrivalNotifier, useValue: notifier },
         { provide: ShapeRepository, useValue: { getShapes: () => Promise.resolve(new Map()) } },
-        // Sin horario: el aviso se ajusta solo con los minutos típicos.
+        // Horario vacío, con los recorridos para leer el tiempo real.
         {
           provide: ScheduleRepository,
-          useValue: { getTimetables: () => new Promise(() => undefined) },
+          useValue: {
+            getTimetables: () =>
+              Promise.resolve({ services: new Map(), departures: new Map(), live }),
+          },
         },
         { provide: TranslocoService, useValue: { translate: (key: string) => key } },
       ],
@@ -78,9 +90,8 @@ describe('ArrivalAlertService', () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
-    // 15:47 en Madrid (horario de verano): el dato tiene 2 minutos.
     vi.setSystemTime(new Date('2026-10-04T13:47:00Z'));
-    records = [];
+    trips = [];
     localStorage.clear();
     vi.clearAllMocks();
   });
@@ -92,7 +103,7 @@ describe('ArrivalAlertService', () => {
     lineId: '1',
     directionId: 1,
     at,
-    vehicleId: null,
+    tripId: null,
   });
 
   it('programa un aviso del horario para mañana sin autobuses ahora y lo guarda', async () => {
@@ -102,18 +113,18 @@ describe('ArrivalAlertService', () => {
     await flush();
     expect(notifier.schedule.mock.calls[0]![0].getTime()).toBe(tomorrow - 10 * MIN);
     expect(service.alert()?.scheduledAt).toBe(tomorrow);
-    expect(JSON.parse(localStorage.getItem('emt-remake.arrival-alert.v1')!).notifyAt).toBe(
+    expect(JSON.parse(localStorage.getItem('emt-remake.arrival-alert.v2')!).notifyAt).toBe(
       tomorrow - 10 * MIN,
     );
   });
 
   it('mueve el aviso cuando el tiempo real dice que el autobús llega más tarde', async () => {
-    records = feed('a'); // A "c" le faltan 10 − 0 − 2 = 8 min.
+    trips = feed(8);
     const service = setup();
     // Según el horario pasaba dentro de 4 min; avisar 2 min antes.
     await service.start(target(Date.now() + 4 * MIN), 2);
     await flush();
-    expect(service.alert()?.vehicleId).toBe('7');
+    expect(service.alert()?.tripId).toBe('G1L_F1_001-01_1');
     expect(service.alert()?.notifyAt).toBe(Date.now() + 6 * MIN);
     expect(notifier.schedule.mock.calls.at(-1)![0].getTime()).toBe(Date.now() + 6 * MIN);
   });
@@ -121,7 +132,7 @@ describe('ArrivalAlertService', () => {
   it('recupera el aviso guardado al abrir la app', () => {
     const at = Date.now() + 60 * MIN;
     localStorage.setItem(
-      'emt-remake.arrival-alert.v1',
+      'emt-remake.arrival-alert.v2',
       JSON.stringify({
         ...target(at),
         minutes: 5,
@@ -139,6 +150,6 @@ describe('ArrivalAlertService', () => {
     service.cancel();
     expect(notifier.cancel).toHaveBeenCalled();
     expect(service.alert()).toBeNull();
-    expect(localStorage.getItem('emt-remake.arrival-alert.v1')).toBeNull();
+    expect(localStorage.getItem('emt-remake.arrival-alert.v2')).toBeNull();
   });
 });

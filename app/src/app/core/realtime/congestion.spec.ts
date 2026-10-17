@@ -1,6 +1,6 @@
 import { Direction } from '../models/network.model';
 import { slowStretch } from './congestion';
-import { Vehicle } from './realtime';
+import { StopPassage } from './realtime.service';
 
 const direction = {
   id: 1,
@@ -11,38 +11,34 @@ const direction = {
 } as unknown as Direction;
 /** Minutos desde la salida en cada parada. */
 const profile = [0, 2, 4, 6, 8];
+const T0 = 1_792_000_000;
 
-function report(lastStopId: string, minute: number, overrides: Partial<Vehicle> = {}): Vehicle {
+function passage(
+  stopId: string,
+  minute: number,
+  overrides: Partial<StopPassage> = {},
+): StopPassage {
   return {
-    id: 'bus',
+    vehicleId: 'bus',
     lineId: '3',
     directionId: 1,
-    lastStopId,
-    lat: 0,
-    lon: 0,
-    seconds: (8 * 60 + minute) * 60,
-    dateKey: '20261015',
+    stopId,
+    at: T0 + minute * 60,
+    exact: true,
     ...overrides,
   };
 }
 
-function stretch(previous: Vehicle | undefined, current: Vehicle) {
-  return slowStretch(
-    current,
-    previous,
-    direction,
-    direction.stopIds.indexOf(current.lastStopId),
-    profile,
-  );
-}
+const stretch = (passages: StopPassage[], nowMinute = 0) =>
+  slowStretch(passages, T0 + nowMinute * 60, direction, profile);
 
 describe('slowStretch', () => {
   it('si va como el horario no hay atasco', () => {
-    expect(stretch(report('B', 0), report('D', 4))).toBeNull();
+    expect(stretch([passage('B', 0), passage('D', 4)], 4)).toBeNull();
   });
 
   it('lento: 2 min de más y un 50 % más de lo previsto', () => {
-    expect(stretch(report('B', 0), report('D', 7))).toMatchObject({
+    expect(stretch([passage('B', 0), passage('D', 7)], 7)).toMatchObject({
       fromIndex: 1,
       toIndex: 3,
       level: 'slow',
@@ -51,7 +47,7 @@ describe('slowStretch', () => {
   });
 
   it('atasco: 5 min de más y el doble de lo previsto', () => {
-    expect(stretch(report('B', 0), report('C', 8))).toMatchObject({
+    expect(stretch([passage('B', 0), passage('C', 8)], 8)).toMatchObject({
       fromIndex: 1,
       toIndex: 2,
       level: 'jam',
@@ -59,24 +55,24 @@ describe('slowStretch', () => {
     });
   });
 
-  it('sin pasar ninguna parada, mide el tramo hasta la siguiente', () => {
-    expect(stretch(report('C', 0), report('C', 6))).toMatchObject({
+  it('sin pasar la siguiente parada, mide lo que lleva en el tramo', () => {
+    expect(stretch([passage('C', 0)], 6)).toMatchObject({
       fromIndex: 2,
       toIndex: 3,
       level: 'slow',
     });
   });
 
-  it('no mide en la primera parada (puede esperar la hora de salida) ni en la última', () => {
-    expect(stretch(report('A', 0), report('A', 10))).toBeNull();
-    expect(stretch(report('E', 0), report('E', 10))).toBeNull();
+  it('no mide en la primera parada (puede esperar la hora de salida) ni tras la última', () => {
+    expect(stretch([passage('A', 0)], 10)).toBeNull();
+    expect(stretch([passage('E', 0)], 10)).toBeNull();
   });
 
-  it('necesita dos datos del mismo viaje separados entre 2 y 20 min', () => {
-    expect(stretch(undefined, report('D', 9))).toBeNull();
-    expect(stretch(report('B', 0), report('C', 1))).toBeNull();
-    expect(stretch(report('B', 0), report('D', 25))).toBeNull();
-    expect(stretch(report('B', 0, { directionId: 2 }), report('D', 9))).toBeNull();
-    expect(stretch(report('B', 0, { dateKey: '20261014' }), report('D', 9))).toBeNull();
+  it('necesita pasos vistos al cambiar, del mismo sentido, separados entre 2 y 20 min', () => {
+    expect(stretch([passage('D', 0, { exact: false })], 9)).toBeNull();
+    expect(stretch([passage('B', 0), passage('C', 1)], 1)).toBeNull();
+    expect(stretch([passage('B', 0), passage('D', 25)], 25)).toBeNull();
+    expect(stretch([passage('B', 0, { directionId: 2 }), passage('D', 9)], 9)).toBeNull();
+    expect(stretch([passage('B', 0, { exact: false }), passage('D', 9)], 9)).toBeNull();
   });
 });

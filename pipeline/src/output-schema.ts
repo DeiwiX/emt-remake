@@ -147,6 +147,29 @@ export interface TimetablesFile {
   profiles?: Record<string, number[][]>;
   /** …y el perfil de cada salida, en el mismo orden que `departures`. */
   departureProfiles?: Record<string, Record<string, number[]>>;
+  /**
+   * Para leer el tiempo real de la EMT (GTFS-RT, 17/10/2026; opcional). Sus viajes
+   * solo traen "stop_sequence" (la posición en el viaje), no la parada: cada
+   * recorrido distinto del GTFS se publica con sus paradas y minutos típicos…
+   */
+  livePatterns?: LivePattern[];
+  /**
+   * …y cada viaje, su recorrido. Los trip_id del tiempo real tienen la forma
+   * "G2606S_F21_072-03_13" (horario, variante, bloque, número de viaje) y la
+   * variante no siempre coincide con la del GTFS publicado, así que la clave es
+   * horario -> bloque -> índice del recorrido de cada número de viaje (posición
+   * número − 1; −1 si no hay).
+   */
+  liveTrips?: Record<string, Record<string, number[]>>;
+}
+
+export interface LivePattern {
+  line: string;
+  direction: number;
+  /** Códigos de parada en orden de paso (stop_sequence 1, 2, …). */
+  stops: string[];
+  /** Minutos desde la salida en cada parada (horario de un viaje típico). */
+  minutes: number[];
 }
 
 export interface FileEntry {

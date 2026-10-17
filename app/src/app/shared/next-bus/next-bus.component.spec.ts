@@ -6,7 +6,6 @@ import es from '../../../../public/i18n/es.json';
 import { NetworkRepository } from '../../core/data/repositories';
 import { Line } from '../../core/models/network.model';
 import { ArrivalAlertService } from '../../core/realtime/arrival-alert.service';
-import { ArrivalContextService } from '../../core/realtime/arrival-context.service';
 import { RealtimeService } from '../../core/realtime/realtime.service';
 import { formatClock, madridClock } from '../../core/schedule/schedule';
 import { ScheduleClockService } from '../../core/schedule/schedule-clock.service';
@@ -61,9 +60,8 @@ describe('Próximos buses y "Avísame"', () => {
         },
         {
           provide: RealtimeService,
-          useValue: { watch: () => undefined, vehicles: signal([]), now: signal(clock) },
+          useValue: { watch: () => undefined, arrivals: () => [] },
         },
-        { provide: ArrivalContextService, useValue: { context: signal({}) } },
         {
           provide: NetworkRepository,
           useValue: { getLine: () => line, getStop: () => undefined },

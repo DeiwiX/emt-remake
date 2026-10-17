@@ -24,7 +24,7 @@ import { parseWktPolygons, parseZonesCsv, titleCase } from '../sources/zones.ts'
 import { parseCsv } from '../sources/csv.ts';
 import { parseStopTimes } from '../sources/gtfs-times.ts';
 import { parseServiceDates } from '../sources/gtfs.ts';
-import { buildTimetables, tripProfile } from '../build/build-timetables.ts';
+import { buildTimetables, liveTripKey, tripProfile } from '../build/build-timetables.ts';
 import { directionTimes } from '../build/travel-times.ts';
 import { parseEmtLines } from '../sources/emt-lines.ts';
 import { parseGtfsZip } from '../sources/gtfs.ts';
@@ -461,6 +461,54 @@ describe('horarios', () => {
       '1|1': { L: [360, 420], F: [600] },
     });
     assert.deepEqual(Object.keys(timetables.services).sort(), ['F', 'L']);
+  });
+
+  it('indexa los viajes para el tiempo real por horario, bloque y número', () => {
+    assert.deepEqual(liveTripKey('G2606S_F21_072-03_13'), {
+      schedule: 'G2606S',
+      block: '072-03',
+      trip: 13,
+    });
+    assert.equal(liveTripKey('raro'), null);
+    const network = {
+      lines: [
+        {
+          id: '1',
+          directions: [
+            {
+              id: 1,
+              stopIds: ['A', 'B'],
+              shapeId: 'g14',
+              shapeQuality: 'official',
+              minutes: [0, 2],
+            },
+          ],
+        },
+      ],
+    } as unknown as Parameters<typeof buildTimetables>[0];
+    const trip = (tripId: string, stopCodes: string[]) => ({
+      tripId,
+      lineCode: '1',
+      serviceId: 'L',
+      directionId: '0',
+      shapeId: '14',
+      startSeconds: 0,
+      times: { stopCodes, minutes: stopCodes.map((_, i) => i * 2) },
+    });
+    const timetables = buildTimetables(
+      network,
+      [
+        trip('G1L_F1_001-01_1', ['A', 'B']),
+        trip('G1L_F1_001-01_3', ['A', 'B']),
+        trip('G1L_F1_001-02_1', ['A', 'C', 'B']),
+      ],
+      new Map([['L', ['20261005']]]),
+    );
+    assert.deepEqual(timetables.livePatterns, [
+      { line: '1', direction: 1, stops: ['A', 'B'], minutes: [0, 2] },
+      { line: '1', direction: 1, stops: ['A', 'C', 'B'], minutes: [0, 2, 4] },
+    ]);
+    assert.deepEqual(timetables.liveTrips, { G1L: { '001-01': [0, -1, 0], '001-02': [1] } });
   });
 });
 

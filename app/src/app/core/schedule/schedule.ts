@@ -1,3 +1,4 @@
+import type { LiveIndex } from '../realtime/realtime';
 /**
  * Horario programado de la EMT (GTFS): salidas de cada sentido por día de
  * servicio y cálculo de los próximos buses en una parada. Lógica pura.
@@ -18,6 +19,8 @@ export interface Timetables {
    */
   readonly profiles?: ReadonlyMap<string, readonly (readonly number[])[]>;
   readonly departureProfiles?: ReadonlyMap<string, ReadonlyMap<string, readonly number[]>>;
+  /** Recorridos y viajes para leer el tiempo real de la EMT (opcional). */
+  readonly live?: LiveIndex;
 }
 
 /** Parada de un sentido: su posición y los minutos típicos desde la primera parada. */

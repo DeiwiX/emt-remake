@@ -1,5 +1,7 @@
 import { Injectable } from '@angular/core';
 
+import { StopTrips } from './realtime';
+
 /** Texto de una notificación. */
 export interface NotificationText {
   readonly title: string;
@@ -12,14 +14,14 @@ export interface NotificationText {
  * va lo que falta.
  */
 export interface TrackingRequest {
-  readonly lineId: string;
-  readonly directionId: number;
-  readonly stopIds: readonly string[];
-  /** Minutos desde la salida en cada parada del sentido. */
-  readonly profile: readonly number[];
-  readonly stopIndex: number;
+  /**
+   * Viajes del sentido que pasan por la parada (ver stopTrips): con ellos el
+   * servicio nativo encuentra en el feed de la EMT cuándo llega cada uno.
+   */
+  readonly patterns: StopTrips['patterns'];
+  readonly trips: StopTrips['trips'];
   readonly minutesBefore: number;
-  readonly vehicleId: string | null;
+  readonly tripId: string | null;
   readonly expectedAt: number;
   readonly notifyAt: number;
   readonly title: string;

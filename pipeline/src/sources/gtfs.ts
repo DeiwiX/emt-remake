@@ -25,6 +25,8 @@ export interface GtfsData {
 }
 
 export interface GtfsTrip {
+  /** trip_id del GTFS: con él se reconocen los viajes del tiempo real (GTFS-RT). */
+  tripId?: string;
   lineCode: string;
   serviceId: string;
   directionId: string;
@@ -100,6 +102,7 @@ export function parseGtfsZip(zip: Uint8Array): GtfsData {
     if (startSeconds === undefined || !lineCode || !t['service_id'] || !t['shape_id']) return [];
     return [
       {
+        tripId: t['trip_id'],
         lineCode,
         serviceId: t['service_id'],
         directionId: t['direction_id'] ?? '',

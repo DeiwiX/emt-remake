@@ -1,6 +1,7 @@
 # ADR 0012 — Retraso real y ritmo de cada autobús (Fase 6)
 
 - Estado: Fase 6 propuesta por mí y aceptada por el desarrollador (05/10/2026, "empieza seguido con fase 6"). Los parámetros son decisión mía.
+- Sustituida en parte por el ADR 0019 (17/10/2026): el tiempo real sale del GTFS-RT de la EMT y la estimación propia se ha quitado.
 
 ## Contexto
 

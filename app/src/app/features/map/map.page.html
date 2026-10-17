@@ -155,10 +155,7 @@
               </p>
             }
             <p>
-              <ion-note>{{
-                (bus.estimated ? 'vehicle.estimated' : 'vehicle.reported')
-                  | transloco: { age: bus.age }
-              }}</ion-note>
+              <ion-note>{{ 'vehicle.reported' | transloco: { age: bus.age } }}</ion-note>
             </p>
             <div class="actions">
               <ion-button

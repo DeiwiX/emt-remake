@@ -1,27 +1,17 @@
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 
+import { metresBetween } from '../location/geo';
 import { NetworkRepository, ShapeRepository } from '../data/repositories';
 import { LatLon } from '../models/network.model';
-import { MAX_AGE_MINUTES, madridInstant } from './realtime';
-import { RealtimeService } from './realtime.service';
-import { LiveContextService } from './live-context.service';
 import { CongestionLevel, slowStretch } from './congestion';
-import { dwellMinutes } from './dwell';
-import { LiveProgress, vehicleProgress } from './live-estimate';
-import {
-  RouteTrack,
-  SmoothState,
-  buildTrack,
-  pointAt,
-  positionFromReport,
-  smoothAlong,
-  trackSlice,
-} from './vehicle-position';
+import { MAX_AGE_MINUTES, ageMinutes, nextStopIndex } from './realtime';
+import { RealtimeService } from './realtime.service';
+import { RouteTrack, buildTrack, snapToTrack, trackSlice } from './vehicle-position';
 
-/** Cada cuánto se recalcula la posición estimada (el mapa la anima entre medias). */
-const TICK_MS = 1_000;
+/** A menos de esto de su próxima parada y casi quieto, el autobús está en ella. */
+const AT_STOP_METRES = 35;
 
-/** Autobús con su posición estimada ahora mismo. */
+/** Autobús en el mapa: su posición GPS colocada sobre el recorrido. */
 export interface TrackedVehicle {
   readonly id: string;
   readonly lineId: string;
@@ -29,18 +19,14 @@ export interface TrackedVehicle {
   readonly point: LatLon;
   /** Rumbo en grados (0 = norte). */
   readonly bearing: number;
-  /** Minutos desde el último dato de la fuente. */
+  /** Minutos desde el dato. */
   readonly ageMinutes: number;
-  /** Próxima parada según la estimación (código), si se sabe. */
+  /** Próxima parada (código), si se sabe. */
   readonly nextStopId: string | null;
-  /** Parada en la que está parado ahora (subiendo y bajando viajeros), si lo está. */
+  /** Parada en la que está ahora, si lo está. */
   readonly stoppedAtId: string | null;
-  /** true si la posición se ha podido estimar sobre el recorrido (si no, es la publicada). */
-  readonly estimated: boolean;
-  /** Retraso frente a su viaje del horario, en minutos (null si no se sabe). */
+  /** Retraso frente al horario en su próxima parada, en minutos (null si no se sabe). */
   readonly delayMinutes: number | null;
-  /** Avance en minutos de horario (solo si la posición se ha estimado sobre el recorrido). */
-  readonly progress?: LiveProgress;
 }
 
 /** Tramo lento (Fase 8) listo para dibujar: el trozo de trazado que recorrió el autobús. */
@@ -55,26 +41,18 @@ export interface CongestedStretch {
 }
 
 /**
- * Posición estimada de los autobuses, segundo a segundo, para que se muevan
- * por el mapa entre un dato y el siguiente de la fuente (Fase 4).
+ * Autobuses para el mapa: su posición GPS (la EMT la renueva cada minuto)
+ * sobre el recorrido de su línea, su próxima parada y los tramos lentos.
  */
 @Injectable({ providedIn: 'root' })
 export class VehicleTrackerService {
   private readonly realtime = inject(RealtimeService);
   private readonly network = inject(NetworkRepository);
   private readonly shapes = inject(ShapeRepository);
-  private readonly nowSignal = signal(madridInstant(new Date()));
   private readonly geometries = signal<ReadonlyMap<string, readonly LatLon[]>>(new Map());
   private shapesRequested = false;
-  private watchers = 0;
-  private timer: ReturnType<typeof setInterval> | null = null;
   private readonly tracks = new Map<string, RouteTrack | null>();
-  private readonly live = inject(LiveContextService);
-  /**
-   * Líneas que quiere cada pantalla que sigue a los autobuses (null = todas). Solo
-   * se calcula la posición de esas: con el mapa de una línea no se mueven los
-   * 200 autobuses de la red cada segundo (optimización 4, 17/10/2026).
-   */
+  /** Líneas que quiere cada pantalla que sigue a los autobuses (null = todas). */
   private readonly scopes = signal<readonly (() => ReadonlySet<string> | null)[]>([]);
   private readonly wantedLines = computed<ReadonlySet<string> | null>(() => {
     const wanted = new Set<string>();
@@ -85,138 +63,86 @@ export class VehicleTrackerService {
     }
     return wanted;
   });
-  /** Lo último dibujado de cada autobús, para moverlo con suavidad (Fase 6). */
-  private smooth = new Map<string, SmoothState & { key: string }>();
 
   readonly available = this.realtime.available;
-  private readonly activeSignal = signal(false);
-  /** true mientras alguna pantalla sigue a los autobuses (hay posiciones dibujadas). */
-  readonly active = this.activeSignal.asReadonly();
-  /** Avance de cada autobús dibujado, para que la llegada estimada cuadre con el mapa. */
-  readonly progress = computed(() => {
-    const map = new Map<string, LiveProgress>();
-    for (const vehicle of this.vehicles())
-      if (vehicle.progress) map.set(vehicle.id, vehicle.progress);
-    return map;
-  });
 
-  /** Autobuses de la red publicada con su posición estimada ahora. */
+  /** Autobuses de las líneas que se están mirando, con datos recientes. */
   readonly vehicles = computed<readonly TrackedVehicle[]>(() => {
-    const now = this.nowSignal();
-    const geometries = this.geometries();
-    const context = this.live.context();
-    const wanted = this.wantedLines();
-    this.network.lines();
-    const smooth = new Map<string, SmoothState & { key: string }>();
-    const result = this.realtime.vehicles().flatMap((vehicle): TrackedVehicle[] => {
-      if (wanted && !wanted.has(vehicle.lineId)) return [];
-      if (vehicle.dateKey !== now.dateKey) return [];
-      const age = Math.max(0, (now.seconds - vehicle.seconds) / 60);
-      if (age > MAX_AGE_MINUTES) return [];
-      const line = this.network.getLine(vehicle.lineId);
-      const direction = line?.directions.find((d) => d.id === vehicle.directionId);
-      if (!line || !direction) return [];
-      const reported: LatLon = [vehicle.lat, vehicle.lon];
-      const lastStop = direction.stopIds.indexOf(vehicle.lastStopId);
-      const key = `${line.id}|${direction.id}`;
-      const track = this.trackFor(key, geometries.get(direction.shapeId), direction.stopIds);
-      const progress =
-        lastStop === -1 ? null : vehicleProgress(vehicle, direction, lastStop, context);
-      if (!track || !progress) {
-        return [
-          {
-            ...base(vehicle),
-            point: reported,
-            bearing: 0,
-            ageMinutes: age,
-            nextStopId: null,
-            stoppedAtId: null,
-            estimated: false,
-            delayMinutes:
-              progress?.delay === undefined || progress?.delay === null
-                ? null
-                : Math.round(progress.delay),
-          },
-        ];
-      }
-      // Avanza al ritmo de su viaje del horario, corregido con el ritmo medido (Fase 6)…
-      const target = positionFromReport(
-        track,
-        progress.profile,
-        lastStop,
-        reported,
-        age * progress.pace,
-        this.dwellFor(key, direction.stopIds),
-      );
-      // …y sin saltos cuando llega un dato nuevo.
-      const previous = this.smooth.get(vehicle.id);
-      const state = smoothAlong(previous?.key === key ? previous : undefined, target.along);
-      smooth.set(vehicle.id, { ...state, key });
-      const shown = pointAt(track, state.shown);
-      const next = stopAhead(track, state.shown, lastStop);
-      return [
-        {
-          ...base(vehicle),
-          point: shown.point,
-          bearing: shown.bearing,
-          ageMinutes: age,
-          nextStopId: next === null ? null : (direction.stopIds[next] ?? null),
-          stoppedAtId:
-            target.stoppedAt === null ? null : (direction.stopIds[target.stoppedAt] ?? null),
-          estimated: true,
-          progress: {
-            directionKey: key,
-            profile: progress.profile,
-            minutes: target.progressMinutes,
-            pace: progress.pace,
-          },
-          delayMinutes: progress.delay === null ? null : Math.round(progress.delay),
-        },
-      ];
-    });
-    this.smooth = smooth;
-    return result;
-  });
-
-  /**
-   * Tramos que los autobuses acaban de recorrer más despacio que su horario
-   * (Fase 8). Se recalculan con cada dato nuevo, no cada segundo.
-   */
-  readonly congestion = computed<readonly CongestedStretch[]>(() => {
     const now = this.realtime.now();
     const geometries = this.geometries();
-    const context = this.live.context();
+    const wanted = this.wantedLines();
     this.network.lines();
-    return this.realtime.vehicles().flatMap((vehicle): CongestedStretch[] => {
-      if (vehicle.dateKey !== now.dateKey) return [];
-      if ((now.seconds - vehicle.seconds) / 60 > MAX_AGE_MINUTES) return [];
+    return this.realtime.vehicles().flatMap((vehicle): TrackedVehicle[] => {
+      if (wanted && !wanted.has(vehicle.lineId)) return [];
+      const age = ageMinutes(vehicle, now);
+      if (age > MAX_AGE_MINUTES) return [];
       const direction = this.network
         .getLine(vehicle.lineId)
         ?.directions.find((d) => d.id === vehicle.directionId);
       if (!direction) return [];
-      const lastStop = direction.stopIds.indexOf(vehicle.lastStopId);
-      if (lastStop === -1) return [];
-      const progress = vehicleProgress(vehicle, direction, lastStop, context);
-      const stretch =
-        progress &&
-        slowStretch(vehicle, context.previous?.(vehicle.id), direction, lastStop, progress.profile);
-      const key = `${vehicle.lineId}|${direction.id}`;
-      const track = this.trackFor(key, geometries.get(direction.shapeId), direction.stopIds);
-      if (!stretch || !track) return [];
-      const points = trackSlice(
-        track,
-        track.stopDistances[stretch.fromIndex]!,
-        track.stopDistances[stretch.toIndex]!,
+      const gps: LatLon = [vehicle.lat, vehicle.lon];
+      const trip = this.realtime.tripOf(vehicle);
+      const ahead = trip ? nextStopIndex(trip, now) : null;
+      const nextStopId = trip && ahead !== null ? trip.stops[ahead]! : null;
+      const delay = trip && ahead !== null ? trip.delays[ahead] : null;
+      // Tramo del sentido entre la parada anterior y la próxima, para colocarlo bien.
+      const nextIndex = nextStopId ? direction.stopIds.indexOf(nextStopId) : -1;
+      const track = this.trackFor(
+        `${vehicle.lineId}|${direction.id}`,
+        geometries.get(direction.shapeId),
+        direction.stopIds,
       );
+      const placed =
+        track && snapToTrack(track, gps, nextIndex > 0 ? [nextIndex - 1, nextIndex] : null);
+      const nextStop = nextStopId ? this.network.getStop(nextStopId) : undefined;
+      const atStop = nextStop && metresBetween(gps, [nextStop.lat, nextStop.lon]) < AT_STOP_METRES;
       return [
         {
           id: vehicle.id,
           lineId: vehicle.lineId,
+          directionId: vehicle.directionId,
+          point: placed?.point ?? gps,
+          bearing: placed?.bearing ?? 0,
+          ageMinutes: age,
+          nextStopId,
+          stoppedAtId: atStop ? nextStopId : null,
+          delayMinutes: delay === null || delay === undefined ? null : Math.round(delay / 60),
+        },
+      ];
+    });
+  });
+
+  /** Tramos que los autobuses acaban de recorrer (o recorren) más despacio que su horario (Fase 8). */
+  readonly congestion = computed<readonly CongestedStretch[]>(() => {
+    const now = this.realtime.now();
+    const geometries = this.geometries();
+    this.network.lines();
+    return [...this.realtime.passages().values()].flatMap((passages): CongestedStretch[] => {
+      const last = passages.at(-1);
+      const direction = last
+        ? this.network.getLine(last.lineId)?.directions.find((d) => d.id === last.directionId)
+        : undefined;
+      if (!last || !direction?.minutes) return [];
+      const stretch = slowStretch(passages, now, direction, direction.minutes);
+      const track = this.trackFor(
+        `${last.lineId}|${direction.id}`,
+        geometries.get(direction.shapeId),
+        direction.stopIds,
+      );
+      if (!stretch || !track) return [];
+      return [
+        {
+          id: last.vehicleId,
+          lineId: last.lineId,
           level: stretch.level,
           extraMinutes: stretch.extraMinutes,
           fromStopId: direction.stopIds[stretch.fromIndex]!,
           toStopId: direction.stopIds[stretch.toIndex]!,
-          points,
+          points: trackSlice(
+            track,
+            track.stopDistances[stretch.fromIndex]!,
+            track.stopDistances[stretch.toIndex]!,
+          ),
         },
       ];
     });
@@ -233,66 +159,10 @@ export class VehicleTrackerService {
     if (!this.available) return;
     this.realtime.watch(destroyRef);
     void this.loadShapes();
-    this.watchers++;
     this.scopes.update((list) => [...list, lines]);
-    this.activeSignal.set(true);
-    if (this.watchers === 1) this.startTicking();
-    destroyRef.onDestroy(() => {
-      this.watchers--;
-      this.scopes.update((list) => list.filter((scope) => scope !== lines));
-      if (this.watchers === 0) {
-        this.activeSignal.set(false);
-        this.stopTicking();
-      }
-    });
-  }
-
-  /** Con la app en segundo plano no se mueve nada: se ahorra batería (optimización 2). */
-  private readonly onVisibility = () => {
-    if (this.watchers === 0) return;
-    if (document.visibilityState === 'hidden') this.stopTicking();
-    else this.startTicking();
-  };
-
-  constructor() {
-    document.addEventListener('visibilitychange', this.onVisibility);
-  }
-
-  private startTicking(): void {
-    if (this.timer || document.visibilityState === 'hidden') return;
-    this.nowSignal.set(madridInstant(new Date()));
-    this.timer = setInterval(() => this.nowSignal.set(madridInstant(new Date())), TICK_MS);
-  }
-
-  private stopTicking(): void {
-    if (this.timer) clearInterval(this.timer);
-    this.timer = null;
-  }
-
-  /** Cuántas líneas paran en cada parada (para estimar cuánto se para allí). */
-  private readonly linesAtStop = computed(() => {
-    const count = new Map<string, Set<string>>();
-    for (const line of this.network.lines()) {
-      for (const direction of line.directions) {
-        for (const id of direction.stopIds) {
-          const lines = count.get(id) ?? new Set<string>();
-          lines.add(line.id);
-          count.set(id, lines);
-        }
-      }
-    }
-    return count;
-  });
-  private readonly dwells = new Map<string, number[]>();
-
-  private dwellFor(key: string, stopIds: readonly string[]): number[] {
-    let dwell = this.dwells.get(key);
-    if (!dwell) {
-      const lines = this.linesAtStop();
-      dwell = dwellMinutes(stopIds, (id) => lines.get(id)?.size ?? 1);
-      this.dwells.set(key, dwell);
-    }
-    return dwell;
+    destroyRef.onDestroy(() =>
+      this.scopes.update((list) => list.filter((scope) => scope !== lines)),
+    );
   }
 
   private trackFor(
@@ -321,16 +191,4 @@ export class VehicleTrackerService {
       console.warn('No se pudieron cargar los trazados para los autobuses', error);
     }
   }
-}
-
-function base(vehicle: { id: string; lineId: string; directionId: number }) {
-  return { id: vehicle.id, lineId: vehicle.lineId, directionId: vehicle.directionId };
-}
-
-/** Índice de la primera parada que queda por delante (a partir de `from`), o null. */
-function stopAhead(track: RouteTrack, along: number, from: number): number | null {
-  for (let k = from; k < track.stopDistances.length; k++) {
-    if (track.stopDistances[k]! > along) return k;
-  }
-  return null;
 }

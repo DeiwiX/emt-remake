@@ -43,6 +43,7 @@
                 "output": "maplibre"
               }
             ],
+            "allowedCommonJsDependencies": ["gtfs-realtime-bindings", "protobufjs/minimal"],
             "styles": [
               "src/styles.scss",
               {

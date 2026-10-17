@@ -5,7 +5,7 @@ import {
   NotificationText,
   TrackingRequest,
 } from '../core/realtime/arrival-notifier';
-import { VEHICLES_URL } from './capacitor-realtime.source';
+import { TRIP_UPDATES_URL } from './capacitor-realtime.source';
 
 /** La app solo tiene un aviso a la vez: siempre el mismo identificador. */
 const ALERT_ID = 1;
@@ -24,8 +24,8 @@ interface CapacitorGlobal {
 /**
  * Avisos de llegada en el móvil.
  * - Android: los lleva el servicio nativo "Siguiendo tu bus", que consulta la
- *   posición del autobús cada 30 s aunque la app esté cerrada (Fase 6) y
- *   avisa él mismo, así no hay avisos repetidos.
+ *   llegada prevista por la EMT cada 30 s aunque la app esté cerrada (Fase 6)
+ *   y avisa él mismo, así no hay avisos repetidos.
  * - Resto (iOS): notificación local programada con @capacitor/local-notifications,
  *   que se reprograma con cada dato nuevo mientras la app está abierta.
  */
@@ -78,7 +78,7 @@ export class CapacitorArrivalNotifier extends ArrivalNotifier {
   private async startTracking(tracking: TrackingRequest): Promise<void> {
     const { registerPlugin } = await import('@capacitor/core');
     await registerPlugin<BusTrackerPlugin>('BusTracker').start({
-      alert: { ...tracking, feedUrl: VEHICLES_URL },
+      alert: { ...tracking, feedUrl: TRIP_UPDATES_URL },
     });
   }
 

@@ -19,12 +19,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 
 /**
  * "Siguiendo tu bus" (Fase 6): servicio en primer plano que, mientras haya un
- * aviso, consulta la posición de los autobuses cada 30 s aunque la app esté
- * cerrada, mueve la hora del aviso si el autobús se adelanta o se retrasa y
+ * aviso, consulta la llegada prevista por la EMT (GTFS-RT) cada 30 s aunque la
+ * app esté cerrada, mueve la hora del aviso si el autobús se adelanta o se retrasa y
  * avisa cuando faltan los minutos elegidos. Muestra una notificación fija con
  * lo que falta. Sin datos, avisa a la hora prevista.
  */
@@ -40,8 +39,6 @@ public class BusTrackerService extends Service {
     private HandlerThread thread;
     private Handler handler;
     private final Runnable tick = this::check;
-    /** Datos vistos de cada autobús, para medir su ritmo frente al horario. */
-    private final FeedEstimator.History history = new FeedEstimator.History();
 
     static void start(Context context) {
         Intent intent = new Intent(context, BusTrackerService.class);
@@ -101,9 +98,10 @@ public class BusTrackerService extends Service {
         long now = System.currentTimeMillis();
         Long minutesLeft = null;
         try {
-            FeedEstimator.Estimate estimate = FeedEstimator.estimate(download(alert.feedUrl), alert, now, history);
+            TripEstimator.Estimate estimate =
+                    TripEstimator.estimate(GtfsRtReader.tripUpdates(download(alert.feedUrl)), alert.target(), now);
             if (estimate != null) {
-                alert.vehicleId = estimate.vehicleId;
+                alert.tripId = estimate.tripId;
                 alert.expectedAt = estimate.arrivalAt;
                 alert.notifyAt = estimate.arrivalAt - alert.minutesBefore * 60_000L;
                 alert.save(this);
@@ -179,7 +177,7 @@ public class BusTrackerService extends Service {
                 ALERT_CHANNEL, context.getString(R.string.alerts_channel), NotificationManager.IMPORTANCE_HIGH));
     }
 
-    private static String download(String url) throws Exception {
+    private static byte[] download(String url) throws Exception {
         HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
         connection.setConnectTimeout(20_000);
         connection.setReadTimeout(30_000);
@@ -187,7 +185,7 @@ public class BusTrackerService extends Service {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             byte[] buffer = new byte[16_384];
             for (int n; (n = in.read(buffer)) > 0; ) out.write(buffer, 0, n);
-            return out.toString(StandardCharsets.UTF_8.name());
+            return out.toByteArray();
         } finally {
             connection.disconnect();
         }

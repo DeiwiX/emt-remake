@@ -57,8 +57,6 @@ import { MapViewComponent } from '../../shared/map-view/map-view.component';
 import { PlacePickerComponent } from '../../shared/place-picker/place-picker.component';
 import { FavoriteButtonComponent } from '../../shared/favorite-button/favorite-button.component';
 import { RealtimeService } from '../../core/realtime/realtime.service';
-import { ArrivalContextService } from '../../core/realtime/arrival-context.service';
-import { estimateArrivals } from '../../core/realtime/realtime';
 
 /** "Salir ahora", "Salir a las…" o "Llegar a las…". */
 type TimeChoice = 'now' | TimeMode;
@@ -124,7 +122,6 @@ export class PlanPage {
   private readonly schedule = inject(ScheduleClockService);
   /** Tiempo real para el primer bus de "Salir ahora" (solo en la app del móvil). */
   private readonly realtime = inject(RealtimeService);
-  private readonly arrivalContext = inject(ArrivalContextService);
   private readonly colors = inject(LineColorsService);
 
   private readonly zonesStore = inject(ZonesStore);
@@ -461,14 +458,9 @@ export class PlanPage {
       : undefined;
     if (!first || !direction) return undefined;
     const now = this.schedule.clock().minutes;
-    const arrival = estimateArrivals(
-      this.realtime.vehicles(),
-      first.lineId,
-      direction,
-      direction.stopIds.indexOf(first.fromStopId),
-      this.realtime.now(),
-      this.arrivalContext.context(),
-    ).find((a) => a.minutes >= option.accessMinutes);
+    const arrival = this.realtime
+      .arrivals(first.lineId, direction, direction.stopIds.indexOf(first.fromStopId))
+      .find((a) => a.minutes >= option.accessMinutes);
     return arrival ? now + arrival.minutes : undefined;
   }
 

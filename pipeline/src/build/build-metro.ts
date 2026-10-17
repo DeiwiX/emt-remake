@@ -233,6 +233,8 @@ export function mergeTimetables(
   metro: MetroData['timetables'],
 ): TimetablesFile {
   return {
+    // El tiempo real (livePatterns, liveTrips) es solo de la EMT: se conserva tal cual.
+    ...base,
     schemaVersion: SCHEMA_VERSION,
     services: { ...base.services, ...metro.services },
     departures: { ...base.departures, ...metro.departures },

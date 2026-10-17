@@ -1,13 +1,13 @@
 import { Direction } from '../models/network.model';
-import { Vehicle } from './realtime';
+import { StopPassage } from './realtime.service';
 
 /**
  * Atascos estimados con los autobuses (Fase 8, propuesta 5B). Lógica pura.
  *
- * Con dos datos seguidos del mismo autobús se sabe entre qué paradas ha ido y
- * cuánto ha tardado. Si ha tardado bastante más que su horario en ese tramo,
- * el tramo va lento. La fuente da un dato cada ~5 min, así que hace falta
- * haber visto dos datos de un autobús (unos 5 min con el mapa abierto).
+ * Con el tiempo real de la EMT se sabe cuándo deja cada autobús una parada
+ * atrás (con un minuto de margen). Si entre dos paradas ha tardado bastante más
+ * que su horario, el tramo va lento; también si lleva en un tramo mucho más de
+ * lo que debería tardar en recorrerlo.
  */
 
 export type CongestionLevel = 'slow' | 'jam';
@@ -25,7 +25,7 @@ export interface SlowStretch {
   readonly extraMinutes: number;
 }
 
-/** Los dos datos deben estar separados entre 2 y 20 min (si no, no se mide nada fiable). */
+/** El tramo debe medir entre 2 y 20 min (si no, no se mide nada fiable). */
 const MIN_ELAPSED_MINUTES = 2;
 const MAX_ELAPSED_MINUTES = 20;
 /** Lento: al menos 2 min de más y un 50 % más de lo previsto. */
@@ -38,40 +38,60 @@ const JAM_RATIO = 2;
 const MIN_SCHEDULED_MINUTES = 1;
 
 /**
- * Tramo lento que ha recorrido un autobús entre su dato anterior y el actual,
- * o null si ha ido normal o no se puede medir.
+ * Tramo lento de un autobús, o null si va normal o no se puede medir.
  *
- * - `lastIndex`: índice de su última parada en el sentido.
- * - `profile`: minutos desde la salida en cada parada (de su viaje del horario).
- * - Si no ha pasado ninguna parada entre los dos datos, se mide el tramo hasta
- *   la siguiente (lleva parado más de lo que debería tardar en llegar).
+ * - `passages`: las dos últimas paradas que ha dejado atrás (la más reciente al final).
+ * - `profile`: minutos desde la salida en cada parada del sentido, según el horario.
+ * - Si aún no ha dejado atrás la siguiente parada, se mide lo que lleva en el
+ *   tramo hasta ella (`now`, segundos Unix).
  * - En la primera parada no se mide: puede estar esperando la hora de salida.
  */
 export function slowStretch(
-  vehicle: Vehicle,
-  previous: Vehicle | undefined,
+  passages: readonly StopPassage[],
+  now: number,
   direction: Direction,
-  lastIndex: number,
   profile: readonly number[],
 ): SlowStretch | null {
-  if (
-    !previous ||
-    previous.lineId !== vehicle.lineId ||
-    previous.directionId !== vehicle.directionId ||
-    previous.dateKey !== vehicle.dateKey
-  ) {
-    return null;
-  }
-  const elapsed = (vehicle.seconds - previous.seconds) / 60;
+  const last = passages.at(-1);
+  if (!last || !last.exact) return null;
+  const lastIndex = direction.stopIds.indexOf(last.stopId);
+  if (lastIndex === -1) return null;
+  const previous = passages.length > 1 ? passages.at(-2)! : null;
+  const measured =
+    previous?.exact &&
+    previous.lineId === last.lineId &&
+    previous.directionId === last.directionId &&
+    measure(
+      direction.stopIds.lastIndexOf(previous.stopId, lastIndex - 1),
+      lastIndex,
+      (last.at - previous.at) / 60,
+      profile,
+    );
+  if (measured)
+    return {
+      ...measured,
+      vehicleId: last.vehicleId,
+      lineId: last.lineId,
+      directionId: last.directionId,
+    };
+  // Sin pasar la siguiente: lleva en el tramo desde que dejó atrás la última.
+  const ongoing = measure(lastIndex, lastIndex + 1, (now - last.at) / 60, profile);
+  return ongoing
+    ? { ...ongoing, vehicleId: last.vehicleId, lineId: last.lineId, directionId: last.directionId }
+    : null;
+}
+
+function measure(
+  fromIndex: number,
+  toIndex: number,
+  elapsed: number,
+  profile: readonly number[],
+): Pick<SlowStretch, 'fromIndex' | 'toIndex' | 'level' | 'extraMinutes'> | null {
+  if (fromIndex <= 0 || toIndex <= fromIndex) return null;
   if (elapsed < MIN_ELAPSED_MINUTES || elapsed > MAX_ELAPSED_MINUTES) return null;
-  const fromIndex = direction.stopIds.lastIndexOf(previous.lastStopId, lastIndex);
-  if (fromIndex <= 0) return null;
-  const toIndex = fromIndex === lastIndex ? lastIndex + 1 : lastIndex;
-  if (toIndex >= direction.stopIds.length) return null;
   const from = profile[fromIndex];
   const to = profile[toIndex];
   if (from === undefined || to === undefined) return null;
-
   const scheduled = Math.max(MIN_SCHEDULED_MINUTES, to - from);
   const extra = elapsed - scheduled;
   const ratio = elapsed / scheduled;
@@ -81,14 +101,5 @@ export function slowStretch(
       : extra >= SLOW_EXTRA_MINUTES && ratio >= SLOW_RATIO
         ? 'slow'
         : null;
-  if (!level) return null;
-  return {
-    vehicleId: vehicle.id,
-    lineId: vehicle.lineId,
-    directionId: vehicle.directionId,
-    fromIndex,
-    toIndex,
-    level,
-    extraMinutes: Math.round(extra),
-  };
+  return level ? { fromIndex, toIndex, level, extraMinutes: Math.round(extra) } : null;
 }

@@ -173,6 +173,24 @@ export class StaticScheduleRepository extends ScheduleRepository {
             ),
           }
         : {}),
+      ...(file.livePatterns && file.liveTrips
+        ? {
+            live: {
+              patterns: file.livePatterns.map((p) => ({
+                lineId: p.line,
+                directionId: p.direction,
+                stops: p.stops,
+                minutes: p.minutes,
+              })),
+              trips: new Map(
+                Object.entries(file.liveTrips).map(([schedule, blocks]) => [
+                  schedule,
+                  new Map(Object.entries(blocks)),
+                ]),
+              ),
+            },
+          }
+        : {}),
     };
   }
 }

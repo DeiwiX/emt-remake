@@ -2,10 +2,9 @@ import { metresBetween } from '../location/geo';
 import { LatLon } from '../models/network.model';
 
 /**
- * Posición estimada de un autobús entre dos datos de la fuente (Fase 4). La
- * fuente da la última parada por la que pasó cada ~5 min; aquí se avanza sobre
- * el trazado de su línea al ritmo del horario desde esa parada, para que el
- * autobús se mueva por el mapa en vez de saltar. Lógica pura.
+ * El autobús sobre el trazado de su línea (Fase 4; con el GPS de la EMT desde
+ * el 17/10/2026): se coloca en el punto del recorrido más cercano a su
+ * posición, mirando hacia donde va. Lógica pura.
  */
 
 /** Trazado de un sentido preparado para recorrerlo por distancia. */
@@ -56,115 +55,35 @@ export function buildTrack(points: readonly LatLon[], stops: readonly LatLon[]):
   return { points, cumulative, stopDistances };
 }
 
-/** Dónde está el autobús sobre el trazado, y si está parado en una parada. */
-export interface TrackedPlace extends TrackedPosition {
-  /** Índice de la parada en la que está parado (subiendo y bajando viajeros), o null. */
-  readonly stoppedAt: number | null;
-}
-
-/** Posición a partir del dato publicado, con su avance en "minutos de horario". */
-export interface ReportedPlace extends TrackedPlace {
-  /**
-   * Minutos de horario (desde la salida) en los que va ahora el autobús. Con este
-   * mismo valor se calcula lo que le falta a cada parada, así la posición del
-   * mapa y la llegada estimada siempre cuadran.
-   */
-  readonly progressMinutes: number;
-}
-
-/** Parte del tramo que, como mucho, se puede pasar parado en la parada. */
-const MAX_DWELL_SHARE = 0.5;
+/** Más lejos del recorrido que esto, se muestra el punto del GPS tal cual (desvío). */
+const MAX_SNAP_METRES = 60;
 
 /**
- * Dónde está el autobús: salió de la parada `fromStop` hace `elapsedMinutes` y
- * avanza al ritmo de `stopMinutes` (minutos desde el inicio en cada parada).
- * En cada parada se queda parado `dwellMinutes[k]` (subida y bajada de
- * viajeros) y luego recorre el tramo; el horario ya incluye ese tiempo. Si se
- * le acabara el tiempo, se queda al final del trazado.
+ * Posición de un autobús sobre el trazado a partir de su GPS. Si se sabe entre
+ * qué paradas va (`between`, índices), solo se busca en ese tramo: así las
+ * circulares que repiten calle no lo ponen en la otra pasada.
  */
-export function positionOnTrack(
+export function snapToTrack(
   track: RouteTrack,
-  stopMinutes: readonly number[],
-  fromStop: number,
-  elapsedMinutes: number,
-  dwellMinutes: readonly number[] = [],
-): TrackedPlace {
-  const target = stopMinutes[fromStop]! + Math.max(0, elapsedMinutes);
-  let k = fromStop;
-  while (k < stopMinutes.length - 1 && stopMinutes[k + 1]! <= target) k++;
-  if (k >= stopMinutes.length - 1) {
-    const end = track.stopDistances[stopMinutes.length - 1] ?? track.cumulative.at(-1)!;
-    return { ...pointAt(track, end), stoppedAt: null };
-  }
-  const span = stopMinutes[k + 1]! - stopMinutes[k]!;
-  const dwell = Math.min(dwellMinutes[k] ?? 0, span * MAX_DWELL_SHARE);
-  const inSegment = target - stopMinutes[k]!;
-  if (inSegment < dwell) {
-    return { ...pointAt(track, track.stopDistances[k]!), stoppedAt: k };
-  }
-  const fraction = span - dwell > 0 ? (inSegment - dwell) / (span - dwell) : 0;
-  const along =
-    track.stopDistances[k]! + fraction * (track.stopDistances[k + 1]! - track.stopDistances[k]!);
-  return { ...pointAt(track, along), stoppedAt: null };
-}
-
-/**
- * Posición a partir de lo que publica la fuente: el punto donde estaba el bus
- * hace `elapsedMinutes` (proyectado sobre el trazado, a partir de su última
- * parada) y el avance desde entonces al ritmo del horario, con sus paradas.
- */
-export function positionFromReport(
-  track: RouteTrack,
-  stopMinutes: readonly number[],
-  lastStop: number,
-  reported: LatLon,
-  elapsedMinutes: number,
-  dwellMinutes: readonly number[] = [],
-): ReportedPlace {
-  const last = stopMinutes.length - 1;
-  const from = track.stopDistances[lastStop]!;
-  const to = track.stopDistances[Math.min(last, lastStop + 2)] ?? track.cumulative.at(-1)!;
-  // Dónde estaba al publicarse el dato (no antes de su última parada).
-  const along = Math.max(from, nearestAlong(track, reported, from, to));
-  // Ese punto, en "minutos de horario" desde el inicio, más lo transcurrido. Si
-  // estaba ya entre paradas, había terminado de parar en la anterior.
-  let k = lastStop;
-  while (k < last && track.stopDistances[k + 1]! <= along) k++;
-  const length = k < last ? track.stopDistances[k + 1]! - track.stopDistances[k]! : 0;
-  const fraction = length > 0 ? (along - track.stopDistances[k]!) / length : 0;
-  let atReport = stopMinutes[last]!;
-  if (k < last) {
-    const span = stopMinutes[k + 1]! - stopMinutes[k]!;
-    const dwell = Math.min(dwellMinutes[k] ?? 0, span * MAX_DWELL_SHARE);
-    atReport = stopMinutes[k]! + (fraction > 0 ? dwell + fraction * (span - dwell) : 0);
-  }
-  const progressMinutes = atReport + Math.max(0, elapsedMinutes);
-  const place = positionOnTrack(
-    track,
-    stopMinutes,
-    k,
-    progressMinutes - stopMinutes[k]!,
-    dwellMinutes,
-  );
-  return { ...place, progressMinutes };
-}
-
-/** Distancia sobre el trazado del punto más cercano a `p`, buscando entre `from` y `to` metros. */
-function nearestAlong(track: RouteTrack, p: LatLon, from: number, to: number): number {
-  const { points, cumulative } = track;
-  let best = { distance: Infinity, along: from };
-  for (let i = 0; i < points.length - 1; i++) {
-    if (cumulative[i + 1]! < from || cumulative[i]! > to) continue;
-    const projected = project(points[i]!, points[i + 1]!, p);
-    const distance = metresBetween(projected.point, p);
-    if (distance < best.distance) {
-      best = {
-        distance,
-        along: cumulative[i]! + projected.fraction * (cumulative[i + 1]! - cumulative[i]!),
-      };
+  gps: LatLon,
+  between: readonly [number, number] | null = null,
+): TrackedPosition | null {
+  const from = between ? (track.stopDistances[between[0]] ?? 0) : 0;
+  const to = between ? (track.stopDistances[between[1]] ?? Infinity) : Infinity;
+  let best: { distance: number; along: number } | null = null;
+  for (let i = 0; i < track.points.length - 1; i++) {
+    if (track.cumulative[i + 1]! < from || track.cumulative[i]! > to) continue;
+    const projected = project(track.points[i]!, track.points[i + 1]!, gps);
+    const distance = metresBetween(projected.point, gps);
+    if (!best || distance < best.distance) {
+      const along =
+        track.cumulative[i]! +
+        projected.fraction * (track.cumulative[i + 1]! - track.cumulative[i]!);
+      best = { distance, along: Math.min(Math.max(along, from), to) };
     }
   }
-  return best.along;
+  if (!best || best.distance > MAX_SNAP_METRES) return null;
+  return pointAt(track, best.along);
 }
 
 /** Punto a `along` metros del inicio, con el rumbo del segmento. */
@@ -185,24 +104,6 @@ export function pointAt(track: RouteTrack, along: number): TrackedPosition {
   };
 }
 
-/** Suavizado: fracción de la diferencia con la estimación que se corrige cada segundo. */
-const SMOOTHING = 0.15;
-/** Si la estimación salta más que esto (otro viaje, dato muy distinto), se coloca sin más. */
-const MAX_SMOOTH_METRES = 1_500;
-/** Lo más que avanza un autobús en un segundo (~70 km/h). */
-const MAX_METRES_PER_TICK = 20;
-
-/** Lo que se dibujó en el instante anterior para un autobús. */
-export interface SmoothState {
-  readonly shown: number;
-  readonly target: number;
-}
-
-/**
- * Fase 6: cuando llega un dato nuevo la estimación puede saltar hacia delante o
- * hacia atrás. En vez de teletransportar el autobús, se sigue su avance y se
- * corrige la diferencia poco a poco (~15 s), así se mueve con suavidad.
- */
 /** Trozo del trazado entre dos distancias desde su inicio (metros). */
 export function trackSlice(track: RouteTrack, from: number, to: number): LatLon[] {
   const inner = track.points.filter((_, i) => {
@@ -210,19 +111,6 @@ export function trackSlice(track: RouteTrack, from: number, to: number): LatLon[
     return along > from && along < to;
   });
   return [pointAt(track, from).point, ...inner, pointAt(track, to).point];
-}
-
-export function smoothAlong(previous: SmoothState | undefined, target: number): SmoothState {
-  if (!previous || Math.abs(target - previous.target) > MAX_SMOOTH_METRES) {
-    return { shown: target, target };
-  }
-  // El avance normal de un segundo (como mucho lo que corre un autobús); el resto es
-  // un salto de la estimación, que se corrige poco a poco.
-  const step = Math.min(Math.max(target - previous.target, 0), MAX_METRES_PER_TICK);
-  const advanced = previous.shown + step;
-  // Nunca por delante de la estimación: el autobús no puede verse pasada una
-  // parada a la que aún le falta llegar.
-  return { shown: Math.min(target, advanced + (target - advanced) * SMOOTHING), target };
 }
 
 /** Rumbo aproximado entre dos puntos cercanos (plano local). */

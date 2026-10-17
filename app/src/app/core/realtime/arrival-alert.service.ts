@@ -5,13 +5,13 @@ import { NetworkRepository } from '../data/repositories';
 import { ArrivalAlert, LiveArrival, createAlert, parseAlert, updateAlert } from './arrival-alert';
 import { ArrivalNotifier, NotificationText, TrackingRequest } from './arrival-notifier';
 import { formatClock, madridClock } from '../schedule/schedule';
-import { estimateArrivals } from './realtime';
 import { alertKey } from './alert-text';
-import { tripProfileAt } from './live-estimate';
+import { stopTrips } from './realtime';
+import { ScheduleClockService } from '../schedule/schedule-clock.service';
 import { RealtimeService } from './realtime.service';
-import { ArrivalContextService } from './arrival-context.service';
 
-const STORAGE_KEY = 'emt-remake.arrival-alert.v1';
+// v2 (17/10/2026): el aviso se asocia a un viaje del tiempo real de la EMT, no a un autobús.
+const STORAGE_KEY = 'emt-remake.arrival-alert.v2';
 const MINUTE_MS = 60_000;
 
 /** Paso de un autobús sobre el que se pone el aviso. */
@@ -21,8 +21,8 @@ export interface AlertTarget {
   readonly directionId: number;
   /** Hora de paso (ms). */
   readonly at: number;
-  /** Autobús en tiempo real, si el paso elegido es uno visto en tiempo real. */
-  readonly vehicleId: string | null;
+  /** Viaje del tiempo real, si el paso elegido es uno visto en tiempo real. */
+  readonly tripId: string | null;
 }
 
 /**
@@ -34,7 +34,7 @@ export interface AlertTarget {
 @Injectable({ providedIn: 'root' })
 export class ArrivalAlertService {
   private readonly realtime = inject(RealtimeService);
-  private readonly arrivalContext = inject(ArrivalContextService);
+  private readonly schedule = inject(ScheduleClockService);
   private readonly network = inject(NetworkRepository);
   private readonly notifier = inject(ArrivalNotifier);
   private readonly transloco = inject(TranslocoService);
@@ -84,14 +84,9 @@ export class ArrivalAlertService {
       ?.directions.find((d) => d.id === alert.directionId);
     if (!direction) return null;
     const now = Date.now();
-    return estimateArrivals(
-      this.realtime.vehicles(),
-      alert.lineId,
-      direction,
-      direction.stopIds.indexOf(alert.stopId),
-      this.realtime.now(),
-      this.arrivalContext.context(),
-    ).map((a) => ({ vehicleId: a.vehicleId, at: now + a.minutes * MINUTE_MS }));
+    return this.realtime
+      .arrivals(alert.lineId, direction, direction.stopIds.indexOf(alert.stopId))
+      .map((a) => ({ tripId: a.tripId, at: now + a.minutes * MINUTE_MS }));
   }
 
   private apply(alert: ArrivalAlert, update: ReturnType<typeof updateAlert>): void {
@@ -141,30 +136,21 @@ export class ArrivalAlertService {
     this.stopWatching = () => callbacks.forEach((fn) => fn());
   }
 
-  /** Datos para que el seguimiento nativo vigile el autobús con la app cerrada. */
+  /**
+   * Datos para que el seguimiento nativo vigile el autobús con la app cerrada:
+   * los viajes del sentido que pasan por la parada, para reconocerlos en el feed.
+   */
   private tracking(alert: ArrivalAlert): TrackingRequest | undefined {
-    const direction = this.network
-      .getLine(alert.lineId)
-      ?.directions.find((d) => d.id === alert.directionId);
-    const stopIndex = direction?.stopIds.indexOf(alert.stopId) ?? -1;
-    if (!direction?.minutes || stopIndex === -1) return undefined;
+    const live = this.schedule.timetables()?.live;
+    const trips = live && stopTrips(live, alert.lineId, alert.directionId, alert.stopId);
+    if (!trips || trips.patterns.length === 0) return undefined;
     const stop = this.network.getStop(alert.stopId)?.name ?? alert.stopId;
     const params = { line: alert.lineId, stop, minutes: '{minutes}', before: alert.minutes };
     const notifyAt = madridClock(new Date(alert.notifyAt));
-    // Perfil del viaje elegido (no el típico del sentido): el servicio nativo mide
-    // así igual que la app (optimización 2, 16/10/2026).
-    const passing = madridClock(new Date(alert.scheduledAt));
-    const trips =
-      this.arrivalContext.context().trips?.(alert.lineId, alert.directionId, passing.dateKey) ?? [];
-    const profile = tripProfileAt(trips, direction.minutes, stopIndex, passing.minutes);
     return {
-      lineId: alert.lineId,
-      directionId: alert.directionId,
-      stopIds: direction.stopIds,
-      profile,
-      stopIndex,
+      ...trips,
       minutesBefore: alert.minutes,
-      vehicleId: alert.vehicleId,
+      tripId: alert.tripId,
       expectedAt: alert.expectedAt,
       notifyAt: alert.notifyAt,
       title: this.transloco.translate(this.key(alert, 'title'), params),

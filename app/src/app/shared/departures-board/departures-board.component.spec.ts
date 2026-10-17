@@ -5,7 +5,6 @@ import { TranslocoTestingModule } from '@jsverse/transloco';
 import es from '../../../../public/i18n/es.json';
 import { NetworkRepository } from '../../core/data/repositories';
 import { Line, Stop } from '../../core/models/network.model';
-import { ArrivalContextService } from '../../core/realtime/arrival-context.service';
 import { RealtimeService } from '../../core/realtime/realtime.service';
 import { ScheduleClockService } from '../../core/schedule/schedule-clock.service';
 import { DeparturesBoardComponent } from './departures-board.component';
@@ -54,9 +53,8 @@ describe('Panel de salidas', () => {
         },
         {
           provide: RealtimeService,
-          useValue: { watch: () => undefined, vehicles: signal([]), now: signal(null) },
+          useValue: { watch: () => undefined, arrivals: () => [] },
         },
-        { provide: ArrivalContextService, useValue: { context: signal({}) } },
         {
           provide: NetworkRepository,
           useValue: {

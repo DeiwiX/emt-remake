@@ -5,9 +5,7 @@ import { IonButton, IonIcon } from '@ionic/angular';
 import { NetworkRepository } from '../../core/data/repositories';
 import { alertOptions } from '../../core/realtime/arrival-alert';
 import { AlertTarget, ArrivalAlertService } from '../../core/realtime/arrival-alert.service';
-import { estimateArrivals } from '../../core/realtime/realtime';
 import { RealtimeService } from '../../core/realtime/realtime.service';
-import { ArrivalContextService } from '../../core/realtime/arrival-context.service';
 import { ScheduleClockService } from '../../core/schedule/schedule-clock.service';
 import {
   addDays,
@@ -134,7 +132,6 @@ export class ArrivalAlertPickerComponent {
   protected readonly alerts = inject(ArrivalAlertService);
   private readonly schedule = inject(ScheduleClockService);
   private readonly realtime = inject(RealtimeService);
-  private readonly arrivalContext = inject(ArrivalContextService);
   private readonly network = inject(NetworkRepository);
   private readonly transloco = inject(TranslocoService);
 
@@ -185,7 +182,7 @@ export class ArrivalAlertPickerComponent {
         time: formatClock(at.minutes),
         day: this.weekday(at.dateKey),
       },
-      adjusted: alert.vehicleId !== null,
+      adjusted: alert.tripId !== null,
     };
   });
 
@@ -197,18 +194,13 @@ export class ArrivalAlertPickerComponent {
       .getLine(this.lineId())
       ?.directions.find((d) => d.id === this.directionId());
     const live = direction
-      ? estimateArrivals(
-          this.realtime.vehicles(),
-          this.lineId(),
-          direction,
-          direction.stopIds.indexOf(this.stopId()),
-          this.realtime.now(),
-          this.arrivalContext.context(),
-        ).map((a) => ({
-          key: `v${a.vehicleId}`,
-          label: { key: 'alert.liveOption', params: { minutes: a.minutes } },
-          target: { ...base, at: now + a.minutes * MINUTE_MS, vehicleId: a.vehicleId },
-        }))
+      ? this.realtime
+          .arrivals(this.lineId(), direction, direction.stopIds.indexOf(this.stopId()))
+          .map((a) => ({
+            key: `v${a.tripId}`,
+            label: { key: 'alert.liveOption', params: { minutes: a.minutes } },
+            target: { ...base, at: now + a.minutes * MINUTE_MS, tripId: a.tripId },
+          }))
       : [];
     const result = this.schedule.nextBuses(
       this.lineId(),
@@ -224,7 +216,7 @@ export class ArrivalAlertPickerComponent {
             target: {
               ...base,
               at: madridInstantOf(result.clock.dateKey, minutes),
-              vehicleId: null,
+              tripId: null,
             },
           }))
         : [];
@@ -235,8 +227,8 @@ export class ArrivalAlertPickerComponent {
   protected readonly shownCandidates = computed(() => {
     const all = this.candidates();
     if (this.showMore()) return all;
-    const live = all.filter((c) => c.target.vehicleId !== null);
-    return [...live, ...all.filter((c) => c.target.vehicleId === null).slice(0, SCHEDULED_COUNT)];
+    const live = all.filter((c) => c.target.tripId !== null);
+    return [...live, ...all.filter((c) => c.target.tripId === null).slice(0, SCHEDULED_COUNT)];
   });
 
   /**
@@ -246,15 +238,15 @@ export class ArrivalAlertPickerComponent {
   readonly selectedKeys = computed((): ReadonlySet<string> => {
     const alert = this.activeAlert();
     const target = this.step() === 'minutes' ? this.target() : null;
-    const ref = target ?? (alert ? { at: alert.scheduledAt, vehicleId: alert.vehicleId } : null);
+    const ref = target ?? (alert ? { at: alert.scheduledAt, tripId: alert.tripId } : null);
     if (!ref) return new Set();
     const keys = new Set<string>();
-    if (ref.vehicleId) keys.add(`v${ref.vehicleId}`);
+    if (ref.tripId) keys.add(`v${ref.tripId}`);
     // Del horario: el paso a esa misma hora (un aviso ajustado con el tiempo real también lo marca).
     const scheduled = this.candidates().find(
-      (c) => c.target.vehicleId === null && c.target.at === ref.at,
+      (c) => c.target.tripId === null && c.target.at === ref.at,
     );
-    if (scheduled && (!target || !target.vehicleId)) keys.add(scheduled.key);
+    if (scheduled && (!target || !target.tripId)) keys.add(scheduled.key);
     return keys;
   });
 

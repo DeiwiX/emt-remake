@@ -1,79 +1,127 @@
 import { DestroyRef, Injectable, Signal, computed, inject, signal } from '@angular/core';
 
-import { MadridInstant, Vehicle, madridInstant, parseVehicles } from './realtime';
+import { Direction } from '../models/network.model';
+import { ScheduleClockService } from '../schedule/schedule-clock.service';
+import {
+  EstimatedArrival,
+  FeedTripUpdate,
+  FeedVehicle,
+  LiveTrip,
+  Vehicle,
+  arrivalsAt,
+  liveTrips,
+  liveVehicles,
+  nextStopIndex,
+} from './realtime';
+
+/** Lo que trae una descarga del tiempo real, ya leído. */
+export interface LiveFeeds {
+  readonly vehicles: readonly FeedVehicle[];
+  readonly trips: readonly FeedTripUpdate[];
+}
 
 /**
- * Origen de las posiciones en tiempo real. Abstracto para poder cambiar de
- * fuente (o falsearla en pruebas) sin tocar las pantallas. Si nadie lo
- * configura (pruebas), no hay tiempo real.
+ * Origen del tiempo real. Abstracto para poder cambiar de fuente (o falsearla
+ * en pruebas) sin tocar las pantallas. Si nadie lo configura (pruebas, web),
+ * no hay tiempo real.
  */
 @Injectable({ providedIn: 'root', useFactory: () => new NoRealtimeSource() })
 export abstract class RealtimeSource {
   /** false si no se puede leer desde aquí (en la web el servidor no permite CORS). */
   abstract readonly available: boolean;
-  /** Descarga la lista de autobuses tal como la publica la fuente. */
-  abstract fetchVehicles(): Promise<unknown>;
+  /** Descarga las posiciones y las llegadas previstas. */
+  abstract fetchFeeds(): Promise<LiveFeeds>;
 }
 
 class NoRealtimeSource extends RealtimeSource {
   readonly available = false;
-  fetchVehicles(): Promise<unknown> {
-    return Promise.resolve([]);
+  fetchFeeds(): Promise<LiveFeeds> {
+    return Promise.resolve({ vehicles: [], trips: [] });
   }
 }
 
-/**
- * Cada cuánto se piden las posiciones (petición del desarrollador, 08/10/2026):
- * la fuente se renueva cada ~5 min, pero así el dato nuevo se coge antes.
- */
+/** La EMT renueva el feed cada minuto: preguntando cada 30 s el dato llega como mucho medio minuto tarde. */
 const POLL_MS = 30_000;
-/**
- * Justo después de un dato nuevo no llega otro hasta pasados unos 5 min: en los
- * primeros 3 min no se pregunta (optimización 1, 17/10/2026). La fuente no
- * permite preguntar "solo si ha cambiado" (no envía ETag ni Last-Modified).
- */
-const QUIET_AFTER_CHANGE_MS = 3 * 60_000;
+
+/** Paso de un autobús por una parada (lo primero que se vio al dejarla atrás), para los atascos. */
+export interface StopPassage {
+  readonly vehicleId: string;
+  readonly lineId: string;
+  readonly directionId: number;
+  readonly stopId: string;
+  /** Segundos Unix. */
+  readonly at: number;
+  /**
+   * true si se vio el cambio (la parada anterior era otra): `at` es entonces la
+   * hora de paso con un minuto de margen. La primera que se ve no sirve para medir.
+   */
+  readonly exact: boolean;
+}
 
 /**
- * Posiciones de los autobuses (Fase 3). Solo se descargan mientras alguna
- * pantalla las usa (watch()) y la app está abierta; se piden cada 30 s.
+ * Tiempo real de la EMT (GTFS-RT). Solo se descarga mientras alguna pantalla
+ * lo usa (watch()) y la app está abierta.
  */
 @Injectable({ providedIn: 'root' })
 export class RealtimeService {
   private readonly source = inject(RealtimeSource);
-  private readonly vehiclesSignal = signal<readonly Vehicle[]>([]);
-  private readonly nowSignal = signal<MadridInstant>(madridInstant(new Date()));
+  private readonly schedule = inject(ScheduleClockService);
+  private readonly feedsSignal = signal<LiveFeeds>({ vehicles: [], trips: [] });
+  private readonly nowSignal = signal(nowSeconds());
   private readonly failedSignal = signal(false);
-  /** Dato anterior (distinto) de cada autobús, para medir a qué ritmo avanza (Fase 6). */
-  private readonly previousSignal = signal<ReadonlyMap<string, Vehicle>>(new Map());
+  private readonly refreshingSignal = signal(false);
+  /** Última parada que ha dejado atrás cada autobús y la anterior a esa. */
+  private readonly passagesSignal = signal<ReadonlyMap<string, readonly StopPassage[]>>(new Map());
   private watchers = 0;
   private timer: ReturnType<typeof setInterval> | null = null;
-  /** Cuándo se vio cambiar la fuente por última vez (0 = nunca). */
-  private lastChangeAt = 0;
 
   readonly available = this.source.available;
-  readonly vehicles = this.vehiclesSignal.asReadonly();
-  /** Hora de Madrid de la última consulta: con ella se calcula la antigüedad del dato. */
-  readonly now: Signal<MadridInstant> = this.nowSignal.asReadonly();
+  /** Viajes con llegada prevista, cruzados con sus recorridos del horario. */
+  readonly trips: Signal<readonly LiveTrip[]> = computed(() => {
+    const index = this.schedule.timetables()?.live;
+    return index ? liveTrips(this.feedsSignal().trips, index) : [];
+  });
+  readonly vehicles: Signal<readonly Vehicle[]> = computed(() => {
+    const index = this.schedule.timetables()?.live;
+    return index ? liveVehicles(this.feedsSignal().vehicles, index) : [];
+  });
+  /** Hora de la última consulta (segundos Unix): con ella se calcula lo que falta. */
+  readonly now = this.nowSignal.asReadonly();
   /** true si la última descarga falló (sin conexión, fuente caída...). */
   readonly failed = this.failedSignal.asReadonly();
-  readonly hasData = computed(() => this.vehiclesSignal().length > 0);
-  readonly previous = this.previousSignal.asReadonly();
-  private readonly refreshingSignal = signal(false);
+  readonly hasData = computed(() => this.trips().length > 0 || this.vehicles().length > 0);
   /** true mientras se descarga (para el botón "Actualizar"). */
   readonly refreshing = this.refreshingSignal.asReadonly();
+  readonly passages = this.passagesSignal.asReadonly();
+  private readonly tripsById = computed(
+    () => new Map(this.trips().map((trip) => [trip.tripId, trip])),
+  );
 
-  /** Pide ya las posiciones, sin esperar al siguiente minuto (botón "Actualizar"). */
+  /** Llegadas previstas a la parada `stopIndex` de un sentido, de la más próxima a la más lejana. */
+  arrivals(lineId: string, direction: Direction, stopIndex: number): EstimatedArrival[] {
+    const stopId = direction.stopIds[stopIndex];
+    if (stopId === undefined) return [];
+    return arrivalsAt(this.trips(), lineId, direction.id, stopId, this.now());
+  }
+
+  /** Viaje en tiempo real que hace un autobús (para su próxima parada y su retraso). */
+  tripOf(vehicle: Vehicle): LiveTrip | null {
+    return (vehicle.tripId && this.tripsById().get(vehicle.tripId)) || null;
+  }
+
+  /** Pide ya el tiempo real, sin esperar a la siguiente consulta (botón "Actualizar"). */
   refreshNow(): Promise<void> {
     return this.available ? this.refresh() : Promise.resolve();
   }
 
   /**
-   * Empieza a recibir posiciones mientras viva quien llama (componente o
+   * Empieza a recibir el tiempo real mientras viva quien llama (componente o
    * servicio con DestroyRef). Varias pantallas comparten la misma descarga.
    */
   watch(destroyRef: Pick<DestroyRef, 'onDestroy'> = inject(DestroyRef)): void {
     if (!this.available) return;
+    // Los recorridos para cruzar el feed vienen con el horario.
+    void this.schedule.load();
     this.watchers++;
     if (this.watchers === 1) this.startPolling();
     destroyRef.onDestroy(() => {
@@ -96,9 +144,7 @@ export class RealtimeService {
   private startPolling(): void {
     if (this.timer || document.visibilityState === 'hidden') return;
     void this.refresh();
-    this.timer = setInterval(() => {
-      if (Date.now() - this.lastChangeAt >= QUIET_AFTER_CHANGE_MS) void this.refresh();
-    }, POLL_MS);
+    this.timer = setInterval(() => void this.refresh(), POLL_MS);
   }
 
   private stopPolling(): void {
@@ -110,51 +156,56 @@ export class RealtimeService {
     if (this.refreshingSignal()) return;
     this.refreshingSignal.set(true);
     try {
-      const vehicles = parseVehicles(await this.source.fetchVehicles());
-      if (newestReport(vehicles) !== newestReport(this.vehiclesSignal())) {
-        this.lastChangeAt = Date.now();
-      }
-      this.previousSignal.set(
-        previousReports(this.vehiclesSignal(), vehicles, this.previousSignal()),
-      );
-      this.vehiclesSignal.set(vehicles);
+      this.feedsSignal.set(await this.source.fetchFeeds());
       this.failedSignal.set(false);
     } catch (error) {
-      console.warn('No se pudieron descargar las posiciones en tiempo real', error);
+      console.warn('No se pudo descargar el tiempo real', error);
       this.failedSignal.set(true);
     } finally {
       this.refreshingSignal.set(false);
-      this.nowSignal.set(madridInstant(new Date()));
+      this.nowSignal.set(nowSeconds());
+      this.passagesSignal.set(
+        updatePassages(this.passagesSignal(), this.trips(), this.nowSignal()),
+      );
     }
   }
 }
 
-/** Hora del dato más reciente (para saber si la fuente ha cambiado). */
-function newestReport(vehicles: readonly Vehicle[]): string {
-  let newest = '';
-  for (const v of vehicles) {
-    const key = `${v.dateKey}${String(v.seconds).padStart(5, '0')}`;
-    if (key > newest) newest = key;
-  }
-  return newest;
+function nowSeconds(): number {
+  return Math.round(Date.now() / 1000);
 }
 
 /**
- * Para cada autobús, su dato anterior: el actual si el nuevo es distinto (la
- * fuente repite el mismo dato durante ~5 min) y si no, el que ya se guardaba.
+ * Apunta la parada que cada autobús acaba de dejar atrás (la anterior a su
+ * próxima) cuando cambia, y conserva la anterior: con las dos se mide cuánto
+ * ha tardado entre paradas (atascos, Fase 8).
  */
-export function previousReports(
-  current: readonly Vehicle[],
-  next: readonly Vehicle[],
-  previous: ReadonlyMap<string, Vehicle>,
-): ReadonlyMap<string, Vehicle> {
-  const byId = new Map(current.map((v) => [v.id, v]));
-  const result = new Map<string, Vehicle>();
-  for (const vehicle of next) {
-    const old = byId.get(vehicle.id);
-    const changed = old && (old.seconds !== vehicle.seconds || old.dateKey !== vehicle.dateKey);
-    const kept = changed ? old : previous.get(vehicle.id);
-    if (kept) result.set(vehicle.id, kept);
+export function updatePassages(
+  current: ReadonlyMap<string, readonly StopPassage[]>,
+  trips: readonly LiveTrip[],
+  now: number,
+): ReadonlyMap<string, readonly StopPassage[]> {
+  const next = new Map<string, readonly StopPassage[]>();
+  for (const trip of trips) {
+    if (!trip.vehicleId) continue;
+    const ahead = nextStopIndex(trip, now);
+    if (ahead === null || ahead === 0) continue;
+    const passage: StopPassage = {
+      vehicleId: trip.vehicleId,
+      lineId: trip.lineId,
+      directionId: trip.directionId,
+      stopId: trip.stops[ahead - 1]!,
+      at: now,
+      exact: current.has(trip.vehicleId),
+    };
+    const known = current.get(trip.vehicleId) ?? [];
+    const last = known.at(-1);
+    next.set(
+      trip.vehicleId,
+      last && last.stopId === passage.stopId && last.lineId === passage.lineId
+        ? known
+        : [...known.slice(-1), passage],
+    );
   }
-  return result;
+  return next;
 }

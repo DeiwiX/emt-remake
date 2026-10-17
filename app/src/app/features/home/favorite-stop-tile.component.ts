@@ -16,8 +16,6 @@ import { MAX_ALIAS_LENGTH } from '../../core/favorites/favorites';
 import { FavoritesService } from '../../core/favorites/favorites.service';
 import { NoticesService } from '../../core/notices/notices.service';
 import { Stop } from '../../core/models/network.model';
-import { ArrivalContextService } from '../../core/realtime/arrival-context.service';
-import { estimateArrivals } from '../../core/realtime/realtime';
 import { RealtimeService } from '../../core/realtime/realtime.service';
 import { dayOffsetOf, formatClock } from '../../core/schedule/schedule';
 import { ScheduleClockService } from '../../core/schedule/schedule-clock.service';
@@ -318,7 +316,6 @@ const COUNTDOWN_MINUTES = 60;
 })
 export class FavoriteStopTileComponent {
   private readonly realtime = inject(RealtimeService);
-  private readonly arrivalContext = inject(ArrivalContextService);
 
   private readonly network = inject(NetworkRepository);
   private readonly schedule = inject(ScheduleClockService);
@@ -377,13 +374,10 @@ export class FavoriteStopTileComponent {
         .getLine(service.lineId)
         ?.directions.find((d) => d.id === service.directionId);
       if (!direction) continue;
-      const [first] = estimateArrivals(
-        this.realtime.vehicles(),
+      const [first] = this.realtime.arrivals(
         service.lineId,
         direction,
         direction.stopIds.indexOf(this.stop().id),
-        this.realtime.now(),
-        this.arrivalContext.context(),
       );
       if (first && (!live || first.minutes < live.minutes)) {
         live = { lineId: service.lineId, minutes: first.minutes };

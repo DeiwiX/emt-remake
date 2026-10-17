@@ -1,25 +1,20 @@
 import { TestBed } from '@angular/core/testing';
 
-import { RealtimeService, RealtimeSource } from './realtime.service';
+import { ScheduleClockService } from '../schedule/schedule-clock.service';
+import { LiveFeeds, RealtimeService, RealtimeSource, updatePassages } from './realtime.service';
+import { LiveTrip } from './realtime';
 
-const record = (time: string) => ({
-  type: 'Feature',
-  geometry: { type: 'Point', coordinates: ['-4.45', '36.70'] },
-  properties: { codLinea: '1', codBus: '640', sentido: '1', codParIni: 'a', last_update: time },
-});
-
-/** Fuente falsa: cuenta las descargas y devuelve el dato que se le diga. */
+/** Fuente falsa: cuenta las descargas. */
 class FakeSource extends RealtimeSource {
   readonly available = true;
   calls = 0;
-  time = '2026-10-17 10:00:00';
-  fetchVehicles(): Promise<unknown> {
+  fetchFeeds(): Promise<LiveFeeds> {
     this.calls++;
-    return Promise.resolve([record(this.time)]);
+    return Promise.resolve({ vehicles: [], trips: [] });
   }
 }
 
-/** Optimizaciones 1 y 2 (17/10/2026): menos descargas y nada en segundo plano. */
+/** Descargas: cada 30 s mientras se usa y nada en segundo plano. */
 describe('RealtimeService', () => {
   let source: FakeSource;
   let service: RealtimeService;
@@ -33,7 +28,15 @@ describe('RealtimeService', () => {
       hidden ? 'hidden' : 'visible',
     );
     source = new FakeSource();
-    TestBed.configureTestingModule({ providers: [{ provide: RealtimeSource, useValue: source }] });
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: RealtimeSource, useValue: source },
+        {
+          provide: ScheduleClockService,
+          useValue: { load: () => Promise.resolve(), timetables: () => null },
+        },
+      ],
+    });
     service = TestBed.inject(RealtimeService);
   });
 
@@ -51,15 +54,12 @@ describe('RealtimeService', () => {
       },
     });
 
-  it('tras un dato nuevo no vuelve a preguntar hasta pasados 3 min', async () => {
+  it('pregunta al empezar y luego cada 30 s (la EMT renueva el dato cada minuto)', async () => {
     watch();
     await vi.advanceTimersByTimeAsync(0);
     expect(source.calls).toBe(1);
-    await vi.advanceTimersByTimeAsync(150_000);
-    expect(source.calls).toBe(1);
     await vi.advanceTimersByTimeAsync(30_000);
     expect(source.calls).toBe(2);
-    // Sin cambios, cada 30 s.
     await vi.advanceTimersByTimeAsync(30_000);
     expect(source.calls).toBe(3);
   });
@@ -82,5 +82,32 @@ describe('RealtimeService', () => {
     await vi.advanceTimersByTimeAsync(0);
     await service.refreshNow();
     expect(source.calls).toBe(2);
+  });
+});
+
+describe('updatePassages (atascos)', () => {
+  const trip = (arrivals: (number | null)[]): LiveTrip => ({
+    tripId: 't',
+    vehicleId: 'bus',
+    lineId: '1',
+    directionId: 1,
+    stops: ['a', 'b', 'c'],
+    arrivals,
+    delays: [null, null, null],
+    timestamp: 1000,
+  });
+
+  it('apunta la parada que deja atrás y solo es exacta si se vio el cambio', () => {
+    const first = updatePassages(new Map(), [trip([null, 1100, 1200])], 1000);
+    expect(first.get('bus')).toEqual([
+      { vehicleId: 'bus', lineId: '1', directionId: 1, stopId: 'a', at: 1000, exact: false },
+    ]);
+    // Sin cambios, se conserva.
+    expect(updatePassages(first, [trip([null, 1100, 1200])], 1060)).toEqual(first);
+    const second = updatePassages(first, [trip([null, null, 1200])], 1150);
+    expect(second.get('bus')!.map((p) => [p.stopId, p.at, p.exact])).toEqual([
+      ['a', 1000, false],
+      ['b', 1150, true],
+    ]);
   });
 });

@@ -1,10 +1,11 @@
 import { Injectable } from '@angular/core';
 
-import { RealtimeSource } from '../core/realtime/realtime.service';
+import { LiveFeeds, RealtimeSource } from '../core/realtime/realtime.service';
 
-/** "Ubicaciones de autobuses EMT en tiempo real" (datos abiertos del Ayuntamiento). */
-export const VEHICLES_URL =
-  'https://datosabiertos.malaga.eu/recursos/transporte/EMT/EMTlineasUbicaciones/lineasyubicaciones.geojson';
+/** Tiempo real oficial de la EMT (GTFS-RT): se renueva cada minuto, sin clave. */
+export const GTFS_RT_BASE = 'https://gtfs.emtmalaga.es/GTFSRTapi/api';
+export const VEHICLES_URL = `${GTFS_RT_BASE}/vehicleposition`;
+export const TRIP_UPDATES_URL = `${GTFS_RT_BASE}/tripupdate`;
 
 /**
  * Descarga con el cliente HTTP nativo de Capacitor: el servidor no envía
@@ -22,11 +23,24 @@ export class CapacitorRealtimeSource extends RealtimeSource {
       globalThis as { Capacitor?: { isNativePlatform?: () => boolean } }
     ).Capacitor?.isNativePlatform?.() ?? false;
 
-  async fetchVehicles(): Promise<unknown> {
-    const { CapacitorHttp } = await import('@capacitor/core');
-    const response = await CapacitorHttp.get({ url: VEHICLES_URL, responseType: 'text' });
-    if (response.status !== 200) throw new Error(`HTTP ${response.status}`);
-    // El servidor responde con Content-Type text/html: se interpreta aquí.
-    return typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
+  async fetchFeeds(): Promise<LiveFeeds> {
+    // El lector de protobuf solo se carga en la app nativa, cuando hace falta.
+    const [vehicles, trips, decode] = await Promise.all([
+      download(VEHICLES_URL),
+      download(TRIP_UPDATES_URL),
+      import('./gtfs-rt-decode'),
+    ]);
+    return { vehicles: decode.decodeVehicles(vehicles), trips: decode.decodeTripUpdates(trips) };
   }
+}
+
+async function download(url: string): Promise<Uint8Array> {
+  const { CapacitorHttp } = await import('@capacitor/core');
+  const response = await CapacitorHttp.get({ url, responseType: 'arraybuffer' });
+  if (response.status !== 200) throw new Error(`HTTP ${response.status}`);
+  // En Android e iOS el cuerpo binario llega en base64.
+  const data: unknown = response.data;
+  if (typeof data === 'string') return Uint8Array.from(atob(data), (c) => c.charCodeAt(0));
+  if (data instanceof ArrayBuffer) return new Uint8Array(data);
+  throw new Error('Respuesta del tiempo real con un formato inesperado');
 }

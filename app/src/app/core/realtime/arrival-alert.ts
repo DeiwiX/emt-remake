@@ -27,15 +27,15 @@ export interface ArrivalAlert {
   readonly scheduledAt: number;
   /** Hora de paso esperada ahora: cambia con el tiempo real. */
   readonly expectedAt: number;
-  /** Autobús en tiempo real asociado, cuando se conoce. */
-  readonly vehicleId: string | null;
+  /** Viaje del tiempo real asociado (trip_id de la EMT), cuando se conoce. */
+  readonly tripId: string | null;
   /** Hora para la que está programada la notificación. */
   readonly notifyAt: number;
 }
 
 /** Llegada de un autobús en tiempo real a la parada del aviso. */
 export interface LiveArrival {
-  readonly vehicleId: string;
+  readonly tripId: string;
   readonly at: number;
 }
 
@@ -45,7 +45,7 @@ export function createAlert(
     readonly lineId: string;
     readonly directionId: number;
     readonly at: number;
-    readonly vehicleId: string | null;
+    readonly tripId: string | null;
   },
   minutes: number,
 ): ArrivalAlert {
@@ -56,7 +56,7 @@ export function createAlert(
     minutes,
     scheduledAt: target.at,
     expectedAt: target.at,
-    vehicleId: target.vehicleId,
+    tripId: target.tripId,
     notifyAt: target.at - minutes * MINUTE_MS,
   };
 }
@@ -85,27 +85,27 @@ export function updateAlert(
   live: readonly LiveArrival[] | null,
   now: number,
 ): AlertUpdate {
-  let { vehicleId, expectedAt } = alert;
+  let { tripId, expectedAt } = alert;
   if (live) {
-    const own = vehicleId ? live.find((l) => l.vehicleId === vehicleId) : undefined;
-    // Sin el autobús asociado, el que llegue más cerca de la hora esperada.
+    const own = tripId ? live.find((l) => l.tripId === tripId) : undefined;
+    // Sin el viaje asociado, el que llegue más cerca de la hora esperada.
     const match = own ?? nearest(live, expectedAt);
     if (match) {
-      vehicleId = match.vehicleId;
+      tripId = match.tripId;
       expectedAt = match.at;
     }
   }
   if (now > expectedAt + EXPIRE_MS) return { kind: 'done' };
   const notifyAt = expectedAt - alert.minutes * MINUTE_MS;
-  const updated: ArrivalAlert = { ...alert, vehicleId, expectedAt, notifyAt };
+  const updated: ArrivalAlert = { ...alert, tripId, expectedAt, notifyAt };
   if (notifyAt <= now) {
     // Si la notificación programada ya debía haber saltado, el sistema ya avisó.
     return alert.notifyAt <= now ? { kind: 'done' } : { kind: 'notify-now', alert: updated };
   }
   if (Math.abs(notifyAt - alert.notifyAt) < RESCHEDULE_MS) {
-    return vehicleId === alert.vehicleId && expectedAt === alert.expectedAt
+    return tripId === alert.tripId && expectedAt === alert.expectedAt
       ? { kind: 'keep' }
-      : // Mismo aviso, pero se guarda el autobús asociado y la nueva hora esperada.
+      : // Mismo aviso, pero se guarda el viaje asociado y la nueva hora esperada.
         { kind: 'schedule', alert: { ...updated, notifyAt: alert.notifyAt } };
   }
   return { kind: 'schedule', alert: updated };
@@ -133,7 +133,7 @@ export function parseAlert(raw: string | null): ArrivalAlert | null {
       typeof value.lineId !== 'string' ||
       typeof value.directionId !== 'number' ||
       numbers.some((n) => typeof n !== 'number' || !Number.isFinite(n)) ||
-      (value.vehicleId !== null && typeof value.vehicleId !== 'string')
+      (value.tripId !== null && typeof value.tripId !== 'string')
     ) {
       return null;
     }

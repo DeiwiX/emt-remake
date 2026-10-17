@@ -3,8 +3,6 @@ import { TranslocoPipe } from '@jsverse/transloco';
 
 import { NetworkRepository } from '../../core/data/repositories';
 import { Stop } from '../../core/models/network.model';
-import { ArrivalContextService } from '../../core/realtime/arrival-context.service';
-import { estimateArrivals } from '../../core/realtime/realtime';
 import { RealtimeService } from '../../core/realtime/realtime.service';
 import { formatClock } from '../../core/schedule/schedule';
 import { ScheduleClockService } from '../../core/schedule/schedule-clock.service';
@@ -133,7 +131,6 @@ export class DeparturesBoardComponent {
   private readonly schedule = inject(ScheduleClockService);
   private readonly network = inject(NetworkRepository);
   private readonly realtime = inject(RealtimeService);
-  private readonly arrivalContext = inject(ArrivalContextService);
 
   readonly stop = input.required<Stop>();
   protected readonly countdown = COUNTDOWN_MINUTES;
@@ -155,14 +152,9 @@ export class DeparturesBoardComponent {
       if (!direction) continue;
       const base = { lineId: service.lineId, headsign: direction.headsign };
       // En tiempo real (como mucho dos por sentido, como en los próximos buses).
-      const live = estimateArrivals(
-        this.realtime.vehicles(),
-        service.lineId,
-        direction,
-        direction.stopIds.indexOf(stop.id),
-        this.realtime.now(),
-        this.arrivalContext.context(),
-      ).slice(0, 2);
+      const live = this.realtime
+        .arrivals(service.lineId, direction, direction.stopIds.indexOf(stop.id))
+        .slice(0, 2);
       for (const a of live) {
         all.push({
           ...base,

@@ -1,12 +1,11 @@
 import { LatLon } from '../models/network.model';
-import { buildTrack, positionFromReport, positionOnTrack, trackSlice } from './vehicle-position';
+import { buildTrack, snapToTrack, trackSlice } from './vehicle-position';
 
 // Recta hacia el este: ~100 m entre puntos (0,0009° de longitud a 36,72° ≈ 80 m).
 const line: LatLon[] = [0, 1, 2, 3, 4].map((i): LatLon => [36.72, -4.42 + i * 0.001]);
 const stops: LatLon[] = [line[0]!, line[2]!, line[4]!];
-const minutes = [0, 4, 8];
 
-describe('Posición estimada del autobús', () => {
+describe('Autobús sobre el trazado', () => {
   const track = buildTrack(line, stops)!;
 
   it('recorta el trazado entre dos paradas (tramo lento)', () => {
@@ -21,19 +20,17 @@ describe('Posición estimada del autobús', () => {
     expect(track.stopDistances[1]! / track.stopDistances[2]!).toBeCloseTo(0.5, 2);
   });
 
-  it('avanza al ritmo del horario desde la última parada y mira hacia donde va', () => {
-    const half = positionOnTrack(track, minutes, 0, 2); // mitad del primer tramo
-    expect(half.point[1]).toBeCloseTo(-4.419, 4);
-    expect(half.bearing).toBeCloseTo(90, 0);
-    // Pasado el final, se queda en la última parada.
-    expect(positionOnTrack(track, minutes, 0, 60).point[1]).toBeCloseTo(-4.416, 4);
+  it('coloca el GPS sobre el recorrido, mirando hacia donde va', () => {
+    // 20 m al norte de la mitad del primer tramo.
+    const snapped = snapToTrack(track, [36.72018, -4.4195])!;
+    expect(snapped.point[0]).toBeCloseTo(36.72, 5);
+    expect(snapped.point[1]).toBeCloseTo(-4.4195, 5);
+    expect(snapped.bearing).toBeCloseTo(90, 0);
   });
 
-  it('parte del punto publicado y no de la parada', () => {
-    // Publicado justo en la segunda parada hace 0 min: ahí está.
-    const now = positionFromReport(track, minutes, 0, line[2]!, 0);
-    expect(now.point[1]).toBeCloseTo(-4.418, 4);
-    // Dos minutos después, a medio camino de la tercera.
-    expect(positionFromReport(track, minutes, 0, line[2]!, 2).point[1]).toBeCloseTo(-4.417, 4);
+  it('busca solo entre las paradas indicadas y descarta lo que está lejos del recorrido', () => {
+    const snapped = snapToTrack(track, [36.72, -4.4195], [1, 2])!;
+    expect(snapped.along).toBeCloseTo(track.stopDistances[1]!, 0);
+    expect(snapToTrack(track, [36.73, -4.4195])).toBeNull();
   });
 });

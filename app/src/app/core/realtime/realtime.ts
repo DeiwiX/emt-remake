@@ -1,165 +1,337 @@
-import { Direction } from '../models/network.model';
-import { LiveContext, minutesToStop, vehicleProgress } from './live-estimate';
-
 /**
- * Tiempo real (Fase 3): posiciones de los autobuses publicadas por el
- * Ayuntamiento y estimación de llegada a una parada. Lógica pura.
+ * Tiempo real oficial de la EMT (GTFS-RT, 17/10/2026). Lógica pura.
  *
- * La fuente se actualiza cada ~5 min (medido el 04/10/2026), así que la
- * llegada es una estimación: última parada por la que pasó el bus + tiempo
- * programado hasta la parada − lo que ha pasado desde el dato.
+ * La EMT publica cada minuto dos ficheros: la posición GPS de cada autobús
+ * (VehiclePositions) y la llegada prevista de cada viaje a sus paradas
+ * (TripUpdates). Sus viajes solo dicen la posición de cada parada en el viaje
+ * ("stop_sequence"), así que se cruzan con los recorridos publicados en el
+ * horario (LiveIndex) para saber de qué línea, sentido y paradas son.
  */
 
-/** Autobús en servicio según el último dato publicado. */
+/** Recorridos y viajes del GTFS para leer el tiempo real (se publican con el horario). */
+export interface LiveIndex {
+  readonly patterns: readonly LivePattern[];
+  /** Horario ("G2606S") -> bloque ("072-03") -> índice del recorrido de cada viaje (número − 1). */
+  readonly trips: ReadonlyMap<string, ReadonlyMap<string, readonly number[]>>;
+}
+
+export interface LivePattern {
+  readonly lineId: string;
+  readonly directionId: number;
+  /** Paradas del viaje en orden (stop_sequence 1, 2, …). */
+  readonly stops: readonly string[];
+  /** Minutos desde la salida en cada parada, según el horario. */
+  readonly minutes: readonly number[];
+}
+
+/** Lo que interesa de una entidad VehiclePosition del feed. */
+export interface FeedVehicle {
+  readonly id: string;
+  readonly tripId: string | null;
+  readonly lat: number;
+  readonly lon: number;
+  /** Hora del dato (segundos Unix). */
+  readonly timestamp: number;
+}
+
+/** Lo que interesa de una entidad TripUpdate del feed. */
+export interface FeedTripUpdate {
+  readonly tripId: string;
+  readonly vehicleId: string | null;
+  /** Salida programada del viaje (segundos Unix), si el feed la trae. */
+  readonly start: number | null;
+  readonly timestamp: number;
+  readonly stops: readonly FeedStopUpdate[];
+}
+
+export interface FeedStopUpdate {
+  readonly sequence: number;
+  /** Llegada prevista (segundos Unix), si la trae. */
+  readonly time: number | null;
+  /** La parada no se hace en este viaje (desvío). */
+  readonly skipped: boolean;
+}
+
+/** Un viaje en tiempo real, ya cruzado con su recorrido. */
+export interface LiveTrip {
+  readonly tripId: string;
+  readonly vehicleId: string | null;
+  readonly lineId: string;
+  readonly directionId: number;
+  readonly stops: readonly string[];
+  /** Llegada prevista a cada parada (segundos Unix); null si ya pasó, no se sabe o no para. */
+  readonly arrivals: readonly (number | null)[];
+  /** Retraso frente al horario en cada parada (segundos); null si no se sabe. */
+  readonly delays: readonly (number | null)[];
+  readonly timestamp: number;
+}
+
+/** Autobús en servicio según su último dato. */
 export interface Vehicle {
   readonly id: string;
   readonly lineId: string;
   readonly directionId: number;
-  /** Última parada por la que ha pasado (código público). */
-  readonly lastStopId: string;
   readonly lat: number;
   readonly lon: number;
-  /** Hora del dato, en segundos desde la medianoche de Madrid de `dateKey`. */
-  readonly seconds: number;
-  /** Día del dato (AAAAMMDD, hora de Madrid). */
-  readonly dateKey: string;
+  /** Hora del dato (segundos Unix). */
+  readonly timestamp: number;
+  /** Viaje que está haciendo (para cruzarlo con su llegada prevista). */
+  readonly tripId: string | null;
 }
 
-/** Llegada estimada de un autobús a una parada. */
+/** Llegada prevista de un autobús a una parada. */
 export interface EstimatedArrival {
-  readonly vehicleId: string;
+  readonly tripId: string;
+  /** Autobús que hace el viaje, si ya se sabe (los viajes siguientes a veces no lo traen). */
+  readonly vehicleId: string | null;
   /** Minutos que faltan (redondeados, al menos 0). */
   readonly minutes: number;
-  /** Antigüedad del dato en minutos: cuanto mayor, menos fiable. */
+  /** Antigüedad del dato en minutos. */
   readonly ageMinutes: number;
-  /** Retraso frente a su viaje del horario (min, negativo si va adelantado); null si no se sabe. */
+  /** Retraso frente al horario (min, negativo si va adelantado); null si no se sabe. */
   readonly delayMinutes: number | null;
-}
-
-/** Instante en hora de Madrid con segundos, para comparar con los datos. */
-export interface MadridInstant {
-  readonly dateKey: string;
-  readonly seconds: number;
 }
 
 /** Datos con más antigüedad no se usan: el bus puede estar en cualquier sitio. */
 export const MAX_AGE_MINUTES = 15;
 /** Llegadas más lejanas no se muestran como tiempo real (el horario basta). */
 export const MAX_ESTIMATE_MINUTES = 60;
+/** Mientras el autobús está en la parada (o el dato llega con un poco de retraso) aún cuenta. */
+const ARRIVING_GRACE_SECONDS = 30;
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
+/**
+ * Partes de un trip_id del tiempo real: "G2606S_F21_072-03_13" -> horario
+ * "G2606S", bloque "072-03" y viaje 13. La variante ("F21") no siempre está en
+ * el GTFS publicado, así que no se usa.
+ */
+export function tripKeyParts(
+  tripId: string,
+): { schedule: string; block: string; trip: number } | null {
+  const match = /^([^_]+)_[^_]+_(.+)_(\d+)$/.exec(tripId);
+  return match ? { schedule: match[1]!, block: match[2]!, trip: Number(match[3]) } : null;
 }
 
-/** "1.0" -> "1": la fuente da el código de línea como número decimal. */
-function lineIdOf(raw: unknown): string | null {
-  if (typeof raw !== 'string' && typeof raw !== 'number') return null;
-  const text = String(raw).trim().replace(/\.0+$/, '');
-  return text || null;
+/** Índice del recorrido de un viaje del tiempo real, o −1. */
+function patternIndexOf(index: LiveIndex, tripId: string): number {
+  const key = tripKeyParts(tripId);
+  if (!key) return -1;
+  return index.trips.get(key.schedule)?.get(key.block)?.[key.trip - 1] ?? -1;
 }
 
-/** "2026-10-04 15:45:09" (hora de Madrid) -> día y segundos. */
-function parseLocalTime(raw: unknown): MadridInstant | null {
-  if (typeof raw !== 'string') return null;
-  const match = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/.exec(raw.trim());
-  if (!match) return null;
-  const [, y, mo, d, h, mi, s] = match;
-  return { dateKey: `${y}${mo}${d}`, seconds: Number(h) * 3600 + Number(mi) * 60 + Number(s) };
+export function patternOf(index: LiveIndex, tripId: string): LivePattern | null {
+  return index.patterns[patternIndexOf(index, tripId)] ?? null;
 }
 
 /**
- * Lee la lista de autobuses de la fuente (GeoJSON como lista de "Feature").
- * Descarta los registros incompletos en vez de fallar entero.
+ * Lo que necesita el seguimiento nativo para reconocer, en el feed, los viajes
+ * de un sentido que pasan por una parada: la posición de la parada en cada
+ * recorrido (con sus minutos) y los viajes ("horario_bloque_número") de cada uno.
  */
-export function parseVehicles(raw: unknown): Vehicle[] {
-  if (!Array.isArray(raw)) return [];
-  return raw.flatMap((item): Vehicle[] => {
-    if (!isRecord(item)) return [];
-    const properties = isRecord(item['properties']) ? item['properties'] : item;
-    const geometry = isRecord(item['geometry']) ? item['geometry'] : null;
-    const coordinates =
-      geometry && Array.isArray(geometry['coordinates']) ? geometry['coordinates'] : [];
-    const lon = Number(coordinates[0]);
-    const lat = Number(coordinates[1]);
-    const lineId = lineIdOf(properties['codLinea'] ?? item['codLinea']);
-    const directionId = Number(properties['sentido'] ?? item['sentido']);
-    const lastStopId = String(properties['codParIni'] ?? item['codParIni'] ?? '').trim();
-    const id = String(properties['codBus'] ?? item['codBus'] ?? '').trim();
-    const time = parseLocalTime(properties['last_update']);
-    if (!lineId || !id || !lastStopId || !time) return [];
-    if (!Number.isFinite(lat) || !Number.isFinite(lon) || !Number.isInteger(directionId)) return [];
-    return [{ id, lineId, directionId, lastStopId, lat, lon, ...time }];
+export interface StopTrips {
+  readonly patterns: readonly { readonly sequence: number; readonly minutes: readonly number[] }[];
+  readonly trips: Readonly<Record<string, number>>;
+}
+
+export function stopTrips(
+  index: LiveIndex,
+  lineId: string,
+  directionId: number,
+  stopId: string,
+): StopTrips {
+  const local = new Map<number, number>();
+  const patterns: { sequence: number; minutes: readonly number[] }[] = [];
+  index.patterns.forEach((pattern, i) => {
+    const position = pattern.stops.indexOf(stopId);
+    if (pattern.lineId !== lineId || pattern.directionId !== directionId || position === -1) return;
+    local.set(i, patterns.push({ sequence: position + 1, minutes: pattern.minutes }) - 1);
+  });
+  const trips: Record<string, number> = {};
+  for (const [schedule, blocks] of index.trips) {
+    for (const [block, list] of blocks) {
+      list.forEach((pattern, n) => {
+        const mine = local.get(pattern);
+        if (mine !== undefined) trips[`${schedule}_${block}_${n + 1}`] = mine;
+      });
+    }
+  }
+  return { patterns, trips };
+}
+
+/**
+ * Cruza los TripUpdates con sus recorridos. Una parada sin dato toma el retraso
+ * de la anterior que lo tenga (como dice el estándar GTFS-RT); las anteriores a
+ * la primera con dato ya han pasado.
+ */
+export function liveTrips(updates: readonly FeedTripUpdate[], index: LiveIndex): LiveTrip[] {
+  return updates.flatMap((update): LiveTrip[] => {
+    const pattern = patternOf(index, update.tripId);
+    if (!pattern) return [];
+    const bySequence = new Map(update.stops.map((s) => [s.sequence, s]));
+    const arrivals: (number | null)[] = [];
+    const delays: (number | null)[] = [];
+    let anchor: { index: number; time: number } | null = null;
+    pattern.stops.forEach((_, i) => {
+      const stop = bySequence.get(i + 1);
+      let time: number | null = null;
+      if (stop?.time !== null && stop?.time !== undefined) {
+        time = stop.time;
+        anchor = { index: i, time };
+      } else if (anchor) {
+        time = anchor.time + (pattern.minutes[i]! - pattern.minutes[anchor.index]!) * 60;
+      }
+      const scheduled = update.start === null ? null : update.start + pattern.minutes[i]! * 60;
+      delays.push(time === null || scheduled === null ? null : time - scheduled);
+      arrivals.push(stop?.skipped ? null : time);
+    });
+    return [
+      {
+        tripId: update.tripId,
+        vehicleId: update.vehicleId,
+        lineId: pattern.lineId,
+        directionId: pattern.directionId,
+        stops: pattern.stops,
+        arrivals,
+        delays,
+        timestamp: update.timestamp,
+      },
+    ];
   });
 }
 
-const madridFormat = new Intl.DateTimeFormat('en-CA', {
-  timeZone: 'Europe/Madrid',
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-  hour: '2-digit',
-  minute: '2-digit',
-  second: '2-digit',
-  hourCycle: 'h23',
-});
-
-export function madridInstant(date: Date): MadridInstant {
-  const parts = Object.fromEntries(madridFormat.formatToParts(date).map((p) => [p.type, p.value]));
-  return {
-    dateKey: `${parts['year']}${parts['month']}${parts['day']}`,
-    seconds: Number(parts['hour']) * 3600 + Number(parts['minute']) * 60 + Number(parts['second']),
-  };
+/** Autobuses del feed de posiciones, con la línea y el sentido de su viaje. */
+export function liveVehicles(feed: readonly FeedVehicle[], index: LiveIndex): Vehicle[] {
+  return feed.flatMap((vehicle): Vehicle[] => {
+    const pattern = vehicle.tripId ? patternOf(index, vehicle.tripId) : null;
+    if (!pattern) return [];
+    return [
+      {
+        id: vehicle.id,
+        lineId: pattern.lineId,
+        directionId: pattern.directionId,
+        lat: vehicle.lat,
+        lon: vehicle.lon,
+        timestamp: vehicle.timestamp,
+        tripId: vehicle.tripId,
+      },
+    ];
+  });
 }
 
-/** Minutos desde el dato hasta ahora (null si es de otro día o del futuro). */
-export function ageMinutes(vehicle: Vehicle, now: MadridInstant): number | null {
-  if (vehicle.dateKey !== now.dateKey) return null;
-  const age = (now.seconds - vehicle.seconds) / 60;
-  return age >= -1 ? Math.max(0, age) : null;
+/** Posición (en el viaje) de la próxima parada que le queda: la primera aún por llegar. */
+export function nextStopIndex(trip: LiveTrip, now: number): number | null {
+  const index = trip.arrivals.findIndex(
+    (time) => time !== null && time >= now - ARRIVING_GRACE_SECONDS,
+  );
+  return index === -1 ? null : index;
 }
 
 /**
- * Autobuses de una línea y sentido que aún no han pasado por la parada `stopIndex`
- * del sentido, con su llegada estimada, del más cercano al más lejano. Con
- * `context` (Fase 6) se usa el viaje concreto de cada autobús y su ritmo real.
+ * Llegadas a una parada de los viajes de una línea y sentido, de la más
+ * próxima a la más lejana (hasta MAX_ESTIMATE_MINUTES).
  */
-export function estimateArrivals(
-  vehicles: readonly Vehicle[],
+export function arrivalsAt(
+  trips: readonly LiveTrip[],
   lineId: string,
-  direction: Direction,
-  stopIndex: number,
-  now: MadridInstant,
-  context: LiveContext = {},
+  directionId: number,
+  stopId: string,
+  now: number,
 ): EstimatedArrival[] {
-  if (!direction.minutes || stopIndex < 0) return [];
-  return vehicles
-    .flatMap((vehicle): EstimatedArrival[] => {
-      if (vehicle.lineId !== lineId || vehicle.directionId !== direction.id) return [];
-      const age = ageMinutes(vehicle, now);
-      if (age === null || age > MAX_AGE_MINUTES) return [];
-      // La última parada antes de la pedida (las circulares pueden repetir paradas).
-      const last = direction.stopIds.lastIndexOf(vehicle.lastStopId, stopIndex - 1);
-      if (last === -1) return [];
-      const progress = vehicleProgress(vehicle, direction, last, context);
-      if (!progress) return [];
-      // Si el mapa ya sabe por dónde va (posición dibujada), la llegada sale de ahí.
-      const live = context.progressOf?.(vehicle.id);
-      const sameDirection = live?.directionKey === `${lineId}|${direction.id}`;
-      const remaining =
-        live && sameDirection
-          ? (live.profile[stopIndex]! - live.minutes) / live.pace
-          : minutesToStop(progress, last, stopIndex, age);
-      // Ya ha pasado por la parada (con medio minuto de margen mientras para).
-      if (remaining < -0.5) return [];
-      if (remaining > MAX_ESTIMATE_MINUTES) return [];
+  return trips
+    .flatMap((trip): EstimatedArrival[] => {
+      if (trip.lineId !== lineId || trip.directionId !== directionId) return [];
+      // La primera vez que pasa por la parada aún por llegar (las circulares la repiten).
+      const index = trip.stops.findIndex(
+        (id, i) => id === stopId && (trip.arrivals[i] ?? -Infinity) >= now - ARRIVING_GRACE_SECONDS,
+      );
+      if (index === -1) return [];
+      const remaining = (trip.arrivals[index]! - now) / 60;
+      const age = (now - trip.timestamp) / 60;
+      if (remaining > MAX_ESTIMATE_MINUTES || age > MAX_AGE_MINUTES) return [];
+      const delay = trip.delays[index];
       return [
         {
-          vehicleId: vehicle.id,
+          tripId: trip.tripId,
+          vehicleId: trip.vehicleId,
           minutes: Math.max(0, Math.round(remaining)),
-          ageMinutes: Math.round(age),
-          delayMinutes: progress.delay === null ? null : Math.round(progress.delay),
+          ageMinutes: Math.max(0, Math.round(age)),
+          delayMinutes: delay === null || delay === undefined ? null : Math.round(delay / 60),
         },
       ];
     })
     .sort((a, b) => a.minutes - b.minutes);
+}
+
+/** Minutos desde el dato hasta ahora (al menos 0). */
+export function ageMinutes(vehicle: Vehicle, now: number): number {
+  return Math.max(0, (now - vehicle.timestamp) / 60);
+}
+
+/** Segundos Unix de una hora "HH:MM:SS" del día AAAAMMDD en Madrid (como `start_time`). */
+export function madridEpoch(dateKey: string, time: string): number | null {
+  const date = /^(\d{4})(\d{2})(\d{2})$/.exec(dateKey);
+  const clock = /^(\d{1,2}):(\d{2}):(\d{2})$/.exec(time);
+  if (!date || !clock) return null;
+  const seconds = Number(clock[1]) * 3600 + Number(clock[2]) * 60 + Number(clock[3]);
+  const noonUtc = Date.UTC(Number(date[1]), Number(date[2]) - 1, Number(date[3]), 12);
+  // Diferencia de Madrid con UTC ese día (1 h en invierno, 2 h en verano).
+  const offset = madridOffsetMinutes(new Date(noonUtc));
+  return (noonUtc - 12 * 3_600_000) / 1000 + seconds - offset * 60;
+}
+
+const offsetFormat = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'Europe/Madrid',
+  timeZoneName: 'shortOffset',
+});
+
+function madridOffsetMinutes(date: Date): number {
+  const name = offsetFormat.formatToParts(date).find((p) => p.type === 'timeZoneName')?.value;
+  const match = /GMT([+-])(\d{1,2})(?::(\d{2}))?/.exec(name ?? '');
+  if (!match) return 60;
+  const minutes = Number(match[2]) * 60 + Number(match[3] ?? 0);
+  return match[1] === '-' ? -minutes : minutes;
+}
+
+/** Autobús que va hacia una parada: el que antes llega de los que la sirven. */
+export interface ApproachingBus {
+  readonly vehicleId: string;
+  readonly lineId: string;
+  /** Minutos que faltan (null si pasa de MAX_ESTIMATE_MINUTES: entonces se dicen las paradas). */
+  readonly minutes: number | null;
+  /** Paradas que le quedan hasta la de destino. */
+  readonly stopsAway: number;
+}
+
+/**
+ * "Ubicar bus más cercano": de los viajes con autobús asignado de las líneas y
+ * sentidos que paran aquí, el que antes llega a la parada (siempre uno que va
+ * hacia ella, nunca uno que ya pasó o va al revés).
+ */
+export function approachingBus(
+  trips: readonly LiveTrip[],
+  services: readonly { readonly lineId: string; readonly directionId: number }[],
+  stopId: string,
+  now: number,
+): ApproachingBus | null {
+  let best: { trip: LiveTrip; at: number; index: number } | null = null;
+  for (const trip of trips) {
+    if (!trip.vehicleId) continue;
+    if (!services.some((s) => s.lineId === trip.lineId && s.directionId === trip.directionId)) {
+      continue;
+    }
+    const index = trip.stops.findIndex(
+      (id, i) => id === stopId && (trip.arrivals[i] ?? -Infinity) >= now - ARRIVING_GRACE_SECONDS,
+    );
+    if (index === -1 || (now - trip.timestamp) / 60 > MAX_AGE_MINUTES) continue;
+    const at = trip.arrivals[index]!;
+    if (!best || at < best.at) best = { trip, at, index };
+  }
+  if (!best) return null;
+  const remaining = (best.at - now) / 60;
+  const ahead = nextStopIndex(best.trip, now) ?? best.index;
+  return {
+    vehicleId: best.trip.vehicleId!,
+    lineId: best.trip.lineId,
+    minutes: remaining > MAX_ESTIMATE_MINUTES ? null : Math.max(0, Math.round(remaining)),
+    stopsAway: Math.max(0, best.index - ahead),
+  };
 }

@@ -1,5 +1,5 @@
 import { SCHEMA_VERSION } from '../config.ts';
-import type { NetworkFile, TimetablesFile } from '../output-schema.ts';
+import type { LivePattern, NetworkFile, TimetablesFile } from '../output-schema.ts';
 import type { GtfsTrip } from '../sources/gtfs.ts';
 import type { TripTimes } from '../sources/gtfs-times.ts';
 
@@ -25,6 +25,7 @@ export function buildTimetables(
   const profiles: NonNullable<TimetablesFile['profiles']> = {};
   const departureProfiles: NonNullable<TimetablesFile['departureProfiles']> = {};
   const usedServices = new Set<string>();
+  const live = new LiveIndex();
 
   for (const line of network.lines) {
     const lineTrips = trips.filter((t) => t.lineCode === line.id);
@@ -54,6 +55,7 @@ export function buildTimetables(
         const profile =
           (trip.times && tripProfile(direction.stopIds, direction.minutes ?? [], trip.times)) ??
           fallback;
+        live.add(line.id, direction.id, trip);
         (byService[trip.serviceId] ??= []).push({
           start: Math.round(trip.startSeconds / 60),
           profile: indexOf(profile),
@@ -77,7 +79,53 @@ export function buildTimetables(
   const services = Object.fromEntries(
     [...serviceDates].filter(([service]) => usedServices.has(service)),
   );
-  return { schemaVersion: SCHEMA_VERSION, services, departures, profiles, departureProfiles };
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    services,
+    departures,
+    profiles,
+    departureProfiles,
+    livePatterns: live.patterns,
+    liveTrips: live.trips,
+  };
+}
+
+/** "G2606S_F21_072-03_13" -> horario "G2606S", bloque "072-03" y viaje 13. */
+export function liveTripKey(
+  tripId: string,
+): { schedule: string; block: string; trip: number } | null {
+  const match = /^([^_]+)_[^_]+_(.+)_(\d+)$/.exec(tripId);
+  if (!match) return null;
+  return { schedule: match[1]!, block: match[2]!, trip: Number(match[3]) };
+}
+
+/** Recorridos y viajes para el tiempo real (ver TimetablesFile.liveTrips). */
+class LiveIndex {
+  readonly patterns: LivePattern[] = [];
+  readonly trips: Record<string, Record<string, number[]>> = {};
+  private readonly byKey = new Map<string, number>();
+
+  add(line: string, direction: number, trip: GtfsTrip): void {
+    const key = trip.tripId && liveTripKey(trip.tripId);
+    const stops = trip.times?.stopCodes ?? [];
+    if (!key || key.trip < 1 || stops.length === 0 || stops.some((code) => !code)) return;
+    const patternKey = `${line}|${direction}|${stops.join(',')}`;
+    let index = this.byKey.get(patternKey);
+    if (index === undefined) {
+      index =
+        this.patterns.push({
+          line,
+          direction,
+          stops,
+          minutes: trip.times!.minutes.map((m) => Math.round(m * 10) / 10),
+        }) - 1;
+      this.byKey.set(patternKey, index);
+    }
+    const list = ((this.trips[key.schedule] ??= {})[key.block] ??= []);
+    while (list.length < key.trip) list.push(-1);
+    // Pocas claves repiten número con otro recorrido (variantes del mismo horario): vale el primero.
+    if (list[key.trip - 1] === -1) list[key.trip - 1] = index;
+  }
 }
 
 /** Si un viaje coincide en menos paradas que estas, se usa el tiempo típico del sentido. */

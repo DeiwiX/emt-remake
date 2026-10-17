@@ -133,8 +133,9 @@ import { LocateBusButtonComponent } from '../../shared/locate-bus-button/locate-
             <!-- Panel de salidas: todas las líneas juntas, por orden de paso (17/10/2026). -->
             <h2 class="ion-padding-horizontal">{{ 'departures.title' | transloco }}</h2>
             <app-departures-board class="ion-padding-horizontal" [stop]="stop" />
-            <h2 class="ion-padding-horizontal">{{ 'stopDetail.lines' | transloco }}</h2>
-            <ion-list [attr.aria-label]="'stopDetail.lines' | transloco">
+            <!-- En una estación de metro se habla de trenes. -->
+            <h2 class="ion-padding-horizontal">{{ linesKey() | transloco }}</h2>
+            <ion-list [attr.aria-label]="linesKey() | transloco">
               @for (service of services(); track service.lineId + '-' + service.directionId) {
                 <!-- El enlace a la línea va aparte: dentro de la fila están los botones del aviso. -->
                 <ion-item>
@@ -163,7 +164,10 @@ import { LocateBusButtonComponent } from '../../shared/locate-bus-button/locate-
               }
             </ion-list>
             <p class="ion-padding-horizontal">
-              <ion-note>{{ 'stopDetail.nextBusNote' | transloco }}</ion-note>
+              <ion-note>{{
+                (stop.mode === 'metro' ? 'stopDetail.nextBusNoteMetro' : 'stopDetail.nextBusNote')
+                  | transloco
+              }}</ion-note>
             </p>
           } @else if (notFound()) {
             <p class="ion-padding" role="status">
@@ -255,6 +259,11 @@ export class StopDetailPage {
   /** Líneas de autobús que paran aquí (para los avisos de la EMT). */
   protected readonly busLineIds = computed(() =>
     this.lineIds().filter((id) => this.network.getLine(id)?.mode !== 'metro'),
+  );
+
+  /** "Líneas y próximos buses" o, en una estación de metro, "…trenes". */
+  protected readonly linesKey = computed(() =>
+    this.stop()?.mode === 'metro' ? 'stopDetail.linesMetro' : 'stopDetail.lines',
   );
 
   protected readonly services = computed(() =>

@@ -10,9 +10,7 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { IonIcon } from '@ionic/angular';
 
 import { NetworkRepository } from '../../core/data/repositories';
-import { estimateArrivals } from '../../core/realtime/realtime';
 import { RealtimeService } from '../../core/realtime/realtime.service';
-import { ArrivalContextService } from '../../core/realtime/arrival-context.service';
 import { ScheduleClockService } from '../../core/schedule/schedule-clock.service';
 import { dateKeyOf, dayOffsetOf, formatClock } from '../../core/schedule/schedule';
 import { ArrivalAlertPickerComponent } from '../arrival-alert-picker/arrival-alert-picker.component';
@@ -253,7 +251,6 @@ export class NextBusComponent {
   private readonly transloco = inject(TranslocoService);
   private readonly network = inject(NetworkRepository);
   private readonly realtime = inject(RealtimeService);
-  private readonly arrivalContext = inject(ArrivalContextService);
 
   readonly lineId = input.required<string>();
   readonly directionId = input.required<number>();
@@ -283,13 +280,10 @@ export class NextBusComponent {
       .getLine(this.lineId())
       ?.directions.find((d) => d.id === this.directionId());
     if (!direction) return null;
-    const arrivals = estimateArrivals(
-      this.realtime.vehicles(),
+    const arrivals = this.realtime.arrivals(
       this.lineId(),
       direction,
       direction.stopIds.indexOf(this.stopId()),
-      this.realtime.now(),
-      this.arrivalContext.context(),
     );
     const [first] = arrivals;
     if (!first) return null;
@@ -324,7 +318,7 @@ export class NextBusComponent {
     const now = this.schedule.clock().minutes;
     const liveMinutes = this.live()?.minutes ?? [];
     const live = (this.live()?.arrivals ?? []).map((a) =>
-      this.livePassing(a.minutes, now, a.vehicleId),
+      this.livePassing(a.minutes, now, a.tripId),
     );
     if (result.state !== 'ready') {
       return { kind: result.state, passings: live, scheduled: 0 };
@@ -347,7 +341,7 @@ export class NextBusComponent {
     };
   });
 
-  private livePassing(minutes: number, now: number, vehicleId: string): Passing {
+  private livePassing(minutes: number, now: number, tripId: string): Passing {
     const time = formatClock(now + minutes);
     const main =
       minutes === 0
@@ -358,7 +352,7 @@ export class NextBusComponent {
       sub: time,
       spoken: `${this.transloco.translate('realtime.liveLabel')}: ${main}`,
       live: true,
-      key: `v${vehicleId}`,
+      key: `v${tripId}`,
     };
   }
 

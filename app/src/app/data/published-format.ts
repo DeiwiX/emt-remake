@@ -239,6 +239,9 @@ export interface TimetablesFile {
   departures: Record<string, Record<string, number[]>>;
   profiles?: Record<string, number[][]>;
   departureProfiles?: Record<string, Record<string, number[]>>;
+  /** Para leer el tiempo real de la EMT (GTFS-RT, 17/10/2026): recorridos y viajes. */
+  livePatterns?: { line: string; direction: number; stops: string[]; minutes: number[] }[];
+  liveTrips?: Record<string, Record<string, number[]>>;
 }
 
 export function parseTimetables(value: unknown): TimetablesFile {
@@ -302,11 +305,47 @@ export function parseTimetables(value: unknown): TimetablesFile {
             ],
           ),
         );
+  // Recorridos y viajes del tiempo real (opcional): las publicaciones anteriores no los traen.
+  const livePatterns =
+    t['livePatterns'] === undefined
+      ? undefined
+      : array(t['livePatterns'], 'timetables.livePatterns').map((raw, p) => {
+          const pattern = record(raw, `livePatterns[${p}]`);
+          return {
+            line: string(pattern['line'], `livePatterns[${p}].line`),
+            direction: number(pattern['direction'], `livePatterns[${p}].direction`),
+            stops: array(pattern['stops'], `livePatterns[${p}].stops`).map((s, i) =>
+              string(s, `livePatterns[${p}].stops[${i}]`),
+            ),
+            minutes: array(pattern['minutes'], `livePatterns[${p}].minutes`).map((m, i) =>
+              number(m, `livePatterns[${p}].minutes[${i}]`),
+            ),
+          };
+        });
+  const liveTrips =
+    t['liveTrips'] === undefined
+      ? undefined
+      : Object.fromEntries(
+          Object.entries(record(t['liveTrips'], 'timetables.liveTrips')).map(
+            ([schedule, blocks]) => [
+              schedule,
+              Object.fromEntries(
+                Object.entries(record(blocks, `liveTrips.${schedule}`)).map(([block, list]) => [
+                  block,
+                  array(list, `liveTrips.${schedule}.${block}`).map((n, i) =>
+                    number(n, `liveTrips.${schedule}.${block}[${i}]`),
+                  ),
+                ]),
+              ),
+            ],
+          ),
+        );
   return {
     schemaVersion: SUPPORTED_SCHEMA_VERSION,
     services,
     departures,
     ...(profiles && departureProfiles ? { profiles, departureProfiles } : {}),
+    ...(livePatterns && liveTrips ? { livePatterns, liveTrips } : {}),
   };
 }
 

@@ -3,18 +3,15 @@ import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { IonButton, IonIcon } from '@ionic/angular';
 
-import { NetworkRepository } from '../../core/data/repositories';
-import { metresBetween } from '../../core/location/geo';
 import { Stop } from '../../core/models/network.model';
-import { ArrivalContextService } from '../../core/realtime/arrival-context.service';
-import { MAX_AGE_MINUTES, ageMinutes, estimateArrivals } from '../../core/realtime/realtime';
+import { approachingBus } from '../../core/realtime/realtime';
 import { RealtimeService } from '../../core/realtime/realtime.service';
 
 /**
  * "Ubicar bus más cercano": abre el Mapa siguiendo el autobús que antes llega a
  * la parada (de cualquiera de sus líneas, en el sentido que pasa por ella),
- * según el tiempo real. Solo autobuses que van hacia la parada: nunca uno que
- * ya ha pasado o va en sentido contrario. Solo en la app del móvil.
+ * según el tiempo real de la EMT. Solo autobuses que van hacia la parada: nunca
+ * uno que ya ha pasado o va en sentido contrario. Solo en la app del móvil.
  */
 @Component({
   selector: 'app-locate-bus-button',
@@ -44,9 +41,7 @@ import { RealtimeService } from '../../core/realtime/realtime.service';
   `,
 })
 export class LocateBusButtonComponent {
-  private readonly network = inject(NetworkRepository);
   private readonly realtime = inject(RealtimeService);
-  private readonly arrivalContext = inject(ArrivalContextService);
 
   readonly stop = input.required<Stop>();
   readonly size = input<'small' | 'default'>('default');
@@ -58,66 +53,12 @@ export class LocateBusButtonComponent {
     this.realtime.watch();
   }
 
-  protected readonly nearestBus = computed(() => {
-    const stop = this.stop();
-    let best: {
-      vehicleId: string;
-      lineId: string;
-      minutes: number | null;
-      stopsAway: number;
-      metres: number;
-    } | null = null;
-    for (const service of stop.services) {
-      const direction = this.network
-        .getLine(service.lineId)
-        ?.directions.find((d) => d.id === service.directionId);
-      if (!direction) continue;
-      const [first] = estimateArrivals(
-        this.realtime.vehicles(),
-        service.lineId,
-        direction,
-        direction.stopIds.indexOf(stop.id),
-        this.realtime.now(),
-        this.arrivalContext.context(),
-      );
-      if (first && (best?.minutes == null || first.minutes < best.minutes)) {
-        best = {
-          vehicleId: first.vehicleId,
-          lineId: service.lineId,
-          minutes: first.minutes,
-          stopsAway: 0,
-          metres: 0,
-        };
-      }
-    }
-    if (best) return best;
-    // Sin llegada estimada (p. ej. a más de una hora): el que va hacia la parada
-    // por su mismo sentido y le quedan menos paradas para llegar, no el que está
-    // más cerca en línea recta (17/10/2026). Nunca uno que ya pasó o va al revés.
-    const now = this.realtime.now();
-    for (const vehicle of this.realtime.vehicles()) {
-      const service = stop.services.find(
-        (s) => s.lineId === vehicle.lineId && s.directionId === vehicle.directionId,
-      );
-      if (!service) continue;
-      const age = ageMinutes(vehicle, now);
-      if (age === null || age > MAX_AGE_MINUTES) continue;
-      const stopIds =
-        this.network.getLine(vehicle.lineId)?.directions.find((d) => d.id === vehicle.directionId)
-          ?.stopIds ?? [];
-      const stopIndex = stopIds.indexOf(stop.id);
-      const lastIndex = stopIds.lastIndexOf(vehicle.lastStopId, stopIndex - 1);
-      if (lastIndex === -1) continue;
-      const stopsAway = stopIndex - lastIndex;
-      const metres = Math.round(metresBetween([stop.lat, stop.lon], [vehicle.lat, vehicle.lon]));
-      const closer =
-        !best ||
-        stopsAway < best.stopsAway ||
-        (stopsAway === best.stopsAway && metres < best.metres);
-      if (closer) {
-        best = { vehicleId: vehicle.id, lineId: vehicle.lineId, minutes: null, stopsAway, metres };
-      }
-    }
-    return best;
-  });
+  protected readonly nearestBus = computed(() =>
+    approachingBus(
+      this.realtime.trips(),
+      this.stop().services,
+      this.stop().id,
+      this.realtime.now(),
+    ),
+  );
 }
