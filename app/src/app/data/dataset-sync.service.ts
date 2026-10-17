@@ -25,6 +25,8 @@ import {
   parseTraffic,
   parseWalkGraph,
   WalkGraphFile,
+  DelaysFile,
+  parseDelays,
   parseZones,
 } from './published-format';
 
@@ -36,7 +38,14 @@ const KEYS = {
 
 /** Ficheros que se descargan bajo demanda (no al arrancar). */
 type AuxFile =
-  'shapesOverview' | 'shapesDetail' | 'zones' | 'timetables' | 'streets' | 'traffic' | 'walkGraph';
+  | 'shapesOverview'
+  | 'shapesDetail'
+  | 'zones'
+  | 'timetables'
+  | 'streets'
+  | 'traffic'
+  | 'walkGraph'
+  | 'delays';
 
 interface StoredDataset {
   manifest: unknown;
@@ -112,6 +121,11 @@ export class DatasetSyncService extends DataStatusService {
   /** Red peatonal para las rutas andando de "Cómo llegar". */
   getWalkGraphFile(): Promise<WalkGraphFile> {
     return this.getAuxFile('walkGraph', parseWalkGraph);
+  }
+
+  /** Retrasos habituales (Fase 10): con el horario, para corregir sus horas. */
+  getDelaysFile(): Promise<DelaysFile> {
+    return this.getAuxFile('delays', parseDelays);
   }
 
   /** Salidas programadas (próximos buses según horario y "Cómo llegar"). */

@@ -33,6 +33,8 @@ interface Passing {
   readonly live?: boolean;
   /** Clave del paso para el aviso: "v<autobús>" (tiempo real) o "s<minutos>" (horario). */
   readonly key: string;
+  /** Hora del horario corregida con el retraso habitual (Fase 10). */
+  readonly typical?: boolean;
 }
 
 /**
@@ -231,7 +233,9 @@ interface Passing {
             · {{ 'nextBus.restScheduled' | transloco }}
           }
         } @else {
-          <ion-icon name="time-outline" />{{ 'nextBus.scheduled' | transloco }}
+          <ion-icon name="time-outline" />{{
+            (hasTypical() ? 'nextBus.scheduledTypical' : 'nextBus.scheduled') | transloco
+          }}
         }
       </span>
     }
@@ -322,10 +326,14 @@ export class NextBusComponent {
     }
     const after = liveMinutes.length > 0 ? now + liveMinutes.at(-1)! + 2 : -Infinity;
     const scheduled = result.times
-      .filter((minutes) => minutes > after)
+      .map((minutes, i) => ({ minutes, delay: result.delays?.[i] ?? 0 }))
+      .filter(({ minutes }) => minutes > after)
       .slice(0, COUNT - live.length)
-      .map((minutes) =>
-        this.passing(minutes, result.clock.minutes, dateKeyOf(result.clock.dateKey, minutes)),
+      .map(({ minutes, delay }) =>
+        this.withDelay(
+          this.passing(minutes, result.clock.minutes, dateKeyOf(result.clock.dateKey, minutes)),
+          delay,
+        ),
       );
     return {
       kind: 'ready' as const,
@@ -348,6 +356,9 @@ export class NextBusComponent {
       key: `v${vehicleId}`,
     };
   }
+
+  /** Algún paso del horario va corregido con el retraso habitual. */
+  protected readonly hasTypical = computed(() => this.view().passings.some((p) => p.typical));
 
   /** "Próximos buses: en tiempo real, en ~4 min; 18:27, en 19 min…" */
   protected readonly spoken = computed(() =>
@@ -377,6 +388,23 @@ export class NextBusComponent {
     }
     const day = this.weekday(dateKey, dayOffsetOf(minutes));
     return { main: time, sub: day, spoken: `${day} ${time}`, key: `s${minutes}` };
+  }
+
+  /**
+   * Fase 10: un paso del horario corregido con el retraso habitual lo dice
+   * ("18:27 · +3") para que se sepa que no es la hora exacta del horario.
+   */
+  private withDelay(passing: Passing, delay: number): Passing {
+    if (delay === 0) return passing;
+    const note = this.transloco.translate('nextBus.typical', {
+      minutes: `${delay > 0 ? '+' : '−'}${Math.abs(delay)}`,
+    });
+    return {
+      ...passing,
+      sub: `${passing.sub} · ${note}`,
+      spoken: `${passing.spoken}, ${this.transloco.translate('nextBus.typicalSpoken', { minutes: delay })}`,
+      typical: true,
+    };
   }
 
   private weekday(dateKey: string, offset: number): string {

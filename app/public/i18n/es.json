@@ -214,6 +214,9 @@
     "walkFrom": "Camina ~{{minutes}} min hasta {{place}}"
   },
   "nextBus": {
+    "typical": "{{minutes}} habitual",
+    "typicalSpoken": "suele ir {{minutes}} min tarde a esta hora",
+    "scheduledTypical": "Horario con el retraso habitual a esta hora",
     "loading": "Cargando horario…",
     "unavailable": "Sin horario publicado para esta línea",
     "tomorrow": "mañana",

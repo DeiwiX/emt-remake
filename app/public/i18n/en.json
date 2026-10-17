@@ -214,6 +214,9 @@
     "walkFrom": "Walk ~{{minutes}} min to {{place}}"
   },
   "nextBus": {
+    "typical": "{{minutes}} usual",
+    "typicalSpoken": "usually {{minutes}} min late at this time",
+    "scheduledTypical": "Timetable with the usual delay at this time",
     "loading": "Loading timetable…",
     "unavailable": "No timetable published for this line",
     "tomorrow": "tomorrow",

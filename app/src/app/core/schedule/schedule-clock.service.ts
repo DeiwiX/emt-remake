@@ -1,6 +1,12 @@
 import { DestroyRef, Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 
-import { DataStatusService, NetworkRepository, ScheduleRepository } from '../data/repositories';
+import {
+  DataStatusService,
+  DelayRepository,
+  NetworkRepository,
+  ScheduleRepository,
+} from '../data/repositories';
+import { TypicalDelays, typicalDelay } from './typical-delay';
 import { ServiceClock, Timetables, madridClock, nextPassing } from './schedule';
 
 /** Cada cuánto se refresca "ahora" para recalcular los próximos buses. */
@@ -10,7 +16,14 @@ export type NextBuses =
   | { readonly state: 'loading' }
   /** La línea no publica horario (91–93) o no se pudo descargar. */
   | { readonly state: 'unavailable' }
-  | { readonly state: 'ready'; readonly times: readonly number[]; readonly clock: ServiceClock };
+  | {
+      readonly state: 'ready';
+      /** Horas de paso, ya corregidas con el retraso habitual (Fase 10). */
+      readonly times: readonly number[];
+      /** Minutos de retraso habitual sumados a cada paso (0 si no hay dato). */
+      readonly delays: readonly number[];
+      readonly clock: ServiceClock;
+    };
 
 /**
  * Hora actual de servicio y horario programado compartidos por las pantallas
@@ -41,6 +54,10 @@ export class ScheduleClockService {
     return last || null;
   });
   private loading: Promise<void> | null = null;
+  private readonly delayRepository = inject(DelayRepository);
+  private readonly typicalSignal = signal<TypicalDelays | null>(null);
+  /** true si hay retrasos habituales publicados (para decirlo en pantalla). */
+  readonly hasTypicalDelays = computed(() => this.typicalSignal() !== null);
   /** Opcional: sin él (pruebas) el horario no se recarga al llegar datos nuevos. */
   private readonly dataStatus = inject(DataStatusService, { optional: true });
   /** Fecha de generación de los datos con los que se cargó el horario. */
@@ -73,6 +90,8 @@ export class ScheduleClockService {
     if (this.timetablesSignal() && this.timetablesSignal() !== 'error') return Promise.resolve();
     const status = this.dataStatus?.status();
     this.loadedFor = status?.state === 'ready' ? status.generatedAt.getTime() : 0;
+    // Los retrasos habituales son opcionales: sin ellos, el horario tal cual.
+    void this.delayRepository.getDelays().then((delays) => this.typicalSignal.set(delays));
     this.loading ??= this.scheduleRepository
       .getTimetables()
       .then((timetables) => this.timetablesSignal.set(timetables))
@@ -87,6 +106,7 @@ export class ScheduleClockService {
   /** Carga el horario de los datos nuevos; mientras, se sigue usando el anterior. */
   private async reload(generated: number): Promise<void> {
     this.loadedFor = generated;
+    void this.delayRepository.getDelays().then((delays) => this.typicalSignal.set(delays));
     try {
       this.timetablesSignal.set(await this.scheduleRepository.getTimetables());
     } catch (error) {
@@ -103,7 +123,7 @@ export class ScheduleClockService {
     const index = direction?.stopIds.indexOf(stopId) ?? -1;
     if (!direction?.minutes || index === -1) return { state: 'unavailable' };
     const clock = this.clock();
-    const times = nextPassing(
+    const scheduled = nextPassing(
       timetables,
       lineId,
       directionId,
@@ -111,6 +131,12 @@ export class ScheduleClockService {
       clock,
       count,
     );
-    return times.length > 0 ? { state: 'ready', times, clock } : { state: 'unavailable' };
+    // Fase 10: cada paso, con lo que suele ir tarde esa línea a esa hora en ese tramo.
+    const typical = this.typicalSignal();
+    const delays = scheduled.map((m) =>
+      typicalDelay(typical, lineId, directionId, index, clock.dateKey, m),
+    );
+    const times = scheduled.map((m, i) => m + delays[i]!);
+    return times.length > 0 ? { state: 'ready', times, delays, clock } : { state: 'unavailable' };
   }
 }

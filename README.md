@@ -177,6 +177,12 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
 - En el Mapa, "Mostrar atascos" pinta encima de los recorridos los tramos que los autobuses acaban de recorrer más despacio que su horario: naranja si van lentos (2 min de más y un 50 % más de lo previsto) y rojo si hay atasco (5 min de más y el doble). El panel los lista con la línea, las paradas y los minutos de más.
 - Se mide con dos datos seguidos de cada autobús (la fuente da uno cada ~5 min), así que hace falta tener el mapa abierto unos 5 min. No se mide en la primera ni en la última parada. Solo en la app del móvil. ADR 0015.
 
+### Retrasos habituales (Fase 10)
+
+- El flujo "Recogida de retrasos" de GitHub mira cada 5 min dónde va cada autobús, calcula cuánto va tarde frente a su viaje del horario y lo guarda en la rama `historico-retrasos` (`data/AAAAMMDD.csv`). Se puede lanzar a mano con `npm run collect-delays -- --history <carpeta> --rounds 1` en `pipeline/`.
+- El script de datos junta las 8 últimas semanas (`--delays-history <carpeta>`) y publica `delays.json`: la mediana del retraso por línea, sentido, tipo de día, hora y tramo de 5 paradas (no cuenta en `dataVersion`).
+- En la app, las horas del horario se corrigen con ese retraso y lo dicen ("18:27 · +3 habitual"). El tiempo real, cuando lo hay, manda. Hacen falta unas 2 semanas de datos para que se note. ADR 0016.
+
 ### Cortes de tráfico
 
 - `traffic.json` (se publica cada hora): cortes del Ayuntamiento ("Cortes de tráfico", CC BY-SA 4.0) e incidencias de la DGT (DATEX II) en la zona de Málaga, sin los ya terminados. Si una fuente falla se publica el resto; no cuenta en `dataVersion`, así que la app no vuelve a bajar la red cada hora.

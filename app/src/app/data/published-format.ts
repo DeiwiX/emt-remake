@@ -35,6 +35,8 @@ export interface ManifestFile {
     traffic?: FileEntry;
     /** Red peatonal de OpenStreetMap (se renueva cada semana). Opcional. */
     walkGraph?: FileEntry;
+    /** Retrasos habituales (Fase 10, se renueva cada hora). Opcional. */
+    delays?: FileEntry;
   };
   license: { id: string; url: string; attribution: string };
 }
@@ -332,6 +334,7 @@ export function parseManifest(value: unknown): ManifestFile {
       ...(files['walkGraph'] === undefined
         ? {}
         : { walkGraph: fileEntry(files['walkGraph'], 'walkGraph') }),
+      ...(files['delays'] === undefined ? {} : { delays: fileEntry(files['delays'], 'delays') }),
     },
     license: {
       id: string(license['id'], 'license.id'),
@@ -443,6 +446,33 @@ function parseStop(value: unknown, index: number): PublishedStop {
     lat: number(s['lat'], `${where}.lat`),
     lon: number(s['lon'], `${where}.lon`),
   };
+}
+
+/** Retrasos habituales (Fase 10, ADR 0016). */
+export interface DelaysFile {
+  schemaVersion: number;
+  days: number;
+  stopsPerBucket: number;
+  /** "línea|sentido|L/S/F" -> hora (0–23) -> tramo de paradas -> minutos (o null). */
+  delays: Record<string, (number | null)[][]>;
+}
+
+export function parseDelays(value: unknown): DelaysFile {
+  const d = record(value, 'delays');
+  schema(d['schemaVersion'], 'delays');
+  const stopsPerBucket = number(d['stopsPerBucket'], 'delays.stopsPerBucket');
+  if (stopsPerBucket < 1) throw new DataFormatError('delays.stopsPerBucket: no válido');
+  const delays = Object.fromEntries(
+    Object.entries(record(d['delays'], 'delays.delays')).map(([key, hours]) => [
+      key,
+      array(hours, `delays.${key}`).map((row, h) =>
+        array(row, `delays.${key}[${h}]`).map((m, b) =>
+          m === null ? null : number(m, `delays.${key}[${h}][${b}]`),
+        ),
+      ),
+    ]),
+  );
+  return { schemaVersion: 1, days: number(d['days'], 'delays.days'), stopsPerBucket, delays };
 }
 
 function fileEntry(value: unknown, where: string): FileEntry {

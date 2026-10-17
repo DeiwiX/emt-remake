@@ -14,6 +14,7 @@ import {
   ShapeRepository,
   StreetRepository,
   TrafficRepository,
+  DelayRepository,
   WalkGraphRepository,
   ZoneRepository,
 } from '../core/data/repositories';
@@ -25,6 +26,7 @@ import {
   StaticShapeRepository,
   StaticStreetRepository,
   StaticTrafficRepository,
+  StaticDelayRepository,
   StaticWalkGraphRepository,
   StaticZoneRepository,
 } from './static-repositories';
@@ -42,6 +44,7 @@ export function provideData(): (Provider | EnvironmentProviders)[] {
     { provide: ZoneRepository, useClass: StaticZoneRepository },
     { provide: StreetRepository, useClass: StaticStreetRepository },
     { provide: TrafficRepository, useClass: StaticTrafficRepository },
+    { provide: DelayRepository, useClass: StaticDelayRepository },
     { provide: WalkGraphRepository, useClass: StaticWalkGraphRepository },
     { provide: ScheduleRepository, useClass: StaticScheduleRepository },
     // No se espera al resultado: la app se pinta mientras se cargan los datos.

@@ -40,6 +40,7 @@ describe('Próximos buses y "Avísame"', () => {
       imports: [
         TranslocoTestingModule.forRoot({
           langs: { es },
+          preloadLangs: true,
           translocoConfig: { availableLangs: ['es'], defaultLang: 'es' },
         }),
       ],
@@ -52,6 +53,8 @@ describe('Próximos buses y "Avísame"', () => {
             nextBuses: (_l: string, _d: number, _s: string, count = 2) => ({
               state: 'ready',
               times: times.slice(0, count),
+              // El primero, corregido con 3 min de retraso habitual (Fase 10).
+              delays: times.slice(0, count).map((_, i) => (i === 0 ? 3 : 0)),
               clock,
             }),
           },
@@ -91,6 +94,15 @@ describe('Próximos buses y "Avísame"', () => {
     expect(question.textContent).toContain(formatClock(times[1]!));
     expect(pills[1].classList).toContain('selected');
     expect(pills[0].classList).not.toContain('selected');
+  });
+
+  it('dice cuándo una hora va corregida con el retraso habitual', async () => {
+    const fixture = render();
+    await fixture.whenStable();
+    const pills = fixture.nativeElement.querySelectorAll('button.passing');
+    expect(pills[0].textContent).toContain('+3 habitual');
+    expect(pills[1].textContent).not.toContain('habitual');
+    expect(fixture.nativeElement.textContent).toContain('Horario con el retraso habitual');
   });
 
   it('"Más horarios" ofrece hasta 12 pasos del horario', async () => {

@@ -6,6 +6,7 @@ import {
   ShapeRepository,
   StreetRepository,
   TrafficRepository,
+  DelayRepository,
   WalkGraphRepository,
   ZoneRepository,
 } from '../core/data/repositories';
@@ -24,6 +25,7 @@ import {
 import { DatasetSyncService } from './dataset-sync.service';
 import { NetworkFile } from './published-format';
 import { decodePolyline } from './polyline';
+import { TypicalDelays } from '../core/schedule/typical-delay';
 
 interface NetworkIndex {
   lines: readonly Line[];
@@ -111,6 +113,21 @@ export class StaticTrafficRepository extends TrafficRepository {
   async getTraffic(): Promise<readonly TrafficItem[]> {
     const file = await this.sync.getTrafficFile();
     return file.items.map((item) => ({ ...item, points: decodePolyline(item.points) }));
+  }
+}
+
+/** Retrasos habituales (Fase 10): null si la publicación aún no los trae. */
+@Injectable()
+export class StaticDelayRepository extends DelayRepository {
+  private readonly sync = inject(DatasetSyncService);
+
+  async getDelays(): Promise<TypicalDelays | null> {
+    try {
+      const file = await this.sync.getDelaysFile();
+      return { stopsPerBucket: file.stopsPerBucket, delays: file.delays };
+    } catch {
+      return null;
+    }
   }
 }
 

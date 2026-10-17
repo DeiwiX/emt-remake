@@ -12,6 +12,7 @@ import {
 import { WalkGraph } from '../walking/walk-graph';
 import { Timetables } from '../schedule/schedule';
 import { DataStatus } from './data-status';
+import { TypicalDelays } from '../schedule/typical-delay';
 
 /**
  * Contratos de acceso a datos. Las pantallas dependen de estas clases abstractas
@@ -63,6 +64,13 @@ export abstract class TrafficRepository {
 })
 export abstract class WalkGraphRepository {
   abstract getWalkGraph(): Promise<WalkGraph | null>;
+}
+
+/** Retrasos habituales (Fase 10). Si nadie lo configura (pruebas), no hay. */
+@Injectable({ providedIn: 'root', useFactory: () => ({ getDelays: () => Promise.resolve(null) }) })
+export abstract class DelayRepository {
+  /** null si no se publican (aún no hay histórico). */
+  abstract getDelays(): Promise<TypicalDelays | null>;
 }
 
 export abstract class ScheduleRepository {
