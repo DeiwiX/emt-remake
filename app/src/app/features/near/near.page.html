@@ -43,6 +43,20 @@
           @if (selectedStop(); as stop) {
             <app-stop-card [stop]="stop" (closed)="selectStop(null)" />
           }
+          @if (hasMetro()) {
+            <!-- Fase 11: filtrar por paradas de bus o estaciones de metro. -->
+            <div class="mode-filter" role="group" [attr.aria-label]="'near.filter' | transloco">
+              @for (mode of modes; track mode) {
+                <ion-button
+                  size="small"
+                  [fill]="modeFilter() === mode ? 'solid' : 'outline'"
+                  [attr.aria-pressed]="modeFilter() === mode"
+                  (click)="modeFilter.set(mode)"
+                  >{{ 'near.mode.' + mode | transloco }}</ion-button
+                >
+              }
+            </div>
+          }
           @if (near(); as near) {
             <div class="status" role="status">
               @if (near.stops.length === 0) {
@@ -72,7 +86,12 @@
                         'near.distance'
                           | transloco: { metres: roundMetres(item.metres), minutes: item.minutes }
                       }}</span>
-                      · {{ 'stops.code' | transloco: { id: item.stop.id } }} ·
+                      ·
+                      {{
+                        (item.stop.mode === 'metro' ? 'metro.station' : 'stops.code')
+                          | transloco: { id: item.stop.id }
+                      }}
+                      ·
                       {{ 'stops.servedBy' | transloco: { lines: lineCodes(item.stop) } }}
                     </p>
                   </ion-label>

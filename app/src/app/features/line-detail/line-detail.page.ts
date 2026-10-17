@@ -149,6 +149,7 @@ export class LineDetailPage {
     (this.selectedDirection()?.stopIds ?? []).map((id) => ({
       id,
       name: this.network.getStop(id)?.name ?? id,
+      mode: this.network.getStop(id)?.mode,
     })),
   );
 }

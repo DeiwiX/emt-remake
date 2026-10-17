@@ -129,7 +129,11 @@ const MAX_FIT_RESULTS = 200;
                   >
                     <span class="stop-name">{{ stop.name }}</span>
                     <span class="stop-meta">
-                      {{ 'stops.code' | transloco: { id: stop.id } }} ·
+                      {{
+                        (stop.mode === 'metro' ? 'metro.station' : 'stops.code')
+                          | transloco: { id: stop.id }
+                      }}
+                      ·
                       {{ 'stops.servedBy' | transloco: { lines: lineCodes(stop) } }}
                     </span>
                   </button>

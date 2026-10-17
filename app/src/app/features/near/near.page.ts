@@ -90,9 +90,19 @@ export class NearPage {
       ? Math.round(state.accuracy)
       : null;
   });
+  /** Fase 11: ver todo, solo paradas de bus o solo estaciones de metro. */
+  protected readonly modeFilter = signal<'all' | 'bus' | 'metro'>('all');
+  protected readonly modes = ['all', 'bus', 'metro'] as const;
+  protected readonly hasMetro = computed(() =>
+    this.network.stops().some((s) => s.mode === 'metro'),
+  );
   protected readonly near = computed(() => {
     const point = this.point();
-    return point ? stopsNear(this.network.stops(), point) : null;
+    const filter = this.modeFilter();
+    const stops = this.network
+      .stops()
+      .filter((s) => filter === 'all' || (filter === 'metro') === (s.mode === 'metro'));
+    return point ? stopsNear(stops, point) : null;
   });
 
   protected readonly selectedStop = computed(() => {

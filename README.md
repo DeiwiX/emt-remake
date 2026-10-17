@@ -177,6 +177,12 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
 - En el Mapa, "Mostrar atascos" pinta encima de los recorridos los tramos que los autobuses acaban de recorrer más despacio que su horario: naranja si van lentos (2 min de más y un 50 % más de lo previsto) y rojo si hay atasco (5 min de más y el doble). El panel los lista con la línea, las paradas y los minutos de más.
 - Se mide con dos datos seguidos de cada autobús (la fuente da uno cada ~5 min), así que hace falta tener el mapa abierto unos 5 min. No se mide en la primera ni en la última parada. Solo en la app del móvil. ADR 0015.
 
+### Metro de Málaga (Fase 11)
+
+- El script de datos añade el horario oficial del Metro de Málaga (GTFS de metromalaga.es): líneas L1 y L2 con sus colores oficiales y 19 estaciones (códigos `M...`), dentro de los mismos ficheros que la EMT. Si su descarga falla, se publica sin metro. ADR 0017.
+- En la app: tarjeta "Metro" en el inicio con el esquema de cada línea; las estaciones salen en el buscador, Cerca de mí (filtro Todo / Bus / Metro), favoritos y el detalle con los próximos trenes; "Cómo llegar" combina bus y metro (con transbordo a pie entre paradas cercanas). No hay tiempo real del metro.
+- "Cómo llegar" muestra hasta 8 opciones y su mapa es más bajo en el móvil para que se vean las opciones.
+
 ### Retrasos habituales (Fase 10)
 
 - El flujo "Recogida de retrasos" de GitHub mira cada 5 min dónde va cada autobús, calcula cuánto va tarde frente a su viaje del horario y lo guarda en la rama `historico-retrasos` (`data/AAAAMMDD.csv`). Se puede lanzar a mano con `npm run collect-delays -- --history <carpeta> --rounds 1` en `pipeline/`.

@@ -145,6 +145,14 @@
             <span class="tile-title">{{ 'near.title' | transloco }}</span>
             <span class="tile-description">{{ 'near.tile' | transloco }}</span>
           </a>
+          @if (hasMetro()) {
+            <!-- Fase 11: el metro tiene su pantalla (esquema de líneas y próximos trenes). -->
+            <a class="tile tone-metro" routerLink="/metro">
+              <span class="tile-icon" aria-hidden="true">M</span>
+              <span class="tile-title">{{ 'metro.title' | transloco }}</span>
+              <span class="tile-description">{{ 'metro.tile' | transloco }}</span>
+            </a>
+          }
           @if (!hasFavorites()) {
             <!-- Sin favoritos todavía: explica cómo guardarlos. -->
             <div class="tile tile-soon">

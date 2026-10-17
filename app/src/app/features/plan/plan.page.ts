@@ -204,7 +204,7 @@ export class PlanPage {
       ? planJourneys(this.network.lines(), origin, destination, {
           isSecondary: isNightLine,
           nearbyStops: this.nearbyStops(),
-          maxResults: 8,
+          maxResults: 10,
           // Los transbordos a pie de las opciones que salen, por la calle.
         }).map((option) => this.walking.refineTransfers(option))
       : [];
@@ -236,7 +236,8 @@ export class PlanPage {
       ),
     );
     const timed = sorted.filter((r) => kept.has(r.timed!));
-    return [...timed, ...rows.filter((r) => !r.timed)].slice(0, 6);
+    // Hasta 8 opciones: con el metro hay más combinaciones (bus, metro, bus + metro).
+    return [...timed, ...rows.filter((r) => !r.timed)].slice(0, 8);
   });
 
   protected readonly selectedIndex = linkedSignal(() => {

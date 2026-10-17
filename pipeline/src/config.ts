@@ -57,6 +57,12 @@ export const SOURCES = {
     url: 'https://nap.dgt.es/datex2/v3/dgt/SituationPublication/datex2_v36.xml',
   },
   /** Calles por las que se puede andar (OpenStreetMap vía Overpass API, ODbL). */
+  /** Horario oficial del Metro de Málaga (Fase 11; licencia no indicada por el operador). */
+  metro: {
+    name: 'Metro de Málaga – GTFS',
+    dataset: 'https://metromalaga.es/',
+    url: 'https://metromalaga.es/GTFS/GTFS_METRO_MALAGA.zip',
+  },
   /** Posiciones de los autobuses (Fase 10: se guardan para aprender los retrasos habituales). */
   vehicles: {
     name: 'Ubicaciones de autobuses EMT en tiempo real',

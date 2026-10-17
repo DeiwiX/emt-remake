@@ -55,6 +55,17 @@
     "title": "Próximas salidas",
     "none": "No hay más salidas hoy ni mañana según el horario."
   },
+  "metro": {
+    "title": "Metro",
+    "tile": "L1 y L2 · próximos trenes",
+    "lines": "Líneas de metro",
+    "stations": "Estaciones en orden",
+    "transfer": "Transbordo con",
+    "onMap": "Ver en el mapa",
+    "none": "Los datos publicados no traen el metro.",
+    "note": "Horario oficial de Metro de Málaga, sin tiempo real. Toca una estación para ver sus próximos trenes.",
+    "station": "Estación de metro"
+  },
   "stopDetail": {
     "title": "Parada {{id}}",
     "address": "Dirección: {{address}}",
@@ -249,6 +260,8 @@
     "renameAlias": "Cambiar nombre"
   },
   "near": {
+    "filter": "Mostrar",
+    "mode": { "all": "Todo", "bus": "Bus", "metro": "Metro" },
     "title": "Cerca de mí",
     "tile": "Paradas a tu alrededor",
     "refresh": "Actualizar mi ubicación",

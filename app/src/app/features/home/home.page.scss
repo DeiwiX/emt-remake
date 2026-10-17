@@ -235,6 +235,13 @@ ion-content {
   color: var(--sea-fg);
 }
 
+.tone-metro .tile-icon {
+  background: #6b2c91;
+  color: #fff;
+  font-family: var(--app-font-display);
+  font-weight: 800;
+}
+
 .tone-coral .tile-icon {
   background: var(--coral-bg);
   color: var(--coral-fg);

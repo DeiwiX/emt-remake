@@ -33,7 +33,10 @@ export function parseStreets(viasCsv: string, typesCsv: string, numbersCsv: stri
     const street = streets.get((row['CODVIAL5'] ?? '').trim());
     const number = Number.parseInt(row['NUMERO'] ?? '', 10);
     if (!street || !Number.isFinite(number)) continue;
-    street.portals.push({ number, point: parseWktPoint(row['SDOPUNTO'] ?? '', `portal fila ${i + 2}`) });
+    street.portals.push({
+      number,
+      point: parseWktPoint(row['SDOPUNTO'] ?? '', `portal fila ${i + 2}`),
+    });
   }
   return [...streets.values()];
 }

@@ -15,3 +15,14 @@ ion-item.is-selected {
 .distance {
   font-weight: 600;
 }
+
+/* Fase 11: Todo / Bus / Metro. */
+.mode-filter {
+  display: flex;
+  gap: 6px;
+  padding: 8px 16px 0;
+
+  ion-button {
+    margin: 0;
+  }
+}

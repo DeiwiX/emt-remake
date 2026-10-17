@@ -12,7 +12,21 @@ const FALLBACK: LineColor = { line: '#5A5A5A', text: '#FFFFFF' };
 export class LineColorsService {
   private readonly scheme = inject(ColorSchemeService).scheme;
   private readonly lines = inject(NetworkRepository).lines;
-  private readonly assignment = computed(() => assignLineColors(this.lines()));
+  /**
+   * Las líneas con color oficial (el metro: L1 rojo, L2 azul) lo conservan; al
+   * resto se les reparte la paleta propia.
+   */
+  private readonly assignment = computed(() => {
+    const lines = this.lines();
+    const map = assignLineColors(lines.filter((l) => !l.color));
+    for (const line of lines) {
+      if (line.color) {
+        const official: LineColor = { line: line.color, text: '#FFFFFF' };
+        map.set(line.id, { light: official, dark: official });
+      }
+    }
+    return map;
+  });
 
   colorFor(lineId: string): LineColor {
     return this.assignment().get(lineId)?.[this.scheme()] ?? FALLBACK;

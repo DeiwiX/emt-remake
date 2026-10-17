@@ -41,7 +41,11 @@ import { FavoriteButtonComponent } from '../favorite-button/favorite-button.comp
           <a class="stop-link" [routerLink]="['/stops', stop.id]">
             <span>{{ stop.name }}</span>
             <span class="stop-meta">
-              {{ 'stops.code' | transloco: { id: stop.id } }} ·
+              {{
+                (stop.mode === 'metro' ? 'metro.station' : 'stops.code')
+                  | transloco: { id: stop.id }
+              }}
+              ·
               {{ 'stops.servedBy' | transloco: { lines: lineCodes(stop) } }}
             </span>
           </a>

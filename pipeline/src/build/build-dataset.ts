@@ -140,7 +140,7 @@ function collectStops(emtLines: EmtLine[], report: BuildReport): PublishedStop[]
   return [...byId.values()].sort((a, b) => Number(a.id) - Number(b.id));
 }
 
-function encodeShapes(geometries: Map<string, LatLon[]>, toleranceM: number): ShapesFile {
+export function encodeShapes(geometries: Map<string, LatLon[]>, toleranceM: number): ShapesFile {
   const shapes: Record<string, string> = {};
   for (const [id, points] of [...geometries.entries()].sort(([a], [b]) => a.localeCompare(b))) {
     shapes[id] = encodePolyline(simplify(points, toleranceM));

@@ -11,9 +11,10 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 
-import { LICENSE, SCHEMA_VERSION, SOURCES } from './config.ts';
+import { LICENSE, SCHEMA_VERSION, SIMPLIFY_TOLERANCE_M, SOURCES } from './config.ts';
 import { resolveWalkGraph } from './build/walk-graph-source.ts';
-import { buildDataset } from './build/build-dataset.ts';
+import { buildDataset, encodeShapes } from './build/build-dataset.ts';
+import { buildMetro, mergeTimetables } from './build/build-metro.ts';
 import { checkPlausibility } from './build/sanity.ts';
 import type { FileEntry, Manifest } from './output-schema.ts';
 import { parseEmtLines } from './sources/emt-lines.ts';
@@ -67,6 +68,30 @@ async function main(): Promise<void> {
   const emtLines = parseEmtLines(JSON.parse(new TextDecoder().decode(emtRaw.bytes)));
   const gtfs = parseGtfsZip(gtfsRaw.bytes);
   const dataset = buildDataset(emtLines, gtfs);
+  // Metro de Málaga (Fase 11): opcional. Si su GTFS falla se publica sin metro. Va antes
+  // de las zonas para que sus estaciones cuenten en barrios y distritos.
+  let metroTimetables: Parameters<typeof mergeTimetables>[1] | null = null;
+  const metroSources: Manifest['sources'] = [];
+  try {
+    const raw = await download(SOURCES.metro.url);
+    const metro = buildMetro(raw.bytes);
+    dataset.network.lines.push(...metro.lines);
+    dataset.network.stops.push(...metro.stops);
+    Object.assign(
+      dataset.shapesOverview.shapes,
+      encodeShapes(metro.geometries, SIMPLIFY_TOLERANCE_M.overview).shapes,
+    );
+    Object.assign(
+      dataset.shapesDetail.shapes,
+      encodeShapes(metro.geometries, SIMPLIFY_TOLERANCE_M.detail).shapes,
+    );
+    metroTimetables = metro.timetables;
+    metroSources.push({ ...SOURCES.metro, lastModified: raw.lastModified });
+    console.log(`Metro: ${metro.lines.length} líneas y ${metro.stops.length} estaciones.`);
+  } catch (error) {
+    console.warn('Sin metro:', error instanceof Error ? error.message : error);
+  }
+
   const zones = buildZones(
     [
       ...parseZonesCsv(decode(districtsRaw.bytes), 'district'),
@@ -74,7 +99,9 @@ async function main(): Promise<void> {
     ],
     dataset.network.stops,
   );
-  const timetables = buildTimetables(dataset.network, gtfs.trips, gtfs.serviceDates);
+  let timetables = buildTimetables(dataset.network, gtfs.trips, gtfs.serviceDates);
+  if (metroTimetables) timetables = mergeTimetables(timetables, metroTimetables);
+
   const streets = buildStreets(
     parseStreets(
       decode(streetsRaw.bytes),
@@ -194,6 +221,7 @@ async function main(): Promise<void> {
       { ...SOURCES.streetTypes, lastModified: streetTypesRaw.lastModified },
       { ...SOURCES.streetNumbers, lastModified: streetNumbersRaw.lastModified },
       ...trafficSources,
+      ...metroSources,
       ...(walk ? [{ ...SOURCES.osmWalk, lastModified: walk.builtAt }] : []),
     ],
     license: { ...LICENSE },

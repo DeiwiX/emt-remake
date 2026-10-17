@@ -125,7 +125,12 @@
               <ion-item button [detail]="false" (click)="chooseStop(stop.id)">
                 <ion-label class="ion-text-wrap">
                   {{ stop.name }}
-                  <p>{{ 'stops.code' | transloco: { id: stop.id } }}</p>
+                  <p>
+                    {{
+                      (stop.mode === 'metro' ? 'metro.station' : 'stops.code')
+                        | transloco: { id: stop.id }
+                    }}
+                  </p>
                 </ion-label>
               </ion-item>
             }
@@ -255,7 +260,12 @@
                 <ion-item button [detail]="false" (click)="selectStop(stop.id)">
                   <ion-label class="ion-text-wrap">
                     {{ stop.name }}
-                    <p>{{ 'stops.code' | transloco: { id: stop.id } }}</p>
+                    <p>
+                      {{
+                        (stop.mode === 'metro' ? 'metro.station' : 'stops.code')
+                          | transloco: { id: stop.id }
+                      }}
+                    </p>
                   </ion-label>
                 </ion-item>
               }

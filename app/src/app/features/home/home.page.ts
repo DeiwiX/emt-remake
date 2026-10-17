@@ -108,7 +108,13 @@ export class HomePage {
     searchStreets(this.streetsStore.streets(), this.query(), 6),
   );
 
-  protected readonly lineCount = computed(() => this.network.lines().length);
+  protected readonly lineCount = computed(
+    () => this.network.lines().filter((l) => l.mode !== 'metro').length,
+  );
+  /** Fase 11: hay metro en los datos publicados (tarjeta "Metro"). */
+  protected readonly hasMetro = computed(() =>
+    this.network.lines().some((l) => l.mode === 'metro'),
+  );
   protected readonly stopCount = computed(() => this.network.stops().length);
 
   private readonly content = viewChild(IonContent);

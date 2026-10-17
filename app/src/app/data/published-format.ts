@@ -57,6 +57,10 @@ export interface PublishedLine {
   name: string;
   notes: string;
   directions: PublishedDirection[];
+  /** Fase 11 (opcional): "metro". */
+  mode?: 'metro';
+  /** Color oficial "#RRGGBB" (opcional). */
+  color?: string;
 }
 
 export interface PublishedStop {
@@ -65,6 +69,8 @@ export interface PublishedStop {
   address: string;
   lat: number;
   lon: number;
+  /** Fase 11 (opcional): "metro". */
+  mode?: 'metro';
 }
 
 export interface NetworkFile {
@@ -433,6 +439,10 @@ function parseLine(value: unknown, index: number): PublishedLine {
     name: string(l['name'], `${where}.name`),
     notes: string(l['notes'], `${where}.notes`),
     directions,
+    ...(l['mode'] === 'metro' ? { mode: 'metro' as const } : {}),
+    ...(typeof l['color'] === 'string' && /^#[0-9A-Fa-f]{6}$/.test(l['color'])
+      ? { color: l['color'] }
+      : {}),
   };
 }
 
@@ -445,6 +455,7 @@ function parseStop(value: unknown, index: number): PublishedStop {
     address: string(s['address'], `${where}.address`),
     lat: number(s['lat'], `${where}.lat`),
     lon: number(s['lon'], `${where}.lon`),
+    ...(s['mode'] === 'metro' ? { mode: 'metro' as const } : {}),
   };
 }
 

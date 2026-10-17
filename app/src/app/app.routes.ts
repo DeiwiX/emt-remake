@@ -29,6 +29,10 @@ export const routes: Routes = [
       import('./features/stop-detail/stop-detail.page').then((m) => m.StopDetailPage),
   },
   {
+    path: 'metro',
+    loadComponent: () => import('./features/metro/metro.page').then((m) => m.MetroPage),
+  },
+  {
     path: 'map',
     loadComponent: () => import('./features/map/map.page').then((m) => m.MapPage),
   },

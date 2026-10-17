@@ -10,6 +10,8 @@ export interface PublishedStop {
   address: string;
   lat: number;
   lon: number;
+  /** Fase 11: "metro" en las estaciones del metro; sin él, parada de autobús de la EMT. */
+  mode?: 'metro';
 }
 
 export type ShapeQuality = 'official' | 'approximate';
@@ -40,6 +42,10 @@ export interface PublishedLine {
   /** Observaciones e incidencias publicadas por la EMT, tal cual. */
   notes: string;
   directions: PublishedDirection[];
+  /** Fase 11: "metro" en las líneas del metro; sin él, línea de autobús de la EMT. */
+  mode?: 'metro';
+  /** Color oficial de la línea ("#RRGGBB"), si la fuente lo da (el metro). */
+  color?: string;
 }
 
 export interface NetworkFile {

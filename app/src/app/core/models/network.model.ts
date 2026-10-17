@@ -30,6 +30,10 @@ export interface Line {
   /** Observaciones e incidencias publicadas por la EMT. */
   readonly notes: string;
   readonly directions: readonly Direction[];
+  /** Fase 11: "metro" en las líneas del Metro de Málaga; sin él, autobús de la EMT. */
+  readonly mode?: 'metro';
+  /** Color oficial ("#RRGGBB"), si la fuente lo da (el metro). */
+  readonly color?: string;
 }
 
 export interface StopService {
@@ -46,6 +50,8 @@ export interface Stop {
   readonly lon: number;
   /** Líneas y sentidos que pasan por la parada. */
   readonly services: readonly StopService[];
+  /** Fase 11: "metro" en las estaciones del metro; sin él, parada de autobús. */
+  readonly mode?: 'metro';
 }
 
 /** Polígono: anillo exterior seguido de los huecos. */

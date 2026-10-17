@@ -186,6 +186,8 @@ export function buildIndex(network: NetworkFile): NetworkIndex {
       name: line.name,
       notes: line.notes,
       directions: line.directions.map((d) => ({ ...d, stopIds: [...d.stopIds] })),
+      ...(line.mode ? { mode: line.mode } : {}),
+      ...(line.color ? { color: line.color } : {}),
     }))
     .sort((a, b) => collator.compare(a.id, b.id));
 

@@ -71,7 +71,12 @@ import { NextBusComponent } from '../next-bus/next-bus.component';
       <div class="title">
         <div>
           <h2>{{ stop().name }}</h2>
-          <p>{{ 'stops.code' | transloco: { id: stop().id } }}</p>
+          <p>
+            {{
+              (stop().mode === 'metro' ? 'metro.station' : 'stops.code')
+                | transloco: { id: stop().id }
+            }}
+          </p>
         </div>
         <app-favorite-button
           [favorite]="{ kind: 'stop', stopId: stop().id }"

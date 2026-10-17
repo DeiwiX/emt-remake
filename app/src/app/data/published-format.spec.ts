@@ -15,6 +15,22 @@ describe('Validación de los ficheros publicados', () => {
     expect(Object.keys(parseShapes(shapesFixture()).shapes)).toEqual(['g21']);
   });
 
+  it('lee el metro (Fase 11): modo y color oficial, opcionales', () => {
+    const network = networkFixture();
+    const line = { ...network.lines[0]!, mode: 'metro', color: '#DC241F' };
+    const stop = { ...network.stops[0]!, mode: 'metro' };
+    const parsed = parseNetwork({
+      ...network,
+      lines: [line, { ...network.lines[1]!, color: 'rojo' }],
+      stops: [stop, ...network.stops.slice(1)],
+    });
+    expect(parsed.lines[0]).toMatchObject({ mode: 'metro', color: '#DC241F' });
+    // Un color mal formado se ignora; sin modo, es una línea de autobús.
+    expect(parsed.lines[1]!.color).toBeUndefined();
+    expect(parsed.lines[1]!.mode).toBeUndefined();
+    expect(parsed.stops[0]!.mode).toBe('metro');
+  });
+
   it('rechaza una versión de formato desconocida', () => {
     expect(() => parseNetwork({ ...networkFixture(), schemaVersion: 2 })).toThrow(DataFormatError);
   });

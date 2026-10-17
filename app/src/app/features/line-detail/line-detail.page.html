@@ -98,7 +98,10 @@
               <ion-item>
                 <a class="stop-link" [routerLink]="['/stops', stop.id]">
                   <span>{{ $index + 1 }}. {{ stop.name }}</span>
-                  <span class="stop-meta">{{ 'stops.code' | transloco: { id: stop.id } }}</span>
+                  <span class="stop-meta">{{
+                    (stop.mode === 'metro' ? 'metro.station' : 'stops.code')
+                      | transloco: { id: stop.id }
+                  }}</span>
                 </a>
                 <app-favorite-button
                   slot="end"

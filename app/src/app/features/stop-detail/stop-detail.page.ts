@@ -104,7 +104,12 @@ import { LocateBusButtonComponent } from '../../shared/locate-bus-button/locate-
           @if (stop(); as stop) {
             <div class="ion-padding-horizontal">
               <h1>{{ stop.name }}</h1>
-              <p>{{ 'stops.code' | transloco: { id: stop.id } }}</p>
+              <p>
+                {{
+                  (stop.mode === 'metro' ? 'metro.station' : 'stops.code')
+                    | transloco: { id: stop.id }
+                }}
+              </p>
               <app-favorite-button
                 [favorite]="{ kind: 'stop', stopId: stop.id }"
                 [label]="'favorites.stopLabel' | transloco: { name: stop.name }"

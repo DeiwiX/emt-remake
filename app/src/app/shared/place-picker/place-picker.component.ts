@@ -165,7 +165,10 @@ export class PlacePickerComponent {
       key: `stop:${stop.id}`,
       name: stop.name,
       kindKey: 'plan.kind.stop',
-      detail: { key: 'stops.code', params: { id: stop.id } },
+      detail: {
+        key: stop.mode === 'metro' ? 'metro.station' : 'stops.code',
+        params: { id: stop.id },
+      },
       toPlace: () => placeForStop(stop, this.network.stops()),
     }));
     return [...zones, ...streets, ...stops];

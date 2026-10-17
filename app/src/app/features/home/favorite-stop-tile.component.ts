@@ -255,7 +255,12 @@ const COUNTDOWN_MINUTES = 60;
 
     @if (expanded()) {
       <div class="details" [id]="'fav-stop-' + stop().id">
-        <p class="code">{{ 'stops.code' | transloco: { id: stop().id } }}</p>
+        <p class="code">
+          {{
+            (stop().mode === 'metro' ? 'metro.station' : 'stops.code')
+              | transloco: { id: stop().id }
+          }}
+        </p>
         @for (service of services(); track service.lineId + '-' + service.directionId) {
           <div class="service">
             <app-line-badge [code]="service.lineId" />

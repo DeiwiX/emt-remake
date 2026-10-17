@@ -26,7 +26,8 @@ import { RealtimeService } from '../../core/realtime/realtime.service';
     }
   `,
   template: `
-    @if (available) {
+    <!-- El metro no tiene tiempo real: no hay bus que ubicar. -->
+    @if (available && stop().mode !== 'metro') {
       @if (nearestBus(); as bus) {
         <ion-button [size]="size()" [routerLink]="['/map']" [queryParams]="{ bus: bus.vehicleId }">
           <ion-icon slot="start" name="bus-outline" aria-hidden="true" />
