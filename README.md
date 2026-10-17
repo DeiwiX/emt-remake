@@ -180,7 +180,7 @@ Las pantallas solo usan las interfaces de `core/data/repositories.ts`. Para camb
 ### Metro de Málaga (Fase 11)
 
 - El script de datos añade el horario oficial del Metro de Málaga (GTFS de metromalaga.es): líneas L1 y L2 con sus colores oficiales y 19 estaciones (códigos `M...`), dentro de los mismos ficheros que la EMT. Si su descarga falla, se publica sin metro. ADR 0017.
-- En la app: tarjeta "Metro" en el inicio con el esquema de cada línea; las estaciones salen en el buscador, Cerca de mí (filtro Todo / Bus / Metro), favoritos y el detalle con los próximos trenes; "Cómo llegar" combina bus y metro (con transbordo a pie entre paradas cercanas). No hay tiempo real del metro.
+- En la app: tarjeta "Metro" en el inicio con el esquema de cada línea (con el próximo tren en cada sentido en cada estación y, según el horario, dónde va cada tren y cuánto le falta a la siguiente estación; "Ver en el mapa" abre el mapa con el trayecto de la línea entero); las estaciones salen en el buscador, Cerca de mí (filtro Todo / Bus / Metro), favoritos y el detalle con los próximos trenes; "Cómo llegar" combina bus y metro (con transbordo a pie entre paradas cercanas). No hay tiempo real del metro.
 - "Cómo llegar" muestra hasta 8 opciones y su mapa es más bajo en el móvil para que se vean las opciones.
 
 ### Retrasos habituales (Fase 10)

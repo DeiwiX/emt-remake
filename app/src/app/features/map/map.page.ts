@@ -146,9 +146,16 @@ export class MapPage {
    * Líneas ocultas. El mapa empieza sin ninguna para no saturarlo (petición del
    * desarrollador, 05/10/2026): se eligen tocando sus números en el panel.
    */
-  protected readonly hiddenLines = linkedSignal<ReadonlySet<string>>(
-    () => new Set(this.lines().map((l) => l.id)),
-  );
+  protected readonly hiddenLines = linkedSignal<ReadonlySet<string>>(() => {
+    // Al abrir una línea (/map?line=L1, p. ej. desde "Ver en el mapa" del metro) su
+    // trayecto se ve entero; antes quedaba oculta y solo salían sus paradas.
+    const shown = this.line();
+    return new Set(
+      this.lines()
+        .map((l) => l.id)
+        .filter((id) => id !== shown),
+    );
+  });
   protected readonly highlightedId = linkedSignal(() => this.line() ?? null);
   protected readonly highlightedLine = computed(() => {
     this.lines();

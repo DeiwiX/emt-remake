@@ -56,6 +56,9 @@
     "none": "No more departures today or tomorrow according to the timetable."
   },
   "metro": {
+    "nextTo": "Next train towards {{headsign}}: {{minutes}} min",
+    "trainTo": "Train towards {{headsign}}: reaches {{station}} in {{minutes}} min",
+    "trainAt": "Train towards {{headsign}} at the station; {{station}} in {{minutes}} min",
     "title": "Metro",
     "tile": "L1 and L2 · next trains",
     "lines": "Metro lines",

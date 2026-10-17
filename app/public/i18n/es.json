@@ -56,6 +56,9 @@
     "none": "No hay más salidas hoy ni mañana según el horario."
   },
   "metro": {
+    "nextTo": "Próximo tren hacia {{headsign}}: {{minutes}} min",
+    "trainTo": "Tren hacia {{headsign}}: llega a {{station}} en {{minutes}} min",
+    "trainAt": "Tren hacia {{headsign}} en la estación; a {{station}} en {{minutes}} min",
     "title": "Metro",
     "tile": "L1 y L2 · próximos trenes",
     "lines": "Líneas de metro",
