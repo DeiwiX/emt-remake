@@ -21,8 +21,15 @@ describe('Dónde va cada tren del metro (horario)', () => {
     // A las 10:05: el de las 10:00 va de El Perchel (10:04) a La Unión (10:07);
     // el de las 10:05 está saliendo de Atarazanas.
     expect(trainPositions(timetables, 'L1', direction, '20261019', 605)).toEqual([
-      { directionId: 1, fromIndex: 2, toIndex: 3, minutesToNext: 2, atStation: false },
-      { directionId: 1, fromIndex: 0, toIndex: 1, minutesToNext: 2, atStation: true },
+      {
+        directionId: 1,
+        fromIndex: 2,
+        toIndex: 3,
+        minutesToNext: 2,
+        atStation: false,
+        progress: 1 / 3,
+      },
+      { directionId: 1, fromIndex: 0, toIndex: 1, minutesToNext: 2, atStation: true, progress: 0 },
     ]);
   });
 

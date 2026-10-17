@@ -56,9 +56,9 @@
     "none": "No hay más salidas hoy ni mañana según el horario."
   },
   "metro": {
-    "nextTo": "Próximo tren hacia {{headsign}}: {{minutes}} min",
-    "trainTo": "Tren hacia {{headsign}}: llega a {{station}} en {{minutes}} min",
-    "trainAt": "Tren hacia {{headsign}} en la estación; a {{station}} en {{minutes}} min",
+    "towards": "Hacia {{headsign}}",
+    "atStation": "En parada",
+    "minutes": "{{minutes}} min",
     "title": "Metro",
     "tile": "L1 y L2 · próximos trenes",
     "lines": "Líneas de metro",
@@ -280,7 +280,7 @@
     "distance": "{{metres}} m · {{minutes}} min andando",
     "privacy": "Tu ubicación solo se usa en este dispositivo y no se guarda ni se envía a ningún sitio.",
     "locateBus": "Ubicar bus más cercano (línea {{line}}, ~{{minutes}} min)",
-    "locateBusNear": "Ubicar bus más cercano (línea {{line}}, a {{metres}} m)",
+    "locateBusStops": "Ubicar bus más cercano (línea {{line}}, a {{stops}} paradas)",
     "noBus": "Ningún bus va ahora hacia esta parada"
   },
   "realtime": {
@@ -335,6 +335,8 @@
     "stoppedAt": "Parado en {{stop}} ({{code}}): suben y bajan viajeros"
   },
   "notices": {
+    "fabHint": "Arrástralo para moverlo; suéltalo en la papelera para quitarlo",
+    "fabTrash": "Papelera: suelta aquí el aviso para quitarlo",
     "closedTitle": "Avisos de la EMT que cerraste",
     "goToClosed": "Ver los avisos de la EMT que cerraste ({{count}})",
     "close": "Cerrar el aviso: {{title}}",

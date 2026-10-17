@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 
 import {
   EmtNotice,
+  closedNoticesFabVisible,
   isVisible,
   mergeNotices,
   noticeLines,
@@ -165,5 +166,17 @@ describe('NoticesService', () => {
     expect(service.forLines(['18'], true).map((n) => n.id)).toEqual(['961', '953']);
     expect(JSON.parse(localStorage.getItem('emt-remake.notices-dismissed.v1')!)).toEqual(['961']);
     vi.useRealTimers();
+  });
+});
+
+describe('triángulo de avisos cerrados', () => {
+  it('se ve con avisos cerrados y desaparece al tirarlo a la papelera', () => {
+    expect(closedNoticesFabVisible(['1', '2'], new Set())).toBe(true);
+    expect(closedNoticesFabVisible(['1', '2'], new Set(['1', '2']))).toBe(false);
+    expect(closedNoticesFabVisible([], new Set())).toBe(false);
+  });
+
+  it('vuelve si se cierra un aviso nuevo', () => {
+    expect(closedNoticesFabVisible(['1', '2', '3'], new Set(['1', '2']))).toBe(true);
   });
 });

@@ -37,6 +37,8 @@ import { TrafficRepository } from '../../core/data/repositories';
 import { TrafficItem } from '../../core/models/network.model';
 import { ScheduleClockService } from '../../core/schedule/schedule-clock.service';
 import { addDays } from '../../core/schedule/schedule';
+import { trainPositions } from '../../core/schedule/train-positions';
+import { bearingOf } from '../../core/realtime/vehicle-position';
 import { ageMinutes } from '../../core/realtime/realtime';
 import { placeForStreet, portalPoint } from '../../core/location/street-place';
 import { SimpleModeService } from '../../core/settings/simple-mode.service';
@@ -270,7 +272,8 @@ export class MapPage {
       : [],
   );
   protected readonly selectedTrafficId = signal<string | null>(null);
-  private readonly clock = inject(ScheduleClockService).clock;
+  private readonly schedule = inject(ScheduleClockService);
+  private readonly clock = this.schedule.clock;
   /** "AAAA-MM-DDTHH:mm" en hora de Madrid, como las fechas de los cortes. */
   private readonly nowLocal = computed(() =>
     localStamp(this.clock().dateKey, this.clock().minutes),
@@ -297,7 +300,59 @@ export class MapPage {
   private readonly tracker = inject(VehicleTrackerService);
   protected readonly selectedVehicleId = signal<string | null>(null);
   protected readonly following = signal(false);
-  protected readonly vehicles = computed(() => {
+  /** Líneas de metro a la vista (sus trenes se dibujan según el horario). */
+  private readonly metroLines = computed(() => {
+    const visible = this.visibleLines();
+    const highlighted = this.highlightedLines();
+    return this.lines().filter(
+      (l) =>
+        l.mode === 'metro' &&
+        (visible === null || visible.has(l.id)) &&
+        (!highlighted || highlighted.has(l.id)),
+    );
+  });
+  private readonly loadTimetablesForMetro = effect(() => {
+    if (this.metroLines().length > 0) void this.schedule.load();
+  });
+  /**
+   * Trenes del metro (17/10/2026): sin tiempo real, se colocan por su horario
+   * entre la última estación y la siguiente, mirando hacia donde van y con su
+   * destino debajo.
+   */
+  private readonly trains = computed(() => {
+    const timetables = this.schedule.timetables();
+    if (!timetables) return [];
+    const clock = this.clock();
+    return this.metroLines().flatMap((line) => {
+      const color = this.colors.colorFor(line.id);
+      return line.directions
+        .filter((d) => this.shows(line.id, d.id))
+        .flatMap((d) =>
+          trainPositions(timetables, line.id, d, clock.dateKey, clock.minutes).flatMap((p, i) => {
+            const from = this.network.getStop(d.stopIds[p.fromIndex]!);
+            const to = this.network.getStop(d.stopIds[p.toIndex]!);
+            if (!from || !to) return [];
+            const a: LatLon = [from.lat, from.lon];
+            const b: LatLon = [to.lat, to.lon];
+            return [
+              {
+                id: `train-${line.id}-${d.id}-${i}`,
+                lineId: line.id,
+                lat: a[0] + (b[0] - a[0]) * p.progress,
+                lon: a[1] + (b[1] - a[1]) * p.progress,
+                bearing: bearingOf(a, b),
+                color: color.line,
+                textColor: color.text,
+                kind: 'train' as const,
+                caption: `→ ${d.headsign}`,
+              },
+            ];
+          }),
+        );
+    });
+  });
+  protected readonly vehicles = computed(() => [...this.buses(), ...this.trains()]);
+  protected readonly buses = computed(() => {
     const visible = this.visibleLines();
     const highlighted = this.highlightedLines();
     const selected = this.selectedVehicleId();

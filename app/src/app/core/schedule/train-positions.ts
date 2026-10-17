@@ -15,6 +15,8 @@ export interface TrainPosition {
   readonly minutesToNext: number;
   /** true si ahora mismo está parado en la estación `fromIndex`. */
   readonly atStation: boolean;
+  /** Parte del tramo ya recorrida (0 en `fromIndex`, 1 en `toIndex`), para el mapa. */
+  readonly progress: number;
 }
 
 /** Trenes en marcha de un sentido a los `minutes` (desde la medianoche de `dateKey`). */
@@ -41,6 +43,7 @@ export function trainPositions(
           toIndex: from + 1,
           minutesToNext: Math.max(1, Math.round(times[from + 1]! - minutes)),
           atStation: times[from] === minutes,
+          progress: (minutes - times[from]!) / (times[from + 1]! - times[from]! || 1),
         },
       ];
     },

@@ -21,19 +21,6 @@ import { LineBadgeComponent } from '../../shared/line-badge/line-badge.component
 import { ScheduleClockService } from '../../core/schedule/schedule-clock.service';
 import { trainPositions } from '../../core/schedule/train-positions';
 
-/** Flechas del sentido en el esquema: hacia abajo (primer sentido) o hacia arriba. */
-const DOWN = '↓';
-const UP = '↑';
-
-/** Un tren en el esquema. */
-interface TrainRow {
-  readonly arrow: string;
-  readonly headsign: string;
-  readonly toName: string;
-  readonly minutes: number;
-  readonly atStation: boolean;
-}
-
 /**
  * Pantalla del metro (Fase 11, opción C): un esquema de cada línea, no un mapa,
  * para que se lea de un vistazo. Cada estación abre su detalle con los próximos
@@ -75,29 +62,37 @@ interface TrainRow {
       font-size: 1.05rem;
     }
     ol {
-      position: relative;
       margin: 8px 0 16px;
       padding: 0;
       list-style: none;
     }
-    /* La línea: una franja de su color que une las estaciones. */
-    ol::before {
+    /* Cada estación: su tramo de la franja de color, el punto y una fila separada. */
+    li {
+      position: relative;
+    }
+    li::before {
       content: '';
       position: absolute;
-      top: 22px;
-      bottom: 22px;
+      top: 0;
+      bottom: 0;
       left: 17px;
       width: 6px;
-      border-radius: 3px;
       background: var(--line-color);
+    }
+    li:first-child::before {
+      top: 50%;
+      border-radius: 3px 3px 0 0;
+    }
+    li:last-child::before {
+      bottom: 50%;
+      border-radius: 0 0 3px 3px;
     }
     li a {
       position: relative;
       display: flex;
       align-items: center;
       gap: 12px;
-      min-height: 44px;
-      padding: 4px 0;
+      min-height: 64px;
       color: var(--ion-text-color);
       text-decoration: none;
     }
@@ -108,21 +103,87 @@ interface TrainRow {
     }
     .dot {
       flex: none;
-      width: 16px;
-      height: 16px;
-      margin-left: 12px;
+      box-sizing: border-box;
+      width: 18px;
+      height: 18px;
+      margin-left: 11px;
       border: 4px solid var(--line-color);
       border-radius: 50%;
       background: var(--ion-background-color);
     }
     .dot.transfer {
-      width: 22px;
-      height: 22px;
-      margin-left: 9px;
+      width: 24px;
+      height: 24px;
+      margin-left: 8px;
+      /* Más grande que las demás: que el texto quede alineado igual. */
+      margin-right: -3px;
       border-color: var(--ion-text-color);
     }
-    .name {
+    /* Hay un tren en la estación: el punto se rellena y late. */
+    .dot.train {
+      background: var(--line-color);
+      box-shadow: 0 0 0 0 var(--line-color);
+      animation: metro-here 1.6s ease-out infinite;
+    }
+    @keyframes metro-here {
+      to {
+        box-shadow: 0 0 0 8px transparent;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .dot.train {
+        animation: none;
+      }
+    }
+    .body {
+      display: flex;
       flex: 1;
+      align-items: center;
+      gap: 8px;
+      align-self: stretch;
+      padding: 10px 0;
+      border-bottom: 1px solid color-mix(in srgb, var(--ion-text-color) 12%, transparent);
+    }
+    li:last-child .body {
+      border-bottom: 0;
+    }
+    .info {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .name {
+      font-weight: 600;
+    }
+    .times {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    /* Un sentido: hacia dónde y cuánto falta (o "En parada"). */
+    .time {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--line-color) 14%, transparent);
+      font-size: 0.8rem;
+    }
+    .time .to {
+      color: var(--muted);
+    }
+    .time .wait {
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+    .time.here {
+      background: var(--line-color);
+      color: #fff;
+    }
+    .time.here .to {
+      color: rgba(255, 255, 255, 0.85);
     }
     .other {
       display: flex;
@@ -134,40 +195,8 @@ interface TrainRow {
       font-size: 0.8rem;
     }
     .chevron {
-      color: var(--muted);
-    }
-    .name {
-      display: flex;
-      flex-direction: column;
-    }
-    .next {
-      display: flex;
-      gap: 10px;
-      font-size: 0.8rem;
-      color: var(--muted);
-    }
-    /* Un tren: entre dos estaciones, con su sentido y lo que le falta. */
-    .train {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin: 0 0 4px 4px;
-      font-size: 0.85rem;
-      font-weight: 600;
-    }
-    .train-dot {
-      position: relative;
-      z-index: 1;
-      display: grid;
       flex: none;
-      place-items: center;
-      width: 26px;
-      height: 26px;
-      border: 2px solid var(--ion-background-color);
-      border-radius: 50%;
-      background: var(--line-color);
-      color: #fff;
-      font-size: 0.85rem;
+      color: var(--muted);
     }
   `,
   template: `
@@ -205,48 +234,43 @@ interface TrainRow {
             @for (station of stations(); track station.id) {
               <li>
                 <a [routerLink]="['/stops', station.id]">
-                  <span class="dot" [class.transfer]="station.others.length > 0"></span>
-                  <span class="name">
-                    {{ station.name }}
-                    <!-- Próximo tren en cada sentido (flecha: hacia abajo o arriba del esquema). -->
-                    @if (station.next.length > 0) {
-                      <span class="next">
-                        @for (n of station.next; track n.directionId) {
-                          <span
-                            [attr.aria-label]="
-                              'metro.nextTo' | transloco: { headsign: n.headsign, minutes: n.wait }
-                            "
-                            ><span aria-hidden="true">{{ n.arrow }} {{ n.wait }} min</span></span
-                          >
+                  <span
+                    class="dot"
+                    [class.transfer]="station.others.length > 0"
+                    [class.train]="station.trainHere"
+                  ></span>
+                  <span class="body">
+                    <span class="info">
+                      <span class="name">{{ station.name }}</span>
+                      <!-- Próximo tren en cada sentido: hacia dónde y cuánto falta. -->
+                      @if (station.next.length > 0) {
+                        <span class="times">
+                          @for (n of station.next; track n.directionId) {
+                            <span class="time" [class.here]="n.here">
+                              <span class="to">{{
+                                'metro.towards' | transloco: { headsign: n.headsign }
+                              }}</span>
+                              <span class="wait">{{
+                                n.here
+                                  ? ('metro.atStation' | transloco)
+                                  : ('metro.minutes' | transloco: { minutes: n.wait })
+                              }}</span>
+                            </span>
+                          }
+                        </span>
+                      }
+                    </span>
+                    @if (station.others.length > 0) {
+                      <span class="other">
+                        <span class="visually-hidden">{{ 'metro.transfer' | transloco }}</span>
+                        @for (id of station.others; track id) {
+                          <app-line-badge [code]="id" />
                         }
                       </span>
                     }
+                    <ion-icon class="chevron" name="chevron-forward" aria-hidden="true" />
                   </span>
-                  @if (station.others.length > 0) {
-                    <span class="other">
-                      <span class="visually-hidden">{{ 'metro.transfer' | transloco }}</span>
-                      @for (id of station.others; track id) {
-                        <app-line-badge [code]="id" />
-                      }
-                    </span>
-                  }
-                  <ion-icon class="chevron" name="chevron-forward" aria-hidden="true" />
                 </a>
-                <!-- Trenes en la estación o camino de la siguiente (según su horario). -->
-                @for (train of station.trains; track $index) {
-                  <p class="train">
-                    <span class="train-dot" aria-hidden="true">{{ train.arrow }}</span>
-                    {{
-                      (train.atStation ? 'metro.trainAt' : 'metro.trainTo')
-                        | transloco
-                          : {
-                              headsign: train.headsign,
-                              station: train.toName,
-                              minutes: train.minutes,
-                            }
-                    }}
-                  </p>
-                }
               </li>
             }
           </ol>
@@ -282,48 +306,37 @@ export class MetroPage {
 
   /**
    * Estaciones en el orden del primer sentido, con las otras líneas de metro que
-   * paran en ellas, el próximo tren en cada sentido y los trenes que van de ella a
-   * la siguiente (o están parados en ella), según el horario (17/10/2026).
+   * paran en ellas y el próximo tren en cada sentido ("En parada" si hay uno en
+   * la estación), según el horario (17/10/2026).
    */
   protected readonly stations = computed(() => {
     const line = this.selected();
-    const direction = line?.directions[0];
-    if (!line || !direction) return [];
-    const order = direction.stopIds;
+    if (!line || line.directions.length === 0) return [];
+    const order = line.directions[0]!.stopIds;
     const clock = this.schedule.clock();
     const timetables = this.schedule.timetables();
-    const trains = new Map<number, TrainRow[]>();
+    // Estaciones con un tren parado ahora, por sentido ("L1|1|MATZ").
+    const stopped = new Set<string>();
     if (timetables) {
       for (const d of line.directions) {
         for (const p of trainPositions(timetables, line.id, d, clock.dateKey, clock.minutes)) {
-          const from = order.indexOf(d.stopIds[p.fromIndex]!);
-          const to = order.indexOf(d.stopIds[p.toIndex]!);
-          // Parado en una estación: en su fila. En marcha: en la de la estación de arriba del tramo.
-          const row = p.atStation ? from : Math.min(from, to);
-          const list = trains.get(row) ?? [];
-          list.push({
-            arrow: to > from ? DOWN : UP,
-            headsign: d.headsign,
-            toName: this.network.getStop(d.stopIds[p.toIndex]!)?.name ?? '',
-            minutes: p.minutesToNext,
-            atStation: p.atStation,
-          });
-          trains.set(row, list);
+          if (p.atStation) stopped.add(`${d.id}|${d.stopIds[p.fromIndex]}`);
         }
       }
     }
-    return order.map((id, i) => {
+    return order.map((id) => {
       const next = line.directions.flatMap((d) => {
         if (d.stopIds.at(-1) === id) return [];
         const result = this.schedule.nextBuses(line.id, d.id, id, 1);
         const time = result.state === 'ready' ? result.times[0] : undefined;
         if (time === undefined) return [];
+        const wait = Math.max(0, Math.round(time - clock.minutes));
         return [
           {
             directionId: d.id,
             headsign: d.headsign,
-            arrow: d.id === direction.id ? DOWN : UP,
-            wait: Math.max(0, Math.round(time - clock.minutes)),
+            wait,
+            here: wait === 0 || stopped.has(`${d.id}|${id}`),
           },
         ];
       });
@@ -335,7 +348,7 @@ export class MetroPage {
             .filter((other) => other !== line.id && this.network.getLine(other)?.mode === 'metro'),
         ),
       ];
-      return { id, name: stop?.name ?? id, others, next, trains: trains.get(i) ?? [] };
+      return { id, name: stop?.name ?? id, others, next, trainHere: next.some((n) => n.here) };
     });
   });
 }

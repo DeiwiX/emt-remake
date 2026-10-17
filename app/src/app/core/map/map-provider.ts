@@ -41,6 +41,13 @@ export interface MapVehicle {
   readonly bearing?: number;
   /** El que se está siguiendo: se dibuja algo mayor y con borde. */
   readonly selected?: boolean;
+  /**
+   * 'train': un tren del metro según su horario (17/10/2026). Se dibuja como una
+   * marca de "está aquí" con una flecha hacia donde va y su destino debajo.
+   */
+  readonly kind?: 'bus' | 'train';
+  /** Texto bajo la marca (el destino del tren, p. ej. "→ Andalucía Tech"). */
+  readonly caption?: string;
 }
 
 /** Corte de tráfico en el mapa: aviso en su punto; atenuado si aún no ha empezado. */

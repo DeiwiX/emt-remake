@@ -29,6 +29,8 @@ class NoNoticeSource extends NoticeSource {
 const STORAGE_KEY = 'emt-remake.notices.v1';
 /** Avisos cerrados en el inicio (petición del desarrollador, 15/10/2026). */
 const DISMISSED_KEY = 'emt-remake.notices-dismissed.v1';
+/** Avisos cerrados que había cuando se tiró el triángulo a la papelera (17/10/2026). */
+const FAB_REMOVED_KEY = 'emt-remake.notices-fab-removed.v1';
 /** Como mucho una descarga cada 15 min: la EMT publica pocos avisos al día. */
 const REFRESH_MS = 15 * 60_000;
 
@@ -49,7 +51,10 @@ export class NoticesService {
   readonly available = this.source.available;
   /** Avisos que se deben ver, del más reciente al más antiguo. */
   readonly notices = this.noticesSignal.asReadonly();
-  private readonly dismissedSignal = signal<ReadonlySet<string>>(loadDismissed());
+  private readonly dismissedSignal = signal<ReadonlySet<string>>(loadIds(DISMISSED_KEY));
+  private readonly fabRemovedSignal = signal<ReadonlySet<string>>(loadIds(FAB_REMOVED_KEY));
+  /** Avisos cerrados con los que se tiró el triángulo a la papelera. */
+  readonly fabRemovedFor = this.fabRemovedSignal.asReadonly();
   /** Avisos que el usuario ha cerrado en el inicio (siguen en el detalle de línea y parada). */
   readonly dismissed = this.dismissedSignal.asReadonly();
   /** Los que se ven en el inicio: los no cerrados. */
@@ -80,7 +85,14 @@ export class NoticesService {
     const visible = new Set(this.notices().map((n) => n.id));
     const next = new Set([...this.dismissedSignal(), ...ids].filter((id) => visible.has(id)));
     this.dismissedSignal.set(next);
-    saveDismissed(next);
+    saveIds(DISMISSED_KEY, next);
+  }
+
+  /** Quita el triángulo de avisos cerrados hasta que se cierre uno nuevo. */
+  removeFab(closedIds: readonly string[]): void {
+    const next = new Set(closedIds);
+    this.fabRemovedSignal.set(next);
+    saveIds(FAB_REMOVED_KEY, next);
   }
 
   private async download(): Promise<void> {
@@ -104,18 +116,18 @@ function load(): EmtNotice[] {
   }
 }
 
-function loadDismissed(): Set<string> {
+function loadIds(key: string): Set<string> {
   try {
-    const value: unknown = JSON.parse(localStorage.getItem(DISMISSED_KEY) ?? '[]');
+    const value: unknown = JSON.parse(localStorage.getItem(key) ?? '[]');
     return new Set(Array.isArray(value) ? value.filter((id) => typeof id === 'string') : []);
   } catch {
     return new Set();
   }
 }
 
-function saveDismissed(ids: ReadonlySet<string>): void {
+function saveIds(key: string, ids: ReadonlySet<string>): void {
   try {
-    localStorage.setItem(DISMISSED_KEY, JSON.stringify([...ids]));
+    localStorage.setItem(key, JSON.stringify([...ids]));
   } catch {
     // Sin almacenamiento: vale para esta sesión.
   }

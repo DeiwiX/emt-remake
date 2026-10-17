@@ -75,6 +75,7 @@ const LAYER = {
   user: 'user',
   vehicles: 'vehicles',
   vehicleLabels: 'vehicle-labels',
+  vehicleCaptions: 'vehicle-captions',
   traffic: 'traffic',
   trafficLabels: 'traffic-labels',
   congestion: 'congestion',
@@ -103,6 +104,51 @@ const BUS_PIXEL_RATIO = 2;
 
 function busImageName(color: string): string {
   return `bus-${color.replace('#', '').toLowerCase()}`;
+}
+
+function vehicleImageName(vehicle: MapVehicle): string {
+  return vehicle.kind === 'train'
+    ? `train-${vehicle.color.replace('#', '').toLowerCase()}`
+    : busImageName(vehicle.color);
+}
+
+/**
+ * Tren del metro (17/10/2026): "está aquí", un círculo del color de la línea con
+ * un halo y una flecha blanca que apunta al norte (la capa la gira hacia donde va).
+ */
+function drawTrain(color: string): ImageData | null {
+  const r = BUS_PIXEL_RATIO;
+  const size = 40 * r;
+  const canvas = typeof document === 'undefined' ? null : document.createElement('canvas');
+  const ctx = canvas?.getContext('2d');
+  if (!canvas || !ctx) return null;
+  canvas.width = size;
+  canvas.height = size;
+  const c = size / 2;
+  // Halo de "está aquí".
+  ctx.globalAlpha = 0.28;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(c, c, 19 * r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  // Círculo con borde blanco.
+  ctx.beginPath();
+  ctx.arc(c, c, 12 * r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.lineWidth = 2.5 * r;
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.stroke();
+  // Flecha del sentido.
+  ctx.fillStyle = '#FFFFFF';
+  ctx.beginPath();
+  ctx.moveTo(c, c - 7 * r);
+  ctx.lineTo(c + 5.5 * r, c + 5 * r);
+  ctx.lineTo(c, c + 2 * r);
+  ctx.lineTo(c - 5.5 * r, c + 5 * r);
+  ctx.closePath();
+  ctx.fill();
+  return ctx.getImageData(0, 0, size, size);
 }
 
 /**
@@ -230,7 +276,9 @@ export class MapLibreMapProvider extends MapProvider {
       style: styleFor('streets', options.scheme),
       center: [options.center[1], options.center[0]],
       zoom: options.zoom,
-      attributionControl: { compact: true },
+      // Atribución en una línea de texto pequeña, sin el botón "i" (17/10/2026): la
+      // licencia de los mapas y del PNOA (CC BY 4.0) pide que se vea siempre.
+      attributionControl: { compact: false },
       fadeDuration: options.reduceMotion ? 0 : 300,
       // Se cede el foco al resto de la página: el mapa no atrapa el teclado.
       keyboard: true,
@@ -287,7 +335,8 @@ class MapLibreView implements MapView {
       const bus = map.getLayer(LAYER.vehicles)
         ? map.queryRenderedFeatures(box, { layers: [LAYER.vehicles] })[0]
         : undefined;
-      if (bus && events.vehicleSelected) {
+      // Los trenes del metro van por horario: no hay un vehículo que seguir.
+      if (bus && !bus.properties['train'] && events.vehicleSelected) {
         events.vehicleSelected(String(bus.properties['id']));
         return;
       }
@@ -378,12 +427,12 @@ class MapLibreView implements MapView {
     ];
   }
 
-  /** Añade al estilo el dibujo de bus de cada color que falte. */
+  /** Añade al estilo el dibujo de bus (o de tren) de cada color que falte. */
   private ensureBusImages(): void {
     for (const vehicle of this.vehicles) {
-      const name = busImageName(vehicle.color);
+      const name = vehicleImageName(vehicle);
       if (this.busImages.has(name) && this.map.hasImage(name)) continue;
-      const image = drawBus(vehicle.color);
+      const image = vehicle.kind === 'train' ? drawTrain(vehicle.color) : drawBus(vehicle.color);
       if (!image) return;
       if (!this.map.hasImage(name)) this.map.addImage(name, image, { pixelRatio: BUS_PIXEL_RATIO });
       this.busImages.add(name);
@@ -679,12 +728,31 @@ class MapLibreView implements MapView {
         'symbol-sort-key': ['case', ['get', 'selected'], 1, 0],
       },
     });
-    // Número de la línea sobre el bus, siempre derecho para leerlo.
+    // Destino de cada tren del metro, bajo su marca.
+    map.addLayer({
+      id: LAYER.vehicleCaptions,
+      type: 'symbol',
+      source: SOURCE.vehicles,
+      minzoom: 12,
+      filter: ['has', 'caption'],
+      layout: {
+        'text-field': ['get', 'caption'],
+        'text-font': ['Noto Sans Bold'],
+        'text-size': 12,
+        'text-offset': [0, 1.9],
+        'text-anchor': 'top',
+        'text-allow-overlap': true,
+        'text-ignore-placement': true,
+      },
+      paint: { 'text-color': ['get', 'color'], 'text-halo-color': '#FFFFFF', 'text-halo-width': 2 },
+    });
+    // Número de la línea sobre el bus, siempre derecho para leerlo (no en los trenes).
     map.addLayer({
       id: LAYER.vehicleLabels,
       type: 'symbol',
       source: SOURCE.vehicles,
       minzoom: 12,
+      filter: ['!', ['get', 'train']],
       layout: {
         'text-field': ['get', 'lineId'],
         'text-font': ['Noto Sans Bold'],
@@ -882,9 +950,11 @@ class MapLibreView implements MapView {
           lineId: vehicle.lineId,
           color: vehicle.color,
           textColor: vehicle.textColor,
-          icon: busImageName(vehicle.color),
+          icon: vehicleImageName(vehicle),
           bearing: vehicle.bearing ?? 0,
           selected: vehicle.selected ?? false,
+          train: vehicle.kind === 'train',
+          ...(vehicle.caption ? { caption: vehicle.caption } : {}),
         },
         geometry: { type: 'Point', coordinates: [vehicle.lon, vehicle.lat] },
       })),

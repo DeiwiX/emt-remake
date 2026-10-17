@@ -56,9 +56,9 @@
     "none": "No more departures today or tomorrow according to the timetable."
   },
   "metro": {
-    "nextTo": "Next train towards {{headsign}}: {{minutes}} min",
-    "trainTo": "Train towards {{headsign}}: reaches {{station}} in {{minutes}} min",
-    "trainAt": "Train towards {{headsign}} at the station; {{station}} in {{minutes}} min",
+    "towards": "To {{headsign}}",
+    "atStation": "At the station",
+    "minutes": "{{minutes}} min",
     "title": "Metro",
     "tile": "L1 and L2 · next trains",
     "lines": "Metro lines",
@@ -280,7 +280,7 @@
     "distance": "{{metres}} m · {{minutes}} min walk",
     "privacy": "Your location is only used on this device and is never stored or sent anywhere.",
     "locateBus": "Locate nearest bus (line {{line}}, ~{{minutes}} min)",
-    "locateBusNear": "Locate nearest bus (line {{line}}, {{metres}} m away)",
+    "locateBusStops": "Locate nearest bus (line {{line}}, {{stops}} stops away)",
     "noBus": "No bus is heading to this stop right now"
   },
   "realtime": {
@@ -335,6 +335,8 @@
     "stoppedAt": "Stopped at {{stop}} ({{code}}): passengers boarding"
   },
   "notices": {
+    "fabHint": "Drag it to move it; drop it on the bin to remove it",
+    "fabTrash": "Bin: drop the notice here to remove it",
     "closedTitle": "EMT notices you closed",
     "goToClosed": "See the EMT notices you closed ({{count}})",
     "close": "Close the notice: {{title}}",

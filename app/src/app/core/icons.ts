@@ -22,6 +22,7 @@ import {
   swapVerticalOutline,
   timeOutline,
   trailSignOutline,
+  trashOutline,
   warningOutline,
 } from 'ionicons/icons';
 
@@ -53,6 +54,7 @@ export function registerAppIcons(): void {
     swapVerticalOutline,
     timeOutline,
     trailSignOutline,
+    trashOutline,
     warningOutline,
   });
 }

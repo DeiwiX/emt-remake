@@ -57,3 +57,13 @@ ion-button::part(native) {
 ion-router-outlet > .ion-page {
   background: var(--ion-background-color);
 }
+
+/* Atribución de los mapas: una línea pequeña y discreta, sin botón (17/10/2026). */
+.maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib {
+  margin: 0;
+  padding: 1px 6px;
+  border-radius: 6px 0 0 0;
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 9px;
+  line-height: 1.3;
+}

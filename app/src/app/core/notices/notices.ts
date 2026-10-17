@@ -98,6 +98,17 @@ export function mergeNotices(
 }
 
 /** Avisos que afectan a alguna de estas líneas; con includeGeneral, también los generales. */
+/**
+ * El triángulo de avisos cerrados se ve si hay alguno que no estuviera ya cuando
+ * se tiró a la papelera (17/10/2026): un aviso nuevo cerrado lo hace volver.
+ */
+export function closedNoticesFabVisible(
+  closedIds: readonly string[],
+  removedFor: ReadonlySet<string>,
+): boolean {
+  return closedIds.some((id) => !removedFor.has(id));
+}
+
 export function noticesFor(
   notices: readonly EmtNotice[],
   lineIds: readonly string[],

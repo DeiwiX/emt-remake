@@ -34,7 +34,7 @@ import { RealtimeService } from '../../core/realtime/realtime.service';
           @if (bus.minutes !== null) {
             {{ 'near.locateBus' | transloco: { line: bus.lineId, minutes: bus.minutes } }}
           } @else {
-            {{ 'near.locateBusNear' | transloco: { line: bus.lineId, metres: bus.metres } }}
+            {{ 'near.locateBusStops' | transloco: { line: bus.lineId, stops: bus.stopsAway } }}
           }
         </ion-button>
       } @else if (loaded()) {
@@ -60,8 +60,13 @@ export class LocateBusButtonComponent {
 
   protected readonly nearestBus = computed(() => {
     const stop = this.stop();
-    let best: { vehicleId: string; lineId: string; minutes: number | null; metres: number } | null =
-      null;
+    let best: {
+      vehicleId: string;
+      lineId: string;
+      minutes: number | null;
+      stopsAway: number;
+      metres: number;
+    } | null = null;
     for (const service of stop.services) {
       const direction = this.network
         .getLine(service.lineId)
@@ -80,13 +85,15 @@ export class LocateBusButtonComponent {
           vehicleId: first.vehicleId,
           lineId: service.lineId,
           minutes: first.minutes,
+          stopsAway: 0,
           metres: 0,
         };
       }
     }
     if (best) return best;
     // Sin llegada estimada (p. ej. a más de una hora): el que va hacia la parada
-    // por su mismo sentido y está más cerca. Nunca uno que ya pasó o va al revés.
+    // por su mismo sentido y le quedan menos paradas para llegar, no el que está
+    // más cerca en línea recta (17/10/2026). Nunca uno que ya pasó o va al revés.
     const now = this.realtime.now();
     for (const vehicle of this.realtime.vehicles()) {
       const service = stop.services.find(
@@ -99,10 +106,16 @@ export class LocateBusButtonComponent {
         this.network.getLine(vehicle.lineId)?.directions.find((d) => d.id === vehicle.directionId)
           ?.stopIds ?? [];
       const stopIndex = stopIds.indexOf(stop.id);
-      if (stopIds.lastIndexOf(vehicle.lastStopId, stopIndex - 1) === -1) continue;
+      const lastIndex = stopIds.lastIndexOf(vehicle.lastStopId, stopIndex - 1);
+      if (lastIndex === -1) continue;
+      const stopsAway = stopIndex - lastIndex;
       const metres = Math.round(metresBetween([stop.lat, stop.lon], [vehicle.lat, vehicle.lon]));
-      if (!best || metres < best.metres) {
-        best = { vehicleId: vehicle.id, lineId: vehicle.lineId, minutes: null, metres };
+      const closer =
+        !best ||
+        stopsAway < best.stopsAway ||
+        (stopsAway === best.stopsAway && metres < best.metres);
+      if (closer) {
+        best = { vehicleId: vehicle.id, lineId: vehicle.lineId, minutes: null, stopsAway, metres };
       }
     }
     return best;

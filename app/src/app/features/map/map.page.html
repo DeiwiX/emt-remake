@@ -404,7 +404,7 @@
         @if (realtimeAvailable && vehiclesAge() !== null) {
           <p class="live-note ion-padding-horizontal">
             <ion-note>{{
-              'realtime.onMap' | transloco: { count: vehicles().length, age: vehiclesAge() }
+              'realtime.onMap' | transloco: { count: buses().length, age: vehiclesAge() }
             }}</ion-note>
           </p>
         }

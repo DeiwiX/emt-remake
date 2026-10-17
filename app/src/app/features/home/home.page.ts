@@ -36,12 +36,15 @@ import { ActiveAlertStripComponent } from './active-alert-strip.component';
 import { FavoritesSectionComponent } from './favorites-section.component';
 import { SearchbarLabelDirective } from '../../shared/searchbar-label/searchbar-label.directive';
 import { NoticesService } from '../../core/notices/notices.service';
+import { closedNoticesFabVisible } from '../../core/notices/notices';
+import { NoticesFabComponent } from './notices-fab.component';
 
 const MAX_STOP_RESULTS = 30;
 
 @Component({
   selector: 'app-home',
   imports: [
+    NoticesFabComponent,
     SearchbarLabelDirective,
     DataDateComponent,
     EmtNoticesComponent,
@@ -90,9 +93,29 @@ export class HomePage {
   protected readonly hasFavorites = computed(() => this.favorites().length > 0);
   private readonly noticesService = inject(NoticesService);
   /** Avisos de la EMT cerrados que siguen vigentes (triángulo rojo en el lateral). */
-  protected readonly closedNotices = computed(
-    () => this.noticesService.dismissedFor(this.favoriteLineIds()).length,
+  protected readonly closedNotices = computed(() =>
+    this.noticesService.dismissedFor(this.favoriteLineIds()).map((n) => n.id),
   );
+  protected readonly showNoticesFab = computed(() =>
+    closedNoticesFabVisible(this.closedNotices(), this.noticesService.fabRemovedFor()),
+  );
+
+  /**
+   * El inicio se ve: Ionic guarda la página al ir a otra, y el triángulo (que va
+   * al final del documento) solo debe estar sobre el inicio.
+   */
+  protected readonly onScreen = signal(true);
+  ionViewWillEnter(): void {
+    this.onScreen.set(true);
+  }
+  ionViewWillLeave(): void {
+    this.onScreen.set(false);
+  }
+
+  /** Tirado a la papelera: no vuelve hasta que se cierre otro aviso. */
+  protected removeNoticesFab(): void {
+    this.noticesService.removeFab(this.closedNotices());
+  }
 
   /** Lleva a los avisos cerrados, abajo del todo. */
   protected goToClosedNotices(): void {
