@@ -1,6 +1,6 @@
-# EMT remake
+# MalaGo
 
-Aplicación **no oficial** para consultar los autobuses urbanos de Málaga (EMT): líneas, recorridos y paradas. Es una PWA con versiones Android e iOS desde una sola base de código. No está vinculada a la EMT Málaga ni al Ayuntamiento de Málaga. "EMT remake" es un nombre provisional.
+Aplicación **no oficial** para consultar los autobuses urbanos de Málaga (EMT): líneas, recorridos y paradas. Es una PWA con versiones Android e iOS desde una sola base de código. No está vinculada a la EMT Málaga ni al Ayuntamiento de Málaga. Se llamaba "EMT remake" mientras era solo de la EMT; desde el 17/10/2026 se llama **MalaGo** (también metro y, más adelante, interurbanos).
 
 ## Estado
 
@@ -42,7 +42,7 @@ También se puede abrir `app/android` en Android Studio (que usa su propio Java;
 
 iOS (16 o superior): el proyecto está en `app/ios`, pero compilarlo exige un Mac con Xcode (`npx cap open ios`).
 
-Icono y pantalla de inicio: la fuente es `app/assets/icon.svg` (autobús blanco ante el sol poniéndose sobre el mar); los PNG de `app/assets/` se generan a partir de él y los recursos nativos con `npx @capacitor/assets generate --android --ios --iconBackgroundColor "#1c2b4a" --splashBackgroundColor "#f7f2e8" --splashBackgroundColorDark "#0f1a22"`. La web usa el mismo dibujo como `favicon.svg`.
+Icono y pantalla de inicio: la fuente es `app/assets/icon.svg` (logo de MalaGo: chincheta blanca sobre azul noche con el sol poniéndose sobre el mar, opción A elegida el 17/10/2026); el icono monocromo de Android (iconos con tema) está en `app/android/app/src/main/res/drawable/ic_launcher_monochrome.xml`; los PNG de `app/assets/` se generan a partir de él y los recursos nativos con `npx @capacitor/assets generate --android --ios --iconBackgroundColor "#1c2b4a" --splashBackgroundColor "#f7f2e8" --splashBackgroundColorDark "#0f1a22"`. La web usa el mismo dibujo como `favicon.svg`.
 
 El botón "atrás" de Android navega dentro de la app gracias al plugin `@capacitor/app`. La app no se publica en tiendas: el APK de depuración es para uso personal.
 

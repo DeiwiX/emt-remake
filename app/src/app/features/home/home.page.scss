@@ -81,14 +81,18 @@ ion-content {
 }
 
 .brand-icon {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 11px;
-  background: #b9472f;
-  color: #fff;
-  font-size: 1.2rem;
+  flex: none;
+  width: 34px;
+  height: 34px;
+}
+
+.brand-name {
+  font-size: 1.4rem;
+  letter-spacing: -0.02em;
+}
+
+.brand-go {
+  color: var(--app-sun, #f08a5d);
 }
 
 /* Fecha de los datos, discreta, junto a Ajustes. */
@@ -236,7 +240,7 @@ ion-content {
 }
 
 .tone-metro .tile-icon {
-  background: #6b2c91;
+  background: var(--app-mode-metro, #6a3d9a);
   color: #fff;
   font-family: var(--app-font-display);
   font-weight: 800;

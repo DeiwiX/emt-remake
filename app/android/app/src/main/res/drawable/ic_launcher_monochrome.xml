@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icono monocromo de MalaGo (iconos con tema, Android 13+): la chincheta con la ventana
+     hueca y el medio sol. Android lo colorea según el tema del usuario. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <group
+        android:scaleX="0.6"
+        android:scaleY="0.6"
+        android:translateX="20"
+        android:translateY="20">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:fillType="evenOdd"
+            android:pathData="M50,6C31,6 16,21 16,40c0,23 34,54 34,54s34,-31 34,-54C84,21 69,6 50,6zM50,18a22,22 0,1 0,0.01 0z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M36,46A14,14 0,0 1,64 46z" />
+    </group>
+</vector>

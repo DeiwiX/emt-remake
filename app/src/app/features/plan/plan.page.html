@@ -54,6 +54,21 @@
         </div>
       }
 
+      <!-- Fase 11 (17/10/2026): con qué ir. Solo sale si hay metro en los datos. -->
+      @if (hasMetro()) {
+        <div class="time-choice" role="group" [attr.aria-label]="'plan.modes' | transloco">
+          @for (mode of modes; track mode) {
+            <button
+              type="button"
+              [attr.aria-pressed]="modeFilter() === mode"
+              (click)="modeFilter.set(mode)"
+            >
+              {{ 'plan.mode.' + mode | transloco }}
+            </button>
+          }
+        </div>
+      }
+
       <!-- Hora: salir ahora, salir a una hora o llegar antes de una hora (hoy). -->
       <div class="time-choice" role="group" [attr.aria-label]="'plan.when' | transloco">
         @for (choice of ['now', 'depart', 'arrive']; track choice) {

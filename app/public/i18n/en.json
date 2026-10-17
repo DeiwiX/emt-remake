@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "EMT remake",
+    "name": "MalaGo",
     "unofficialNotice": "Unofficial app. Not affiliated with EMT Málaga or Málaga City Council."
   },
   "common": {
@@ -164,6 +164,8 @@
     "updatedOn": "Data from {{date}}"
   },
   "plan": {
+    "modes": "How to travel",
+    "mode": { "all": "All", "bus": "Bus only", "metro": "Metro only" },
     "liveBus": "Real-time bus",
     "title": "Get there",
     "origin": "From",
@@ -267,7 +269,7 @@
     "refresh": "Update my location",
     "mapLabel": "Map of the stops near your location",
     "locating": "Finding your location…",
-    "denied": "No permission to use your location. You can allow it in the system settings (Apps → EMT remake → Permissions) or in the browser, then try again.",
+    "denied": "No permission to use your location. You can allow it in the system settings (Apps → MalaGo → Permissions) or in the browser, then try again.",
     "unavailable": "Your location could not be found. Check that location is turned on and try again.",
     "count": "{{count}} stops within {{radius}} m",
     "none": "No stops within {{radius}} m.",

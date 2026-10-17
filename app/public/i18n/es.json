@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "EMT remake",
+    "name": "MalaGo",
     "unofficialNotice": "Aplicación no oficial. No está vinculada a la EMT Málaga ni al Ayuntamiento de Málaga."
   },
   "common": {
@@ -164,6 +164,8 @@
     "updatedOn": "Datos del {{date}}"
   },
   "plan": {
+    "modes": "Con qué ir",
+    "mode": { "all": "Todo", "bus": "Solo bus", "metro": "Solo metro" },
     "liveBus": "Bus en tiempo real",
     "title": "Cómo llegar",
     "origin": "Origen",
@@ -267,7 +269,7 @@
     "refresh": "Actualizar mi ubicación",
     "mapLabel": "Mapa de las paradas cercanas a tu ubicación",
     "locating": "Buscando tu ubicación…",
-    "denied": "Sin permiso para usar tu ubicación. Puedes darlo en los ajustes del sistema (Aplicaciones → EMT remake → Permisos) o del navegador, y volver a intentarlo.",
+    "denied": "Sin permiso para usar tu ubicación. Puedes darlo en los ajustes del sistema (Aplicaciones → MalaGo → Permisos) o del navegador, y volver a intentarlo.",
     "unavailable": "No se ha podido obtener tu ubicación. Comprueba que la ubicación del dispositivo está activada e inténtalo de nuevo.",
     "count": "{{count}} paradas a menos de {{radius}} m",
     "none": "No hay paradas a menos de {{radius}} m.",

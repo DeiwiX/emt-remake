@@ -148,6 +148,19 @@ export class PlanPage {
   private readonly geometries = signal<ReadonlyMap<string, readonly LatLon[]>>(new Map());
 
   protected readonly timeChoice = signal<TimeChoice>('now');
+  /** Con qué ir: todo, solo autobús o solo metro (petición del desarrollador, 17/10/2026). */
+  protected readonly modeFilter = signal<'all' | 'bus' | 'metro'>('all');
+  protected readonly modes = ['all', 'bus', 'metro'] as const;
+  protected readonly hasMetro = computed(() =>
+    this.network.lines().some((l) => l.mode === 'metro'),
+  );
+  /** Líneas que puede usar el planificador según el filtro. */
+  private readonly plannerLines = computed(() => {
+    const filter = this.modeFilter();
+    return this.network
+      .lines()
+      .filter((l) => filter === 'all' || (filter === 'metro') === (l.mode === 'metro'));
+  });
   /** Hora elegida para "salir a las" / "llegar a las", "HH:MM" (por defecto, la actual). */
   protected readonly chosenTime = linkedSignal(() => formatClock(this.schedule.clock().minutes));
 
@@ -201,7 +214,7 @@ export class PlanPage {
     const origin = this.plannedOrigin();
     const destination = this.plannedDestination();
     return origin && destination
-      ? planJourneys(this.network.lines(), origin, destination, {
+      ? planJourneys(this.plannerLines(), origin, destination, {
           isSecondary: isNightLine,
           nearbyStops: this.nearbyStops(),
           maxResults: 10,

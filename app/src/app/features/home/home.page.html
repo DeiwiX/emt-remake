@@ -11,8 +11,20 @@
       </svg>
       <div class="top-bar">
         <a class="brand" routerLink="/" (click)="resetHome()">
-          <span class="brand-icon"><ion-icon name="bus-outline" aria-hidden="true" /></span>
-          <span class="brand-name">{{ 'app.name' | transloco }}</span>
+          <!-- Logo de MalaGo (17/10/2026): la chincheta con el sol poniéndose sobre el mar. -->
+          <svg class="brand-icon" viewBox="0 0 100 100" aria-hidden="true">
+            <path
+              d="M50 6C31 6 16 21 16 40c0 23 34 54 34 54s34-31 34-54C84 21 69 6 50 6z"
+              fill="#fff"
+            />
+            <circle cx="50" cy="40" r="22" fill="#ffd7a8" />
+            <path d="M36 46A14 14 0 0 1 64 46z" fill="#f08a5d" />
+            <path d="M28.83 46H71.17A22 22 0 0 1 28.83 46z" fill="#1d5d8a" />
+          </svg>
+          <!-- El nombre se lee entero (aria-label); visualmente, "Go" en el color del sol. -->
+          <span class="brand-name" [attr.aria-label]="'app.name' | transloco"
+            ><span aria-hidden="true">Mala<span class="brand-go">Go</span></span></span
+          >
         </a>
         <app-data-date class="data-date" />
         <a

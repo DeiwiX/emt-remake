@@ -70,6 +70,12 @@
   --app-accent-soft: #f8e0d8;
   --app-header: #1c2b4a;
   --app-sun: #f08a5d;
+  /* MalaGo (17/10/2026): el cielo del logo y un color por tipo de transporte, solo
+     para iconos y etiquetas de tipo (cada línea conserva su color). */
+  --app-sky: #ffd7a8;
+  --app-mode-bus: #1d5d8a;
+  --app-mode-metro: #6a3d9a;
+  --app-mode-interurban: #2f7d5b;
 }
 
 /*
