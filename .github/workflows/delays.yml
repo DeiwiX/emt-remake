@@ -1,0 +1,54 @@
+# Retrasos habituales (Fase 10, ADR 0016): cada hora, durante ~55 min, guarda
+# cada 5 min cuánto va tarde cada autobús frente a su horario y sube lo nuevo a
+# la rama historico-retrasos (un fichero CSV por día). El flujo "Datos" lo junta
+# después en delays.json.
+name: Recogida de retrasos
+
+on:
+  schedule:
+    - cron: '2 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: delays
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        with:
+          ref: historico-retrasos
+          path: history
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: pipeline/package-lock.json
+      - run: npm ci
+        working-directory: pipeline
+      - name: Recoger posiciones (11 vueltas, cada 5 min)
+        run: npm run collect-delays -- --history ../history/data --rounds 11 --interval 300
+        working-directory: pipeline
+      - name: Guardar en la rama historico-retrasos
+        working-directory: history
+        run: |
+          # Se borran los días de hace más de 9 semanas (por la fecha del nombre): solo se usan las últimas 8.
+          cutoff=$(date -u -d '63 days ago' +%Y%m%d)
+          for f in data/*.csv; do
+            [ -e "$f" ] || continue
+            [ "$(basename "$f" .csv)" \< "$cutoff" ] && rm "$f"
+          done
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add -A data
+          git diff --cached --quiet && exit 0
+          git commit -q -m "Retrasos $(date -u +%Y-%m-%dT%H:%M)Z"
+          for i in 1 2 3 4; do git push && exit 0; git pull --rebase -q; sleep $((i * 5)); done
+          exit 1

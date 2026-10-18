@@ -1,0 +1,216 @@
+/**
+ * Formato de los ficheros publicados (versión SCHEMA_VERSION).
+ * Es el contrato con la app: cualquier cambio incompatible exige subir la versión.
+ */
+
+export interface PublishedStop {
+  /** Código público de la parada (codParada de la EMT). */
+  id: string;
+  name: string;
+  address: string;
+  lat: number;
+  lon: number;
+  /** Fase 11: "metro" en las estaciones del metro; sin él, parada de autobús de la EMT. */
+  mode?: 'metro';
+}
+
+export type ShapeQuality = 'official' | 'approximate';
+
+export interface PublishedDirection {
+  /** 1 o 2, como en la fuente de la EMT. */
+  id: number;
+  /** Destino del sentido ("hacia ..."). */
+  headsign: string;
+  /** Códigos de parada en orden de paso. */
+  stopIds: string[];
+  shapeId: string;
+  /** "approximate" = paradas unidas con tramos rectos, sin trazado oficial. */
+  shapeQuality: ShapeQuality;
+  /**
+   * Minutos desde la primera parada, alineados con stopIds (añadido para "Cómo
+   * llegar"; la app lo trata como opcional).
+   */
+  minutes: number[];
+  /** "schedule" = horario programado del GTFS; "estimate" = estimado por distancia. */
+  timesSource: 'schedule' | 'estimate';
+}
+
+export interface PublishedLine {
+  /** Código visible de la línea ("1", "C1", "N2"...). */
+  id: string;
+  name: string;
+  /** Observaciones e incidencias publicadas por la EMT, tal cual. */
+  notes: string;
+  directions: PublishedDirection[];
+  /** Fase 11: "metro" en las líneas del metro; sin él, línea de autobús de la EMT. */
+  mode?: 'metro';
+  /** Color oficial de la línea ("#RRGGBB"), si la fuente lo da (el metro). */
+  color?: string;
+}
+
+export interface NetworkFile {
+  schemaVersion: number;
+  lines: PublishedLine[];
+  stops: PublishedStop[];
+}
+
+export interface ShapesFile {
+  schemaVersion: number;
+  toleranceM: number;
+  /** Polilíneas codificadas (algoritmo de Google, precisión 1e-5) por shapeId. */
+  shapes: Record<string, string>;
+}
+
+export interface PublishedZone {
+  /** "d" + número de distrito o "b" + identificador de barrio. */
+  id: string;
+  kind: 'neighbourhood' | 'district';
+  name: string;
+  /** Polígonos; cada uno es [anillo exterior, ...huecos] como polilíneas codificadas. */
+  polygons: string[][];
+  /** Paradas dentro de la zona o a menos de 100 m de su borde. */
+  stopIds: string[];
+}
+
+/** Barrios y distritos (añadido sin romper el formato: la app lo trata como opcional). */
+export interface ZonesFile {
+  schemaVersion: number;
+  zones: PublishedZone[];
+}
+
+/** Calle del callejero municipal con una muestra de sus portales. */
+export interface PublishedStreet {
+  id: string;
+  /** "Calle Larios", "Avenida de Andalucía"... */
+  name: string;
+  /** Posición de los portales publicados, como polilínea codificada (no es el trazado). */
+  points: string;
+  /** Número de portal de cada punto, en el mismo orden. */
+  numbers: number[];
+}
+
+/** Calles para buscar origen y destino (añadido sin romper el formato). */
+export interface StreetsFile {
+  schemaVersion: number;
+  streets: PublishedStreet[];
+}
+
+/** Corte de tráfico o incidencia (Ayuntamiento o DGT). */
+export interface PublishedTrafficItem {
+  id: string;
+  source: 'ayto' | 'dgt';
+  kind: string;
+  effect: string;
+  description: string;
+  address: string;
+  /** Hora de Madrid sin zona ("2026-10-06T15:30"); null si no se sabe. */
+  from: string | null;
+  to: string | null;
+  /** Punto o tramo como polilínea codificada. */
+  points: string;
+}
+
+/** Cortes de tráfico e incidencias (se actualiza cada hora; no cuenta en dataVersion). */
+export interface TrafficFile {
+  schemaVersion: number;
+  items: PublishedTrafficItem[];
+}
+
+/**
+ * Red peatonal de OpenStreetMap para las rutas andando (opción 2B). Se renueva
+ * cada semana y no cuenta en dataVersion.
+ */
+export interface WalkGraphFile {
+  schemaVersion: number;
+  /** Cuándo se descargó de OpenStreetMap (ISO 8601). */
+  builtAt: string;
+  /** Todos los nodos (cruces y extremos), como polilínea codificada. */
+  nodes: string;
+  /** Tramos [nodo, nodo, coste en metros, dibujo intermedio codificado si no es recto]. */
+  edges: ([number, number, number] | [number, number, number, string])[];
+}
+
+/**
+ * Salidas programadas (GTFS) por sentido de línea y día de servicio. La hora de
+ * paso por cada parada = salida + minutos del sentido en esa parada (aproximado).
+ */
+export interface TimetablesFile {
+  schemaVersion: number;
+  /** Fechas AAAAMMDD de cada día de servicio. */
+  services: Record<string, string[]>;
+  /** Clave "línea|sentido" -> día de servicio -> minutos desde medianoche (pueden pasar de 1440). */
+  departures: Record<string, Record<string, number[]>>;
+  /**
+   * Horario exacto (Fase 3, opcional): perfiles de paso de cada sentido, es decir,
+   * minutos desde la salida en cada parada del sentido (alineados con stopIds)…
+   */
+  profiles?: Record<string, number[][]>;
+  /** …y el perfil de cada salida, en el mismo orden que `departures`. */
+  departureProfiles?: Record<string, Record<string, number[]>>;
+  /**
+   * Para leer el tiempo real de la EMT (GTFS-RT, 17/10/2026; opcional). Sus viajes
+   * solo traen "stop_sequence" (la posición en el viaje), no la parada: cada
+   * recorrido distinto del GTFS se publica con sus paradas y minutos típicos…
+   */
+  livePatterns?: LivePattern[];
+  /**
+   * …y cada viaje, su recorrido. Los trip_id del tiempo real tienen la forma
+   * "G2606S_F21_072-03_13" (horario, variante, bloque, número de viaje) y la
+   * variante no siempre coincide con la del GTFS publicado, así que la clave es
+   * horario -> bloque -> índice del recorrido de cada número de viaje (posición
+   * número − 1; −1 si no hay).
+   */
+  liveTrips?: Record<string, Record<string, number[]>>;
+}
+
+export interface LivePattern {
+  line: string;
+  direction: number;
+  /** Códigos de parada en orden de paso (stop_sequence 1, 2, …). */
+  stops: string[];
+  /** Minutos desde la salida en cada parada (horario de un viaje típico). */
+  minutes: number[];
+}
+
+export interface FileEntry {
+  path: string;
+  bytes: number;
+  sha256: string;
+}
+
+export interface Manifest {
+  schemaVersion: number;
+  /** Huella del contenido: solo cambia si cambian los datos, no la fecha de generación. */
+  dataVersion: string;
+  generatedAt: string;
+  counts: {
+    lines: number;
+    stops: number;
+    shapes: number;
+    approximateShapes: number;
+    zones: number;
+    departures: number;
+    streets: number;
+  };
+  files: {
+    network: FileEntry;
+    shapesOverview: FileEntry;
+    shapesDetail: FileEntry;
+    zones: FileEntry;
+    timetables: FileEntry;
+    streets: FileEntry;
+    /** Opcional: si sus fuentes fallan, se publica el resto igualmente. */
+    traffic?: FileEntry;
+    /** Opcional: red peatonal (OpenStreetMap). */
+    walkGraph?: FileEntry;
+    /** Opcional: retrasos habituales (Fase 10), si hay histórico. */
+    delays?: FileEntry;
+  };
+  sources: {
+    name: string;
+    dataset: string;
+    url: string;
+    lastModified: string | null;
+  }[];
+  license: { id: string; url: string; attribution: string };
+}
