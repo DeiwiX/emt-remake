@@ -46,6 +46,14 @@ jobs:
         run: curl -fsS "${{ steps.pages.outputs.base_url }}/data/v1/manifest.json" -o previous-manifest.json || echo "Sin publicación anterior"
       - name: Descargar la red peatonal publicada (se reutiliza si tiene menos de una semana)
         run: curl -fsS "${{ steps.pages.outputs.base_url }}/data/v1/walk-graph.json" -o previous-walk-graph.json || echo "Sin red peatonal anterior"
+      # Si falla la descarga del GTFS del metro, se mantiene el metro de la publicación
+      # anterior en vez de quitarlo de la app (21/10/2026).
+      - name: Descargar los datos publicados (para mantener el metro si falla su GTFS)
+        run: |
+          mkdir -p previous-data
+          for file in network.json shapes-overview.json shapes-detail.json timetables.json; do
+            curl -fsS "${{ steps.pages.outputs.base_url }}/data/v1/$file" -o "previous-data/$file" || echo "Sin $file anterior"
+          done
       - name: Descargar el histórico de retrasos (Fase 10)
         uses: actions/checkout@v7
         continue-on-error: true
@@ -53,7 +61,7 @@ jobs:
           ref: historico-retrasos
           path: history
       - name: Generar datos
-        run: npm run build-data -- --out ../site/data/v1 --previous previous-manifest.json --previous-walk previous-walk-graph.json --delays-history ../history/data
+        run: npm run build-data -- --out ../site/data/v1 --previous previous-manifest.json --previous-walk previous-walk-graph.json --delays-history ../history/data --previous-data previous-data
       - run: touch ../site/.nojekyll
       - uses: actions/upload-pages-artifact@v5
         with:

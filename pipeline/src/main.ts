@@ -1,5 +1,6 @@
 /**
  * Uso: node src/main.ts --out <carpeta> [--previous <manifest.json anterior>]
+ *        [--previous-data <carpeta con network, shapes-* y timetables anteriores>]
  *
  * Descarga las fuentes, las valida y cruza, y escribe en <carpeta> los ficheros
  * para la app. Si algo no es válido termina con código 1 sin escribir nada, de
@@ -15,6 +16,11 @@ import { LICENSE, SCHEMA_VERSION, SIMPLIFY_TOLERANCE_M, SOURCES } from './config
 import { resolveWalkGraph } from './build/walk-graph-source.ts';
 import { buildDataset, encodeShapes } from './build/build-dataset.ts';
 import { buildMetro, mergeTimetables } from './build/build-metro.ts';
+import {
+  type PreviousData,
+  type PublishedMetro,
+  metroFromPrevious,
+} from './build/previous-metro.ts';
 import { checkPlausibility } from './build/sanity.ts';
 import type { FileEntry, Manifest } from './output-schema.ts';
 import { parseEmtLines } from './sources/emt-lines.ts';
@@ -42,6 +48,7 @@ async function main(): Promise<void> {
       previous: { type: 'string' },
       'previous-walk': { type: 'string' },
       'delays-history': { type: 'string' },
+      'previous-data': { type: 'string' },
     },
   });
   if (!values.out) throw new Error('Falta --out <carpeta>');
@@ -68,28 +75,43 @@ async function main(): Promise<void> {
   const emtLines = parseEmtLines(JSON.parse(new TextDecoder().decode(emtRaw.bytes)));
   const gtfs = parseGtfsZip(gtfsRaw.bytes);
   const dataset = buildDataset(emtLines, gtfs);
-  // Metro de Málaga (Fase 11): opcional. Si su GTFS falla se publica sin metro. Va antes
-  // de las zonas para que sus estaciones cuenten en barrios y distritos.
-  let metroTimetables: Parameters<typeof mergeTimetables>[1] | null = null;
+  // Metro de Málaga (Fase 11): opcional. Si su GTFS falla se mantiene el metro de la
+  // publicación anterior (--previous-data) y, si tampoco lo hay, se publica sin metro.
+  // Va antes de las zonas para que sus estaciones cuenten en barrios y distritos.
+  let metro: PublishedMetro | null = null;
   const metroSources: Manifest['sources'] = [];
   try {
     const raw = await download(SOURCES.metro.url);
-    const metro = buildMetro(raw.bytes);
+    const built = buildMetro(raw.bytes);
+    metro = {
+      lines: built.lines,
+      stops: built.stops,
+      shapesOverview: encodeShapes(built.geometries, SIMPLIFY_TOLERANCE_M.overview).shapes,
+      shapesDetail: encodeShapes(built.geometries, SIMPLIFY_TOLERANCE_M.detail).shapes,
+      timetables: built.timetables,
+    };
+    metroSources.push({ ...SOURCES.metro, lastModified: raw.lastModified });
+  } catch (error) {
+    console.warn('Sin metro nuevo:', error instanceof Error ? error.message : error);
+    const previous = await readPreviousData(values['previous-data']);
+    metro = previous ? metroFromPrevious(previous) : null;
+    if (metro) {
+      const previousSource = (await readPreviousManifest(values.previous))?.sources?.find(
+        (source) => source.url === SOURCES.metro.url,
+      );
+      metroSources.push({
+        ...SOURCES.metro,
+        lastModified: previousSource?.lastModified ?? null,
+      });
+      console.warn('Se mantiene el metro de la publicación anterior.');
+    }
+  }
+  if (metro) {
     dataset.network.lines.push(...metro.lines);
     dataset.network.stops.push(...metro.stops);
-    Object.assign(
-      dataset.shapesOverview.shapes,
-      encodeShapes(metro.geometries, SIMPLIFY_TOLERANCE_M.overview).shapes,
-    );
-    Object.assign(
-      dataset.shapesDetail.shapes,
-      encodeShapes(metro.geometries, SIMPLIFY_TOLERANCE_M.detail).shapes,
-    );
-    metroTimetables = metro.timetables;
-    metroSources.push({ ...SOURCES.metro, lastModified: raw.lastModified });
+    Object.assign(dataset.shapesOverview.shapes, metro.shapesOverview);
+    Object.assign(dataset.shapesDetail.shapes, metro.shapesDetail);
     console.log(`Metro: ${metro.lines.length} líneas y ${metro.stops.length} estaciones.`);
-  } catch (error) {
-    console.warn('Sin metro:', error instanceof Error ? error.message : error);
   }
 
   const zones = buildZones(
@@ -100,7 +122,7 @@ async function main(): Promise<void> {
     dataset.network.stops,
   );
   let timetables = buildTimetables(dataset.network, gtfs.trips, gtfs.serviceDates);
-  if (metroTimetables) timetables = mergeTimetables(timetables, metroTimetables);
+  if (metro) timetables = mergeTimetables(timetables, metro.timetables);
 
   const streets = buildStreets(
     parseStreets(
@@ -270,12 +292,32 @@ async function buildDelays(folder: string): Promise<string | null> {
   return JSON.stringify(file);
 }
 
+async function readPreviousManifest(path: string | undefined): Promise<Partial<Manifest> | null> {
+  if (!path || !existsSync(path)) return null;
+  return JSON.parse(await readFile(path, 'utf8')) as Partial<Manifest>;
+}
+
 async function readPreviousCounts(
   path: string | undefined,
 ): Promise<Partial<Manifest['counts']> | null> {
-  if (!path || !existsSync(path)) return null;
-  const previous = JSON.parse(await readFile(path, 'utf8')) as Partial<Manifest>;
-  return previous.counts ?? null;
+  return (await readPreviousManifest(path))?.counts ?? null;
+}
+
+/** Ficheros de la publicación anterior (null si falta alguno o no se pueden leer). */
+async function readPreviousData(folder: string | undefined): Promise<PreviousData | null> {
+  if (!folder) return null;
+  try {
+    const read = async <T>(name: string) =>
+      JSON.parse(await readFile(join(folder, name), 'utf8')) as T;
+    return {
+      network: await read('network.json'),
+      shapesOverview: await read('shapes-overview.json'),
+      shapesDetail: await read('shapes-detail.json'),
+      timetables: await read('timetables.json'),
+    };
+  } catch {
+    return null;
+  }
 }
 
 function sha256(content: string): string {

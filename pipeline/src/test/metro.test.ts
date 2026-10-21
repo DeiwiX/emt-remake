@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { strToU8, zipSync } from 'fflate';
 
-import { buildMetro } from '../build/build-metro.ts';
+import { encodeShapes } from '../build/build-dataset.ts';
+import { buildMetro, mergeTimetables } from '../build/build-metro.ts';
+import { metroFromPrevious } from '../build/previous-metro.ts';
+import type { PublishedLine, TimetablesFile } from '../output-schema.ts';
 
 /** GTFS mínimo con la forma del de Metro de Málaga (andenes por línea en El Perchel). */
 function metroZip(): Uint8Array {
@@ -84,5 +87,71 @@ describe('Metro de Málaga (Fase 11)', () => {
     ]);
     assert.deepEqual(metro.timetables.services, { LAB: ['20261019'] });
     assert.equal(metro.geometries.size, 2);
+  });
+});
+
+describe('Metro de la publicación anterior (si falla su GTFS)', () => {
+  const metro = buildMetro(metroZip());
+  const overview = encodeShapes(metro.geometries, 25).shapes;
+  const detail = encodeShapes(metro.geometries, 4).shapes;
+  const busLine: PublishedLine = {
+    id: '1',
+    name: 'Bus',
+    notes: '',
+    directions: [
+      {
+        id: 1,
+        headsign: 'Centro',
+        stopIds: ['100', '101'],
+        shapeId: 'e1-1',
+        shapeQuality: 'official',
+        minutes: [0, 4],
+        timesSource: 'schedule',
+      },
+    ],
+  };
+  const busTimetables: TimetablesFile = {
+    schemaVersion: 1,
+    services: { EMT: ['20261019'] },
+    departures: { '1|1': { EMT: [400] } },
+    profiles: { '1|1': [[0, 4]] },
+    departureProfiles: { '1|1': { EMT: [0] } },
+    livePatterns: [],
+  };
+  const busStops = [
+    { id: '100', name: 'A', address: '', lat: 36.7, lon: -4.4 },
+    { id: '101', name: 'B', address: '', lat: 36.71, lon: -4.41 },
+  ];
+
+  it('recupera solo el metro (líneas, estaciones, trazados y horario) de los datos publicados', () => {
+    const previous = metroFromPrevious({
+      network: {
+        schemaVersion: 1,
+        lines: [busLine, ...metro.lines],
+        stops: [...busStops, ...metro.stops],
+      },
+      shapesOverview: { schemaVersion: 1, toleranceM: 25, shapes: { 'e1-1': 'xx', ...overview } },
+      shapesDetail: { schemaVersion: 1, toleranceM: 4, shapes: { 'e1-1': 'yy', ...detail } },
+      timetables: mergeTimetables(busTimetables, metro.timetables),
+    });
+    assert.deepEqual(previous, {
+      lines: metro.lines,
+      stops: metro.stops,
+      shapesOverview: overview,
+      shapesDetail: detail,
+      timetables: metro.timetables,
+    });
+  });
+
+  it('sin metro en la publicación anterior no devuelve nada', () => {
+    assert.equal(
+      metroFromPrevious({
+        network: { schemaVersion: 1, lines: [busLine], stops: busStops },
+        shapesOverview: { schemaVersion: 1, toleranceM: 25, shapes: {} },
+        shapesDetail: { schemaVersion: 1, toleranceM: 4, shapes: {} },
+        timetables: busTimetables,
+      }),
+      null,
+    );
   });
 });
