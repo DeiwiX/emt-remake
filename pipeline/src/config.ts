@@ -56,6 +56,34 @@ export const SOURCES = {
     dataset: 'https://nap.dgt.es/dataset',
     url: 'https://nap.dgt.es/datex2/v3/dgt/SituationPublication/datex2_v36.xml',
   },
+  /** Capas del mapa (ADR 0021): semáforos acústicos del Ayuntamiento (no publica los demás). */
+  acousticSignals: {
+    name: 'Semáforos acústicos',
+    dataset: 'https://datosabiertos.malaga.eu/dataset/semaforos',
+    url: 'https://datosabiertos.malaga.eu/recursos/transporte/trafico/da_semaforosAcusticos-4326.geojson',
+  },
+  defibrillators: {
+    name: 'Desfibriladores',
+    dataset: 'https://datosabiertos.malaga.eu/dataset/desfibriladores',
+    url: 'https://datosabiertos.malaga.eu/dataset/a455c822-e695-4fc4-abc9-b18f50a59a3a/resource/467c375a-8a74-40d7-a765-d5d160e13fe3/download/da_desfibriladores-4326.geojson',
+  },
+  /** Puntos de venta y recarga de la tarjeta de la EMT (sin actualizar desde 03/2025). */
+  ticketOffices: {
+    name: 'Puntos de venta EMT',
+    dataset: 'https://datosabiertos.malaga.eu/dataset/puntos-de-venta-emt',
+    url: 'https://datosabiertos.malaga.eu/recursos/transporte/EMT/puntosVenta/emtpuntosventa-4326.geojson',
+  },
+  bikeParking: {
+    name: 'Aparcamientos bici',
+    dataset: 'https://datosabiertos.malaga.eu/dataset/aparcamientos-bici',
+    url: 'https://datosabiertos.malaga.eu/recursos/transporte/trafico/da_aparcamientosBici-4326.geojson',
+  },
+  /** Todos los semáforos y las paradas con marquesina (OpenStreetMap vía Overpass API, ODbL). */
+  osmPoints: {
+    name: 'OpenStreetMap – semáforos y marquesinas (© colaboradores de OpenStreetMap, ODbL)',
+    dataset: 'https://www.openstreetmap.org/copyright',
+    url: 'https://overpass-api.de/api/interpreter',
+  },
   /** Calles por las que se puede andar (OpenStreetMap vía Overpass API, ODbL). */
   /** Horario oficial del Metro de Málaga (Fase 11; licencia no indicada por el operador). */
   metro: {
@@ -74,6 +102,26 @@ export const SOURCES = {
     dataset: 'https://www.openstreetmap.org/copyright',
     url: 'https://overpass-api.de/api/interpreter',
   },
+} as const;
+
+/**
+ * Capas de puntos del mapa (ADR 0021). Las de OpenStreetMap se consultan como
+ * mucho una vez por semana, como la red peatonal; las del Ayuntamiento, cada vez.
+ */
+export const PLACES = {
+  osmMaxAgeDays: 7,
+  /** Por debajo de estos puntos la fuente se considera rota y se mantiene la capa anterior. */
+  minPlaces: {
+    trafficLight: 300,
+    shelter: 150,
+    defibrillator: 200,
+    ticketOffice: 50,
+    bikeParking: 50,
+  },
+  /** Un semáforo acústico del Ayuntamiento marca al de OpenStreetMap más cercano a esta distancia. */
+  acousticMatchM: 30,
+  /** Una parada de OpenStreetMap con marquesina se asigna a la de la EMT más cercana a esta distancia. */
+  shelterMatchM: 25,
 } as const;
 
 /** La red peatonal cambia poco: se descarga de OpenStreetMap como mucho una vez por semana. */

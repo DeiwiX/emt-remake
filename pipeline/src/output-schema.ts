@@ -172,6 +172,47 @@ export interface LivePattern {
   minutes: number[];
 }
 
+/**
+ * Capas de puntos del mapa (21/10/2026, ADR 0021): un formato genérico, una capa
+ * por tipo de punto. Cada capa se renueva por separado; si su fuente falla se
+ * mantiene la de la publicación anterior.
+ */
+export type PlaceKind =
+  'trafficLight' | 'shelter' | 'defibrillator' | 'ticketOffice' | 'bikeParking';
+
+export interface PublishedPlace {
+  /** Único dentro de la capa. En "shelter" es el código de la parada con marquesina. */
+  id: string;
+  lat: number;
+  lon: number;
+  /** Lugar ("Biblioteca Cervantes") o cruce ("Intersección con Calle Larios"). */
+  name?: string;
+  address?: string;
+  /** Horario tal como lo publica la fuente. */
+  hours?: string;
+  /** Plazas (aparcamientos de bici). */
+  capacity?: number;
+  /** "acoustic": semáforo con sonido para personas ciegas; "24h": accesible siempre. */
+  tags?: PlaceTag[];
+}
+
+export type PlaceTag = 'acoustic' | '24h';
+
+export interface PlaceLayer {
+  kind: PlaceKind;
+  /** Cuándo se generó la capa (ISO 8601); se conserva si se reutiliza la anterior. */
+  builtAt: string;
+  /** Nombres de las fuentes de la capa (para la atribución). */
+  sources: string[];
+  places: PublishedPlace[];
+}
+
+/** Capas de puntos (opcional; no cuenta en dataVersion). */
+export interface PlacesFile {
+  schemaVersion: number;
+  layers: PlaceLayer[];
+}
+
 export interface FileEntry {
   path: string;
   bytes: number;
@@ -205,6 +246,8 @@ export interface Manifest {
     walkGraph?: FileEntry;
     /** Opcional: retrasos habituales (Fase 10), si hay histórico. */
     delays?: FileEntry;
+    /** Opcional: capas de puntos del mapa (ADR 0021). */
+    places?: FileEntry;
   };
   sources: {
     name: string;
