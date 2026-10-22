@@ -14,6 +14,7 @@ import { parseArgs } from 'node:util';
 
 import { LICENSE, SCHEMA_VERSION, SIMPLIFY_TOLERANCE_M, SOURCES } from './config.ts';
 import { resolveWalkGraph } from './build/walk-graph-source.ts';
+import { resolvePlaces } from './build/places-source.ts';
 import { buildDataset, encodeShapes } from './build/build-dataset.ts';
 import { buildMetro, mergeTimetables } from './build/build-metro.ts';
 import {
@@ -22,7 +23,7 @@ import {
   metroFromPrevious,
 } from './build/previous-metro.ts';
 import { checkPlausibility } from './build/sanity.ts';
-import type { FileEntry, Manifest } from './output-schema.ts';
+import type { FileEntry, Manifest, PlacesFile } from './output-schema.ts';
 import { parseEmtLines } from './sources/emt-lines.ts';
 import { download } from './sources/fetch.ts';
 import { parseGtfsZip } from './sources/gtfs.ts';
@@ -172,6 +173,13 @@ async function main(): Promise<void> {
     new Date(),
   );
 
+  // Capas de puntos del mapa (ADR 0021): opcional, cada capa por separado.
+  const places = await resolvePlaces(
+    await readPreviousPlaces(values['previous-data']),
+    dataset.network.stops,
+    new Date(),
+  );
+
   // Retrasos habituales (Fase 10): opcional, del histórico de la rama historico-retrasos.
   const delays = values['delays-history'] ? await buildDelays(values['delays-history']) : null;
 
@@ -211,6 +219,8 @@ async function main(): Promise<void> {
   const trafficEntry = contents.traffic ? entry('traffic.json', contents.traffic) : null;
   const walkEntry = walk ? entry('walk-graph.json', walk.content) : null;
   const delaysEntry = delays ? entry('delays.json', delays) : null;
+  const placesContent = places ? JSON.stringify(places.file) : null;
+  const placesEntry = placesContent ? entry('places.json', placesContent) : null;
 
   const manifest: Manifest = {
     schemaVersion: SCHEMA_VERSION,
@@ -224,12 +234,14 @@ async function main(): Promise<void> {
     // El tráfico no cuenta en dataVersion: cambia cada hora y no debe obligar a la app
     // a descargar de nuevo la red.
     // Tampoco la red peatonal, que se renueva cada semana y la app descarga aparte,
-    // ni los retrasos habituales, que cambian cada hora con el histórico.
+    // ni los retrasos habituales, que cambian cada hora con el histórico,
+    // ni las capas de puntos del mapa, que se renuevan cada una por su lado.
     files: {
       ...files,
       ...(trafficEntry ? { traffic: trafficEntry } : {}),
       ...(walkEntry ? { walkGraph: walkEntry } : {}),
       ...(delaysEntry ? { delays: delaysEntry } : {}),
+      ...(placesEntry ? { places: placesEntry } : {}),
     },
     sources: [
       { ...SOURCES.emtLines, lastModified: emtRaw.lastModified },
@@ -245,6 +257,7 @@ async function main(): Promise<void> {
       ...trafficSources,
       ...metroSources,
       ...(walk ? [{ ...SOURCES.osmWalk, lastModified: walk.builtAt }] : []),
+      ...(places?.sources ?? []),
     ],
     license: { ...LICENSE },
   };
@@ -262,6 +275,9 @@ async function main(): Promise<void> {
       : []),
     ...(walkEntry && walk ? [writeFile(join(values.out, walkEntry.path), walk.content)] : []),
     ...(delaysEntry && delays ? [writeFile(join(values.out, delaysEntry.path), delays)] : []),
+    ...(placesEntry && placesContent
+      ? [writeFile(join(values.out, placesEntry.path), placesContent)]
+      : []),
     writeFile(join(values.out, 'report.json'), JSON.stringify(dataset.report, null, 2)),
   ]);
   // El manifest se escribe el último: solo existe si todo lo anterior ha ido bien.
@@ -273,6 +289,11 @@ async function main(): Promise<void> {
       `red peatonal ${walk ? `${walk.edges} tramos (${walk.reused ? 'reutilizada' : 'nueva'})` : 'no disponible'}, ` +
       `${dataset.report.stopConflicts.length} conflictos de paradas.`,
   );
+  if (places) {
+    const summary = places.file.layers.map((layer) => `${layer.kind} ${layer.places.length}`);
+    const reused = places.reused.length > 0 ? ` (reutilizadas: ${places.reused.join(', ')})` : '';
+    console.log(`Capas del mapa: ${summary.join(', ')}${reused}.`);
+  }
 }
 
 /** delays.json a partir de los ficheros del histórico de las últimas 8 semanas (null sin datos). */
@@ -315,6 +336,18 @@ async function readPreviousData(folder: string | undefined): Promise<PreviousDat
       shapesDetail: await read('shapes-detail.json'),
       timetables: await read('timetables.json'),
     };
+  } catch {
+    return null;
+  }
+}
+
+/** places.json de la publicación anterior (null si no lo hay o no se puede leer). */
+async function readPreviousPlaces(folder: string | undefined): Promise<PlacesFile | null> {
+  const path = folder && join(folder, 'places.json');
+  if (!path || !existsSync(path)) return null;
+  try {
+    const file = JSON.parse(await readFile(path, 'utf8')) as PlacesFile;
+    return Array.isArray(file.layers) ? file : null;
   } catch {
     return null;
   }

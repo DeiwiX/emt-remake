@@ -1,6 +1,6 @@
 # Datos de MalaGo (EMT Málaga)
 
-Este repositorio genera y publica los datos abiertos que usa la app MalaGo: líneas, paradas, trazados, horarios, calles, barrios, avisos y retrasos habituales de la EMT Málaga. El código de la app está en un repositorio privado.
+Este repositorio genera y publica los datos abiertos que usa la app MalaGo: líneas, paradas, trazados, horarios, calles, barrios, avisos, retrasos habituales de la EMT Málaga y capas del mapa (semáforos, desfibriladores, puntos de recarga, aparcamientos de bici y paradas con marquesina, en `places.json`). El código de la app está en un repositorio privado.
 
 Se publican en GitHub Pages, en https://deiwix.github.io/emt-remake/data/v1/ (empieza por `manifest.json`).
 
@@ -13,3 +13,5 @@ Se publican en GitHub Pages, en https://deiwix.github.io/emt-remake/data/v1/ (em
 ## Origen y licencia
 
 Los datos proceden del portal de datos abiertos del Ayuntamiento de Málaga (https://datosabiertos.malaga.eu) y se redistribuyen bajo CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/deed.es), la licencia más restrictiva de las que indica el portal.
+
+Los semáforos y las marquesinas de `places.json` salen además de OpenStreetMap (© colaboradores de OpenStreetMap, ODbL 1.0, https://www.openstreetmap.org/copyright), como la red peatonal.
