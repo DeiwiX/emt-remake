@@ -4,7 +4,7 @@ import { strToU8, zipSync } from 'fflate';
 
 import { encodeShapes } from '../build/build-dataset.ts';
 import { buildMetro, mergeTimetables } from '../build/build-metro.ts';
-import { metroFromPrevious } from '../build/previous-metro.ts';
+import { partFromPrevious } from '../build/previous-part.ts';
 import type { PublishedLine, TimetablesFile } from '../output-schema.ts';
 
 /** GTFS mínimo con la forma del de Metro de Málaga (andenes por línea en El Perchel). */
@@ -124,16 +124,27 @@ describe('Metro de la publicación anterior (si falla su GTFS)', () => {
   ];
 
   it('recupera solo el metro (líneas, estaciones, trazados y horario) de los datos publicados', () => {
-    const previous = metroFromPrevious({
-      network: {
-        schemaVersion: 1,
-        lines: [busLine, ...metro.lines],
-        stops: [...busStops, ...metro.stops],
+    const previous = partFromPrevious(
+      {
+        network: {
+          schemaVersion: 1,
+          lines: [busLine, ...metro.lines],
+          stops: [...busStops, ...metro.stops],
+        },
+        shapesOverview: {
+          schemaVersion: 1,
+          toleranceM: 25,
+          shapes: { 'e1-1': 'xx', ...overview },
+        },
+        shapesDetail: {
+          schemaVersion: 1,
+          toleranceM: 4,
+          shapes: { 'e1-1': 'yy', ...detail },
+        },
+        timetables: mergeTimetables(busTimetables, metro.timetables),
       },
-      shapesOverview: { schemaVersion: 1, toleranceM: 25, shapes: { 'e1-1': 'xx', ...overview } },
-      shapesDetail: { schemaVersion: 1, toleranceM: 4, shapes: { 'e1-1': 'yy', ...detail } },
-      timetables: mergeTimetables(busTimetables, metro.timetables),
-    });
+      'metro',
+    );
     assert.deepEqual(previous, {
       lines: metro.lines,
       stops: metro.stops,
@@ -145,12 +156,15 @@ describe('Metro de la publicación anterior (si falla su GTFS)', () => {
 
   it('sin metro en la publicación anterior no devuelve nada', () => {
     assert.equal(
-      metroFromPrevious({
-        network: { schemaVersion: 1, lines: [busLine], stops: busStops },
-        shapesOverview: { schemaVersion: 1, toleranceM: 25, shapes: {} },
-        shapesDetail: { schemaVersion: 1, toleranceM: 4, shapes: {} },
-        timetables: busTimetables,
-      }),
+      partFromPrevious(
+        {
+          network: { schemaVersion: 1, lines: [busLine], stops: busStops },
+          shapesOverview: { schemaVersion: 1, toleranceM: 25, shapes: {} },
+          shapesDetail: { schemaVersion: 1, toleranceM: 4, shapes: {} },
+          timetables: busTimetables,
+        },
+        'metro',
+      ),
       null,
     );
   });

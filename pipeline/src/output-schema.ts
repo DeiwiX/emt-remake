@@ -3,6 +3,9 @@
  * Es el contrato con la app: cualquier cambio incompatible exige subir la versión.
  */
 
+/** Modos distintos del autobús de la EMT (que no lleva "mode"). */
+export type TransitMode = 'metro' | 'interurban';
+
 export interface PublishedStop {
   /** Código público de la parada (codParada de la EMT). */
   id: string;
@@ -10,14 +13,17 @@ export interface PublishedStop {
   address: string;
   lat: number;
   lon: number;
-  /** Fase 11: "metro" en las estaciones del metro; sin él, parada de autobús de la EMT. */
-  mode?: 'metro';
+  /**
+   * Fase 11: "metro" en las estaciones del metro; "interurban" en las paradas del
+   * Consorcio (ADR 0022, su municipio va en address); sin él, parada de la EMT.
+   */
+  mode?: TransitMode;
 }
 
 export type ShapeQuality = 'official' | 'approximate';
 
 export interface PublishedDirection {
-  /** 1 o 2, como en la fuente de la EMT. */
+  /** 1 o 2, como en la fuente de la EMT; los interurbanos numeran cada recorrido (1, 2, 3…). */
   id: number;
   /** Destino del sentido ("hacia ..."). */
   headsign: string;
@@ -33,6 +39,12 @@ export interface PublishedDirection {
   minutes: number[];
   /** "schedule" = horario programado del GTFS; "estimate" = estimado por distancia. */
   timesSource: 'schedule' | 'estimate';
+  /**
+   * Posiciones (en stopIds) donde no se puede subir o bajar, si la fuente lo dice
+   * (interurbanos dentro de la capital, ADR 0022; opcional).
+   */
+  noBoarding?: number[];
+  noAlighting?: number[];
 }
 
 export interface PublishedLine {
@@ -42,9 +54,9 @@ export interface PublishedLine {
   /** Observaciones e incidencias publicadas por la EMT, tal cual. */
   notes: string;
   directions: PublishedDirection[];
-  /** Fase 11: "metro" en las líneas del metro; sin él, línea de autobús de la EMT. */
-  mode?: 'metro';
-  /** Color oficial de la línea ("#RRGGBB"), si la fuente lo da (el metro). */
+  /** "metro" o "interurban" (ADR 0022); sin él, línea de autobús de la EMT. */
+  mode?: TransitMode;
+  /** Color de la línea ("#RRGGBB"), si la fuente lo da (el metro) o es el de su modo (interurbanos). */
   color?: string;
 }
 

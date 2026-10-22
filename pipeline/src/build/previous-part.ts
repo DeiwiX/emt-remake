@@ -4,11 +4,15 @@ import type {
   PublishedStop,
   ShapesFile,
   TimetablesFile,
+  TransitMode,
 } from '../output-schema.ts';
 import type { MetroData } from './build-metro.ts';
 
-/** El metro tal como se publica: líneas, estaciones, trazados codificados y horario. */
-export interface PublishedMetro {
+/**
+ * Una red opcional (metro, interurbanos) tal como se publica: líneas, paradas,
+ * trazados codificados y horario.
+ */
+export interface PublishedPart {
   lines: PublishedLine[];
   stops: PublishedStop[];
   shapesOverview: ShapesFile['shapes'];
@@ -16,7 +20,7 @@ export interface PublishedMetro {
   timetables: MetroData['timetables'];
 }
 
-/** Ficheros de la publicación anterior de los que se recupera el metro. */
+/** Ficheros de la publicación anterior de los que se recupera una red opcional. */
 export interface PreviousData {
   network: NetworkFile;
   shapesOverview: ShapesFile;
@@ -25,13 +29,13 @@ export interface PreviousData {
 }
 
 /**
- * Metro de la publicación anterior, para cuando falla la descarga de su GTFS:
- * así un fallo puntual de la web del metro no lo quita de la app (21/10/2026).
- * Devuelve null si la publicación anterior no tenía metro.
+ * La red de un modo (metro o interurbanos) de la publicación anterior, para
+ * cuando falla la descarga de su fuente: así un fallo puntual no la quita de la
+ * app (21/10/2026). Devuelve null si la publicación anterior no la tenía.
  */
-export function metroFromPrevious(previous: PreviousData): PublishedMetro | null {
-  const lines = previous.network.lines.filter((line) => line.mode === 'metro');
-  const stops = previous.network.stops.filter((stop) => stop.mode === 'metro');
+export function partFromPrevious(previous: PreviousData, mode: TransitMode): PublishedPart | null {
+  const lines = previous.network.lines.filter((line) => line.mode === mode);
+  const stops = previous.network.stops.filter((stop) => stop.mode === mode);
   if (lines.length === 0 || stops.length === 0) return null;
 
   const shapeIds = lines.flatMap((line) => line.directions.map((d) => d.shapeId));

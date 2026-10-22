@@ -91,6 +91,18 @@ export const SOURCES = {
     dataset: 'https://metromalaga.es/',
     url: 'https://metromalaga.es/GTFS/GTFS_METRO_MALAGA.zip',
   },
+  /** Interurbanos (ADR 0022): GTFS de los nueve consorcios andaluces; se filtra el de Málaga. */
+  interurban: {
+    name: 'Red de Consorcios de Transporte de Andalucía – GTFS',
+    dataset: 'https://api.ctan.es/',
+    url: 'https://api.ctan.es/v1/datos/UNIFICADO/gtfs.zip',
+  },
+  /** Paradas del Consorcio de Málaga con su municipio (no viene en el GTFS). */
+  interurbanStops: {
+    name: 'Red de Consorcios de Transporte de Andalucía – paradas del Área de Málaga',
+    dataset: 'https://api.ctan.es/',
+    url: 'https://api.ctan.es/v1/Consorcios/4/paradas?lang=ES',
+  },
   /** Posiciones de los autobuses (Fase 10: se guardan para aprender los retrasos habituales). */
   vehicles: {
     name: 'Ubicaciones de autobuses EMT en tiempo real',
@@ -122,6 +134,31 @@ export const PLACES = {
   acousticMatchM: 30,
   /** Una parada de OpenStreetMap con marquesina se asigna a la de la EMT más cercana a esta distancia. */
   shelterMatchM: 25,
+} as const;
+
+/** Autobuses interurbanos del Consorcio de Transporte Metropolitano del Área de Málaga (ADR 0022). */
+export const INTERURBAN = {
+  /** Prefijo de los identificadores del consorcio de Málaga en el GTFS unificado. */
+  areaPrefix: '4_',
+  /** Prefijo de los códigos de parada publicados ("I149"), como "M" en el metro. */
+  stopPrefix: 'I',
+  /** Color del modo interurbano de MalaGo para todas sus líneas (21/10/2026). */
+  color: '#2F7D5B',
+  /** Días de horario publicados como mucho (el GTFS dice que todo vale hasta 2030). */
+  maxDays: 120,
+  /** Por debajo de esto la fuente se considera rota y se mantiene la publicación anterior. */
+  minLines: 50,
+  minStops: 500,
+  /** Una parada sin municipio en la API toma el de la más cercana a esta distancia. */
+  municipalityMatchM: 2000,
+  /** Provincia de Málaga, holgada: los puntos de trazado fuera se descartan. */
+  bounds: { minLat: 36.2, maxLat: 37.4, minLon: -5.7, maxLon: -3.7 },
+  /**
+   * Atribución que pide el aviso legal de la Red de Consorcios (reutilización
+   * permitida, también comercial, sin dar a entender que respaldan la app).
+   */
+  attribution:
+    'Información proporcionada por el Portal de Datos Abiertos de la Red de Consorcios de Transporte de Andalucía',
 } as const;
 
 /** La red peatonal cambia poco: se descarga de OpenStreetMap como mucho una vez por semana. */

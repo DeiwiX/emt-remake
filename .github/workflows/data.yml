@@ -46,10 +46,10 @@ jobs:
         run: curl -fsS "${{ steps.pages.outputs.base_url }}/data/v1/manifest.json" -o previous-manifest.json || echo "Sin publicación anterior"
       - name: Descargar la red peatonal publicada (se reutiliza si tiene menos de una semana)
         run: curl -fsS "${{ steps.pages.outputs.base_url }}/data/v1/walk-graph.json" -o previous-walk-graph.json || echo "Sin red peatonal anterior"
-      # Si falla la descarga del GTFS del metro, se mantiene el metro de la publicación
-      # anterior en vez de quitarlo de la app (21/10/2026). Lo mismo con cada capa de
+      # Si falla la descarga del GTFS del metro o de los interurbanos, se mantienen los
+      # de la publicación anterior en vez de quitarlos de la app (21/10/2026; ADR 0022). Lo mismo con cada capa de
       # places.json (semáforos, desfibriladores...) si falla su fuente (ADR 0021).
-      - name: Descargar los datos publicados (para mantener el metro y las capas si falla su fuente)
+      - name: Descargar los datos publicados (para mantener metro, interurbanos y capas si falla su fuente)
         run: |
           mkdir -p previous-data
           for file in network.json shapes-overview.json shapes-detail.json timetables.json places.json; do

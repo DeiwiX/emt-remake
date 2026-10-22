@@ -12,18 +12,20 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 
-import { LICENSE, SCHEMA_VERSION, SIMPLIFY_TOLERANCE_M, SOURCES } from './config.ts';
+import { INTERURBAN, LICENSE, SCHEMA_VERSION, SIMPLIFY_TOLERANCE_M, SOURCES } from './config.ts';
 import { resolveWalkGraph } from './build/walk-graph-source.ts';
 import { resolvePlaces } from './build/places-source.ts';
 import { buildDataset, encodeShapes } from './build/build-dataset.ts';
-import { buildMetro, mergeTimetables } from './build/build-metro.ts';
+import { type MetroData, buildMetro, mergeTimetables } from './build/build-metro.ts';
 import {
-  type PreviousData,
-  type PublishedMetro,
-  metroFromPrevious,
-} from './build/previous-metro.ts';
+  type InterurbanData,
+  addDays,
+  buildInterurban,
+  parseConsortiumStops,
+} from './build/build-interurban.ts';
+import { type PreviousData, type PublishedPart, partFromPrevious } from './build/previous-part.ts';
 import { checkPlausibility } from './build/sanity.ts';
-import type { FileEntry, Manifest, PlacesFile } from './output-schema.ts';
+import type { FileEntry, Manifest, PlacesFile, TransitMode } from './output-schema.ts';
 import { parseEmtLines } from './sources/emt-lines.ts';
 import { download } from './sources/fetch.ts';
 import { parseGtfsZip } from './sources/gtfs.ts';
@@ -76,44 +78,66 @@ async function main(): Promise<void> {
   const emtLines = parseEmtLines(JSON.parse(new TextDecoder().decode(emtRaw.bytes)));
   const gtfs = parseGtfsZip(gtfsRaw.bytes);
   const dataset = buildDataset(emtLines, gtfs);
-  // Metro de Málaga (Fase 11): opcional. Si su GTFS falla se mantiene el metro de la
-  // publicación anterior (--previous-data) y, si tampoco lo hay, se publica sin metro.
-  // Va antes de las zonas para que sus estaciones cuenten en barrios y distritos.
-  let metro: PublishedMetro | null = null;
-  const metroSources: Manifest['sources'] = [];
-  try {
-    const raw = await download(SOURCES.metro.url);
-    const built = buildMetro(raw.bytes);
-    metro = {
-      lines: built.lines,
-      stops: built.stops,
-      shapesOverview: encodeShapes(built.geometries, SIMPLIFY_TOLERANCE_M.overview).shapes,
-      shapesDetail: encodeShapes(built.geometries, SIMPLIFY_TOLERANCE_M.detail).shapes,
-      timetables: built.timetables,
-    };
-    metroSources.push({ ...SOURCES.metro, lastModified: raw.lastModified });
-  } catch (error) {
-    console.warn('Sin metro nuevo:', error instanceof Error ? error.message : error);
-    const previous = await readPreviousData(values['previous-data']);
-    metro = previous ? metroFromPrevious(previous) : null;
-    if (metro) {
-      const previousSource = (await readPreviousManifest(values.previous))?.sources?.find(
-        (source) => source.url === SOURCES.metro.url,
+  // Metro de Málaga (Fase 11) e interurbanos del Consorcio (ADR 0022): opcionales.
+  // Si su fuente falla se mantiene la red de la publicación anterior (--previous-data)
+  // y, si tampoco la hay, se publica sin ella. Van antes de las zonas para que sus
+  // paradas cuenten en barrios y distritos.
+  const previousOf = (mode: TransitMode) =>
+    optionalFromPrevious(mode, values['previous-data'], values.previous);
+  const metro = await optionalPart(
+    'metro',
+    async () => {
+      const raw = await download(SOURCES.metro.url);
+      return {
+        part: publishPart(buildMetro(raw.bytes)),
+        sources: [{ ...SOURCES.metro, lastModified: raw.lastModified }],
+      };
+    },
+    previousOf,
+  );
+  const interurban = await optionalPart(
+    'interurban',
+    async () => {
+      const raw = await download(SOURCES.interurban.url);
+      const sources: Manifest['sources'] = [
+        { ...SOURCES.interurban, lastModified: raw.lastModified },
+      ];
+      // El municipio de cada parada es un extra: sin él se publican igual.
+      let consortiumStops = null;
+      try {
+        const api = await download(SOURCES.interurbanStops.url);
+        consortiumStops = parseConsortiumStops(JSON.parse(decode(api.bytes)));
+        sources.push({
+          ...SOURCES.interurbanStops,
+          lastModified: api.lastModified,
+        });
+      } catch (error) {
+        console.warn(
+          'Sin municipios de las paradas interurbanas:',
+          error instanceof Error ? error.message : error,
+        );
+      }
+      const today = madridLocal(new Date().toISOString())!.slice(0, 10).replaceAll('-', '');
+      const built = buildInterurban(
+        raw.bytes,
+        consortiumStops,
+        today,
+        lastPublishedDate(gtfs.serviceDates, addDays(today, INTERURBAN.maxDays)),
       );
-      metroSources.push({
-        ...SOURCES.metro,
-        lastModified: previousSource?.lastModified ?? null,
-      });
-      console.warn('Se mantiene el metro de la publicación anterior.');
-    }
+      return { part: publishPart(built), sources };
+    },
+    previousOf,
+  );
+  for (const { part } of [metro, interurban]) {
+    if (!part) continue;
+    dataset.network.lines.push(...part.lines);
+    dataset.network.stops.push(...part.stops);
+    Object.assign(dataset.shapesOverview.shapes, part.shapesOverview);
+    Object.assign(dataset.shapesDetail.shapes, part.shapesDetail);
   }
-  if (metro) {
-    dataset.network.lines.push(...metro.lines);
-    dataset.network.stops.push(...metro.stops);
-    Object.assign(dataset.shapesOverview.shapes, metro.shapesOverview);
-    Object.assign(dataset.shapesDetail.shapes, metro.shapesDetail);
-    console.log(`Metro: ${metro.lines.length} líneas y ${metro.stops.length} estaciones.`);
-  }
+  // La red peatonal y las capas de puntos son de la ciudad: los interurbanos llegan
+  // hasta Antequera y la Axarquía, y su recuadro multiplicaría la descarga de OpenStreetMap.
+  const cityStops = dataset.network.stops.filter((stop) => stop.mode !== 'interurban');
 
   const zones = buildZones(
     [
@@ -123,7 +147,9 @@ async function main(): Promise<void> {
     dataset.network.stops,
   );
   let timetables = buildTimetables(dataset.network, gtfs.trips, gtfs.serviceDates);
-  if (metro) timetables = mergeTimetables(timetables, metro.timetables);
+  for (const { part } of [metro, interurban]) {
+    if (part) timetables = mergeTimetables(timetables, part.timetables);
+  }
 
   const streets = buildStreets(
     parseStreets(
@@ -169,14 +195,14 @@ async function main(): Promise<void> {
     values['previous-walk'] && existsSync(values['previous-walk'])
       ? await readFile(values['previous-walk'], 'utf8')
       : null,
-    dataset.network.stops,
+    cityStops,
     new Date(),
   );
 
   // Capas de puntos del mapa (ADR 0021): opcional, cada capa por separado.
   const places = await resolvePlaces(
     await readPreviousPlaces(values['previous-data']),
-    dataset.network.stops,
+    cityStops,
     new Date(),
   );
 
@@ -255,7 +281,8 @@ async function main(): Promise<void> {
       { ...SOURCES.streetTypes, lastModified: streetTypesRaw.lastModified },
       { ...SOURCES.streetNumbers, lastModified: streetNumbersRaw.lastModified },
       ...trafficSources,
-      ...metroSources,
+      ...metro.sources,
+      ...interurban.sources,
       ...(walk ? [{ ...SOURCES.osmWalk, lastModified: walk.builtAt }] : []),
       ...(places?.sources ?? []),
     ],
@@ -289,6 +316,12 @@ async function main(): Promise<void> {
       `red peatonal ${walk ? `${walk.edges} tramos (${walk.reused ? 'reutilizada' : 'nueva'})` : 'no disponible'}, ` +
       `${dataset.report.stopConflicts.length} conflictos de paradas.`,
   );
+  for (const [name, { part }] of [
+    ['Metro', metro],
+    ['Interurbanos', interurban],
+  ] as const) {
+    if (part) console.log(`${name}: ${part.lines.length} líneas y ${part.stops.length} paradas.`);
+  }
   if (places) {
     const summary = places.file.layers.map((layer) => `${layer.kind} ${layer.places.length}`);
     const reused = places.reused.length > 0 ? ` (reutilizadas: ${places.reused.join(', ')})` : '';
@@ -311,6 +344,65 @@ async function buildDelays(folder: string): Promise<string | null> {
   const file = aggregateDelays(observations, days, SCHEMA_VERSION);
   console.log(`Retrasos habituales: ${observations.length} datos de ${days} días.`);
   return JSON.stringify(file);
+}
+
+interface OptionalPart {
+  part: PublishedPart | null;
+  sources: Manifest['sources'];
+}
+
+/**
+ * Una red opcional (metro, interurbanos): la nueva si su fuente responde y es
+ * válida; si no, la de la publicación anterior; y si tampoco, ninguna.
+ */
+async function optionalPart(
+  mode: TransitMode,
+  build: () => Promise<{ part: PublishedPart; sources: Manifest['sources'] }>,
+  previousOf: (mode: TransitMode) => Promise<OptionalPart>,
+): Promise<OptionalPart> {
+  try {
+    return await build();
+  } catch (error) {
+    console.warn(`Sin ${mode} nuevo:`, error instanceof Error ? error.message : error);
+    const previous = await previousOf(mode);
+    if (previous.part) console.warn(`Se mantiene ${mode} de la publicación anterior.`);
+    return previous;
+  }
+}
+
+/** La red de un modo en la publicación anterior, con las fuentes que la generaron. */
+async function optionalFromPrevious(
+  mode: TransitMode,
+  dataFolder: string | undefined,
+  manifestPath: string | undefined,
+): Promise<OptionalPart> {
+  const previous = await readPreviousData(dataFolder);
+  const part = previous ? partFromPrevious(previous, mode) : null;
+  if (!part) return { part: null, sources: [] };
+  const urls = new Set<string>(
+    (mode === 'metro' ? [SOURCES.metro] : [SOURCES.interurban, SOURCES.interurbanStops]).map(
+      (source) => source.url,
+    ),
+  );
+  const sources = (await readPreviousManifest(manifestPath))?.sources ?? [];
+  return { part, sources: sources.filter((source) => urls.has(source.url)) };
+}
+
+/** Líneas, paradas, trazados codificados y horario de una red opcional. */
+function publishPart(built: MetroData | InterurbanData): PublishedPart {
+  return {
+    lines: built.lines,
+    stops: built.stops,
+    shapesOverview: encodeShapes(built.geometries, SIMPLIFY_TOLERANCE_M.overview).shapes,
+    shapesDetail: encodeShapes(built.geometries, SIMPLIFY_TOLERANCE_M.detail).shapes,
+    timetables: built.timetables,
+  };
+}
+
+/** Último día del horario de la EMT, sin pasar de `cap` (AAAAMMDD). */
+function lastPublishedDate(serviceDates: Map<string, string[]>, cap: string): string {
+  const last = [...serviceDates.values()].flat().reduce((max, d) => (d > max ? d : max), '');
+  return last && last < cap ? last : cap;
 }
 
 async function readPreviousManifest(path: string | undefined): Promise<Partial<Manifest> | null> {

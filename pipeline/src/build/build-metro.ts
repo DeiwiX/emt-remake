@@ -227,19 +227,19 @@ export function buildMetro(zip: Uint8Array): MetroData {
   };
 }
 
-/** Une el metro a los datos de la EMT (líneas, paradas y horario). */
+/** Une una red opcional (metro, interurbanos) al horario de la EMT. */
 export function mergeTimetables(
   base: TimetablesFile,
-  metro: MetroData['timetables'],
+  part: MetroData['timetables'],
 ): TimetablesFile {
   return {
     // El tiempo real (livePatterns, liveTrips) es solo de la EMT: se conserva tal cual.
     ...base,
     schemaVersion: SCHEMA_VERSION,
-    services: { ...base.services, ...metro.services },
-    departures: { ...base.departures, ...metro.departures },
-    profiles: { ...base.profiles, ...metro.profiles },
-    departureProfiles: { ...base.departureProfiles, ...metro.departureProfiles },
+    services: { ...base.services, ...part.services },
+    departures: { ...base.departures, ...part.departures },
+    profiles: { ...base.profiles, ...part.profiles },
+    departureProfiles: { ...base.departureProfiles, ...part.departureProfiles },
   };
 }
 
