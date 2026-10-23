@@ -9,7 +9,7 @@ import type {
 import type { MetroData } from './build-metro.ts';
 
 /**
- * Una red opcional (metro, interurbanos) tal como se publica: líneas, paradas,
+ * Una red opcional (metro, interurbanos, Cercanías) tal como se publica: líneas, paradas,
  * trazados codificados y horario.
  */
 export interface PublishedPart {
@@ -17,7 +17,7 @@ export interface PublishedPart {
   stops: PublishedStop[];
   shapesOverview: ShapesFile['shapes'];
   shapesDetail: ShapesFile['shapes'];
-  timetables: MetroData['timetables'];
+  timetables: MetroData['timetables'] & Pick<TimetablesFile, 'departureTrains'>;
 }
 
 /** Ficheros de la publicación anterior de los que se recupera una red opcional. */
@@ -40,7 +40,13 @@ export function partFromPrevious(previous: PreviousData, mode: TransitMode): Pub
 
   const shapeIds = lines.flatMap((line) => line.directions.map((d) => d.shapeId));
   const keys = lines.flatMap((line) => line.directions.map((d) => `${line.id}|${d.id}`));
-  const { services, departures, profiles = {}, departureProfiles = {} } = previous.timetables;
+  const {
+    services,
+    departures,
+    profiles = {},
+    departureProfiles = {},
+    departureTrains,
+  } = previous.timetables;
   const usedServices = new Set(keys.flatMap((key) => Object.keys(departures[key] ?? {})));
 
   return {
@@ -53,6 +59,7 @@ export function partFromPrevious(previous: PreviousData, mode: TransitMode): Pub
       departures: pick(departures, keys),
       profiles: pick(profiles, keys),
       departureProfiles: pick(departureProfiles, keys),
+      ...(departureTrains ? { departureTrains: pick(departureTrains, keys) } : {}),
     },
   };
 }

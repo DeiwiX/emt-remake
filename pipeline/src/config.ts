@@ -97,6 +97,12 @@ export const SOURCES = {
     dataset: 'https://api.ctan.es/',
     url: 'https://api.ctan.es/v1/datos/UNIFICADO/gtfs.zip',
   },
+  /** Cercanías (ADR 0023): horario de todos los núcleos de Renfe; se filtra el de Málaga. */
+  train: {
+    name: 'Renfe Data – Horarios de Cercanías (Origen de los datos: Renfe Operadora, CC BY 4.0)',
+    dataset: 'https://data.renfe.com/dataset/horarios-cercanias',
+    url: 'https://ssl.renfe.com/ftransit/Fichero_CER_FOMENTO/fomento_transit.zip',
+  },
   /** Paradas del Consorcio de Málaga con su municipio (no viene en el GTFS). */
   interurbanStops: {
     name: 'Red de Consorcios de Transporte de Andalucía – paradas del Área de Málaga',
@@ -159,6 +165,23 @@ export const INTERURBAN = {
    */
   attribution:
     'Información proporcionada por el Portal de Datos Abiertos de la Red de Consorcios de Transporte de Andalucía',
+} as const;
+
+/** Cercanías de Málaga, C1 y C2 (ADR 0023). */
+export const TRAIN = {
+  /** Las rutas, servicios y viajes del núcleo de Málaga empiezan por "32". */
+  areaPrefix: '32',
+  /** Prefijo de los códigos de estación publicados ("T54517"), como "M" en el metro. */
+  stopPrefix: 'T',
+  /** Rojo del modo tren de MalaGo para todas sus líneas (elegido por David el 23/10/2026). */
+  color: '#C8102E',
+  /** Por debajo de esto la fuente se considera rota y se mantiene la publicación anterior. */
+  minLines: 2,
+  minStops: 15,
+  /** Costa del Sol occidental y Valle del Guadalhorce: los puntos de trazado fuera se descartan. */
+  bounds: { minLat: 36.4, maxLat: 37.0, minLon: -4.9, maxLon: -4.3 },
+  /** Lo que pide la licencia CC BY 4.0 de Renfe Data (data.renfe.com/legal). */
+  attribution: 'Origen de los datos: Renfe Operadora',
 } as const;
 
 /** La red peatonal cambia poco: se descarga de OpenStreetMap como mucho una vez por semana. */

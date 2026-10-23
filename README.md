@@ -14,4 +14,6 @@ Se publican en GitHub Pages, en https://deiwix.github.io/emt-remake/data/v1/ (em
 
 Los datos proceden del portal de datos abiertos del Ayuntamiento de Málaga (https://datosabiertos.malaga.eu) y se redistribuyen bajo CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/deed.es), la licencia más restrictiva de las que indica el portal.
 
+Los trenes de Cercanías (C-1 y C-2) salen del horario de Renfe Data (https://data.renfe.com/dataset/horarios-cercanias, CC BY 4.0): Origen de los datos: Renfe Operadora.
+
 Los semáforos y las marquesinas de `places.json` salen además de OpenStreetMap (© colaboradores de OpenStreetMap, ODbL 1.0, https://www.openstreetmap.org/copyright), como la red peatonal.
