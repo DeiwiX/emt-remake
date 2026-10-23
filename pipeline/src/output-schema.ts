@@ -3,8 +3,8 @@
  * Es el contrato con la app: cualquier cambio incompatible exige subir la versión.
  */
 
-/** Modos distintos del autobús de la EMT (que no lleva "mode"). */
-export type TransitMode = 'metro' | 'interurban';
+/** Modos distintos del autobús de la EMT (que no lleva "mode"): metro, interurbanos y Cercanías. */
+export type TransitMode = 'metro' | 'interurban' | 'train';
 
 export interface PublishedStop {
   /** Código público de la parada (codParada de la EMT). */
@@ -15,7 +15,8 @@ export interface PublishedStop {
   lon: number;
   /**
    * Fase 11: "metro" en las estaciones del metro; "interurban" en las paradas del
-   * Consorcio (ADR 0022, su municipio va en address); sin él, parada de la EMT.
+   * Consorcio (ADR 0022, su municipio va en address); "train" en las estaciones de
+   * Cercanías (ADR 0023); sin él, parada de la EMT.
    */
   mode?: TransitMode;
 }
@@ -54,7 +55,7 @@ export interface PublishedLine {
   /** Observaciones e incidencias publicadas por la EMT, tal cual. */
   notes: string;
   directions: PublishedDirection[];
-  /** "metro" o "interurban" (ADR 0022); sin él, línea de autobús de la EMT. */
+  /** "metro", "interurban" (ADR 0022) o "train" (ADR 0023); sin él, línea de autobús de la EMT. */
   mode?: TransitMode;
   /** Color de la línea ("#RRGGBB"), si la fuente lo da (el metro) o es el de su modo (interurbanos). */
   color?: string;
@@ -159,6 +160,13 @@ export interface TimetablesFile {
   profiles?: Record<string, number[][]>;
   /** …y el perfil de cada salida, en el mismo orden que `departures`. */
   departureProfiles?: Record<string, Record<string, number[]>>;
+  /**
+   * Cercanías (ADR 0023; opcional): el número de tren de cada salida, en el mismo
+   * orden que `departures`. El tiempo real de Renfe solo trae el trip_id
+   * ("3294V23370C1" = servicio + número de tren + línea): con esto se sabe su
+   * sentido y su hora programada.
+   */
+  departureTrains?: Record<string, Record<string, string[]>>;
   /**
    * Para leer el tiempo real de la EMT (GTFS-RT, 17/10/2026; opcional). Sus viajes
    * solo traen "stop_sequence" (la posición en el viaje), no la parada: cada

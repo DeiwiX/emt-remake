@@ -23,6 +23,7 @@ import {
   buildInterurban,
   parseConsortiumStops,
 } from './build/build-interurban.ts';
+import { type TrainData, buildTrain, withinCity } from './build/build-train.ts';
 import { type PreviousData, type PublishedPart, partFromPrevious } from './build/previous-part.ts';
 import { checkPlausibility } from './build/sanity.ts';
 import type { FileEntry, Manifest, PlacesFile, TransitMode } from './output-schema.ts';
@@ -128,7 +129,25 @@ async function main(): Promise<void> {
     },
     previousOf,
   );
-  for (const { part } of [metro, interurban]) {
+  const train = await optionalPart(
+    'train',
+    async () => {
+      const raw = await download(SOURCES.train.url);
+      const today = madridLocal(new Date().toISOString())!.slice(0, 10).replaceAll('-', '');
+      const built = buildTrain(
+        raw.bytes,
+        today,
+        lastPublishedDate(gtfs.serviceDates, addDays(today, INTERURBAN.maxDays)),
+      );
+      return {
+        part: publishPart(built),
+        sources: [{ ...SOURCES.train, lastModified: raw.lastModified }],
+      };
+    },
+    previousOf,
+  );
+  const parts = [metro, interurban, train];
+  for (const { part } of parts) {
     if (!part) continue;
     dataset.network.lines.push(...part.lines);
     dataset.network.stops.push(...part.stops);
@@ -137,7 +156,9 @@ async function main(): Promise<void> {
   }
   // La red peatonal y las capas de puntos son de la ciudad: los interurbanos llegan
   // hasta Antequera y la Axarquía, y su recuadro multiplicaría la descarga de OpenStreetMap.
-  const cityStops = dataset.network.stops.filter((stop) => stop.mode !== 'interurban');
+  // De Cercanías solo cuentan las estaciones de la ciudad (dentro del recuadro de la
+  // EMT): la C1 llega a Fuengirola y la C2 a Álora.
+  const cityStops = withinCity(dataset.network.stops);
 
   const zones = buildZones(
     [
@@ -147,7 +168,7 @@ async function main(): Promise<void> {
     dataset.network.stops,
   );
   let timetables = buildTimetables(dataset.network, gtfs.trips, gtfs.serviceDates);
-  for (const { part } of [metro, interurban]) {
+  for (const { part } of parts) {
     if (part) timetables = mergeTimetables(timetables, part.timetables);
   }
 
@@ -283,6 +304,7 @@ async function main(): Promise<void> {
       ...trafficSources,
       ...metro.sources,
       ...interurban.sources,
+      ...train.sources,
       ...(walk ? [{ ...SOURCES.osmWalk, lastModified: walk.builtAt }] : []),
       ...(places?.sources ?? []),
     ],
@@ -319,6 +341,7 @@ async function main(): Promise<void> {
   for (const [name, { part }] of [
     ['Metro', metro],
     ['Interurbanos', interurban],
+    ['Cercanías', train],
   ] as const) {
     if (part) console.log(`${name}: ${part.lines.length} líneas y ${part.stops.length} paradas.`);
   }
@@ -379,17 +402,20 @@ async function optionalFromPrevious(
   const previous = await readPreviousData(dataFolder);
   const part = previous ? partFromPrevious(previous, mode) : null;
   if (!part) return { part: null, sources: [] };
-  const urls = new Set<string>(
-    (mode === 'metro' ? [SOURCES.metro] : [SOURCES.interurban, SOURCES.interurbanStops]).map(
-      (source) => source.url,
-    ),
-  );
+  const urls = new Set<string>(SOURCES_OF_MODE[mode].map((source) => source.url));
   const sources = (await readPreviousManifest(manifestPath))?.sources ?? [];
   return { part, sources: sources.filter((source) => urls.has(source.url)) };
 }
 
+/** Fuentes de cada red opcional, para recuperarlas de la publicación anterior. */
+const SOURCES_OF_MODE: Record<TransitMode, readonly { url: string }[]> = {
+  metro: [SOURCES.metro],
+  interurban: [SOURCES.interurban, SOURCES.interurbanStops],
+  train: [SOURCES.train],
+};
+
 /** Líneas, paradas, trazados codificados y horario de una red opcional. */
-function publishPart(built: MetroData | InterurbanData): PublishedPart {
+function publishPart(built: MetroData | InterurbanData | TrainData): PublishedPart {
   return {
     lines: built.lines,
     stops: built.stops,

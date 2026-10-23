@@ -30,6 +30,16 @@ import type {
 import { parseCsv } from '../sources/csv.ts';
 import { ValidationError } from '../validation.ts';
 import { type LatLon, distanceM } from './geometry.ts';
+import {
+  type Trip,
+  type TripStop,
+  baseName,
+  emptyPatternOutput,
+  publishDirections,
+  readShapes,
+  round5,
+  toMinutes,
+} from './gtfs-patterns.ts';
 
 export interface InterurbanData {
   lines: PublishedLine[];
@@ -45,26 +55,6 @@ export interface ConsortiumStop {
   municipality: string;
   lat: number;
   lon: number;
-}
-
-interface TripStop {
-  stopId: string;
-  minutes: number;
-  noBoarding: boolean;
-  noAlighting: boolean;
-}
-
-interface Trip {
-  lineId: string;
-  serviceId: string;
-  shapeId: string;
-  stops: TripStop[];
-}
-
-/** Viajes con la misma secuencia de paradas. */
-interface Pattern {
-  stopIds: string[];
-  trips: Trip[];
 }
 
 const NEEDED = ['routes', 'stops', 'trips', 'stop_times', 'shapes', 'calendar', 'calendar_dates'];
@@ -116,7 +106,10 @@ export function buildInterurban(
   }
 
   const trips = readTrips(texts.get('stop_times') ?? '', tripInfo, lineByRoute, rawStops);
-  const shapes = readShapes(table('shapes').filter((row) => mine(row['shape_id'])));
+  const shapes = readShapes(
+    table('shapes').filter((row) => mine(row['shape_id'])),
+    INTERURBAN.bounds,
+  );
 
   const serviceDates = holidayServiceDates(
     table('calendar').filter((row) => mine(row['service_id'])),
@@ -125,17 +118,19 @@ export function buildInterurban(
     lastDate,
   );
 
-  const usedStops = new Set<string>();
-  const usedServices = new Set<string>();
-  const geometries = new Map<string, LatLon[]>();
-  const departures: TimetablesFile['departures'] = {};
-  const profiles: NonNullable<TimetablesFile['profiles']> = {};
-  const departureProfiles: NonNullable<TimetablesFile['departureProfiles']> = {};
-
+  const out = emptyPatternOutput();
   const stopName = (id: string) => (rawStops.get(id)?.['stop_name'] ?? id).trim();
   const stopPoint = (id: string): LatLon => {
     const raw = rawStops.get(id)!;
     return [Number(raw['stop_lat']), Number(raw['stop_lon'])];
+  };
+  const naming = {
+    stopId: publishedStopId,
+    serviceId: publishedServiceId,
+    officialShapeId: (id: string) => `i${id.slice(INTERURBAN.areaPrefix.length)}`,
+    approximateShapeId: (lineId: string, directionId: number) => `ai${lineId}-${directionId}`,
+    stopName,
+    stopPoint,
   };
 
   const byLine = new Map<string, Trip[]>();
@@ -154,68 +149,7 @@ export function buildInterurban(
     // Una misma línea con varias rutas en el GTFS se publica una sola vez.
     if (!lineId || !lineTrips || lines.some((l) => l.id === lineId)) continue;
 
-    const patterns = groupPatterns(lineTrips);
-    const headsigns = headsignsOf(patterns, stopName);
-    const directions = patterns.map((pattern, i): PublishedDirection => {
-      const directionId = i + 1;
-      const stopIds = pattern.stopIds.map(publishedStopId);
-      pattern.stopIds.forEach((id) => usedStops.add(id));
-
-      const shapeId = mostCommon(pattern.trips.map((t) => t.shapeId).filter(Boolean));
-      const points = shapeId ? shapes.get(shapeId) : undefined;
-      const official = points !== undefined && points.length > 1;
-      const publishedShape = official
-        ? `i${shapeId!.slice(INTERURBAN.areaPrefix.length)}`
-        : `ai${lineId}-${directionId}`;
-      geometries.set(publishedShape, official ? points : pattern.stopIds.map(stopPoint));
-
-      const relative = pattern.trips.map((t) =>
-        t.stops.map((s) => Math.round(s.minutes - t.stops[0]!.minutes)),
-      );
-      const typical = pattern.stopIds.map((_, k) => median(relative.map((r) => r[k]!)));
-
-      const key = `${lineId}|${directionId}`;
-      const list: number[][] = [];
-      const indexOf = new Map<string, number>();
-      const byService: Record<string, { start: number; profile: number }[]> = {};
-      pattern.trips.forEach((t, k) => {
-        const profile = relative[k]!;
-        const profileKey = profile.join(',');
-        let index = indexOf.get(profileKey);
-        if (index === undefined) {
-          index = list.push(profile) - 1;
-          indexOf.set(profileKey, index);
-        }
-        const service = publishedServiceId(t.serviceId);
-        (byService[service] ??= []).push({
-          start: Math.round(t.stops[0]!.minutes),
-          profile: index,
-        });
-        usedServices.add(t.serviceId);
-      });
-      departures[key] = {};
-      departureProfiles[key] = {};
-      for (const [service, items] of Object.entries(byService)) {
-        items.sort((a, b) => a.start - b.start);
-        departures[key][service] = items.map((d) => d.start);
-        departureProfiles[key][service] = items.map((d) => d.profile);
-      }
-      profiles[key] = list;
-
-      const { noBoarding, noAlighting } = restrictionsOf(pattern);
-      return {
-        id: directionId,
-        headsign: headsigns[i]!,
-        stopIds,
-        shapeId: publishedShape,
-        shapeQuality: official ? 'official' : 'approximate',
-        minutes: typical,
-        timesSource: 'schedule',
-        ...(noBoarding.length ? { noBoarding } : {}),
-        ...(noAlighting.length ? { noAlighting } : {}),
-      };
-    });
-
+    const directions = publishDirections(lineId, lineTrips, shapes, naming, out);
     lines.push({
       id: lineId,
       name: lineName(route, lineId, directions[0], stopName),
@@ -228,7 +162,7 @@ export function buildInterurban(
   lines.sort((a, b) => a.id.localeCompare(b.id, 'es', { numeric: true }));
 
   const municipalityOf = municipalities(consortiumStops);
-  const stops = [...usedStops].map((id): PublishedStop => {
+  const stops = [...out.usedStops].map((id): PublishedStop => {
     const [lat, lon] = stopPoint(id);
     return {
       id: publishedStopId(id),
@@ -249,14 +183,19 @@ export function buildInterurban(
 
   const services = Object.fromEntries(
     [...serviceDates]
-      .filter(([service]) => usedServices.has(service))
+      .filter(([service]) => out.usedServices.has(service))
       .map(([service, dates]) => [publishedServiceId(service), dates]),
   );
   return {
     lines,
     stops,
-    geometries,
-    timetables: { services, departures, profiles, departureProfiles },
+    geometries: out.geometries,
+    timetables: {
+      services,
+      departures: out.departures,
+      profiles: out.profiles,
+      departureProfiles: out.departureProfiles,
+    },
   };
 }
 
@@ -321,6 +260,7 @@ function readTrips(
     const info = tripInfo.get(tripId)!;
     return [
       {
+        id: tripId,
         lineId: lineByRoute.get(info['route_id'] ?? '')!,
         serviceId: info['service_id'] ?? '',
         shapeId: info['shape_id'] ?? '',
@@ -328,61 +268,6 @@ function readTrips(
       },
     ];
   });
-}
-
-/** Recorridos de una línea, de más a menos viajes (el primero es el principal). */
-function groupPatterns(trips: readonly Trip[]): Pattern[] {
-  const byKey = new Map<string, Pattern>();
-  for (const trip of trips) {
-    const stopIds = trip.stops.map((s) => s.stopId);
-    const key = stopIds.join('>');
-    const pattern = byKey.get(key) ?? { stopIds, trips: [] };
-    pattern.trips.push(trip);
-    byKey.set(key, pattern);
-  }
-  return [...byKey.values()].sort(
-    (a, b) => b.trips.length - a.trips.length || a.stopIds.join().localeCompare(b.stopIds.join()),
-  );
-}
-
-/**
- * Destino de cada recorrido: la última parada. Si dos recorridos de la línea
- * acaban en la misma, se añade de dónde salen; y si también coinciden, un número.
- */
-function headsignsOf(patterns: readonly Pattern[], stopName: (id: string) => string): string[] {
-  const last = patterns.map((p) => stopName(p.stopIds.at(-1)!));
-  const withOrigin = patterns.map((p, i) =>
-    last.filter((name) => name === last[i]).length > 1
-      ? `${last[i]} (desde ${stopName(p.stopIds[0]!)})`
-      : last[i]!,
-  );
-  return withOrigin.map((name, i) => {
-    const same = withOrigin.filter((other) => other === name).length;
-    if (same === 1) return name;
-    const n = withOrigin.slice(0, i + 1).filter((other) => other === name).length;
-    return `${name} ${n}`;
-  });
-}
-
-/**
- * Paradas del recorrido donde la mayoría de sus viajes no deja subir o bajar.
- * No se publica lo evidente: no subir en la última ni bajar en la primera.
- */
-function restrictionsOf(pattern: Pattern): {
-  noBoarding: number[];
-  noAlighting: number[];
-} {
-  const half = pattern.trips.length / 2;
-  const count = (index: number, field: 'noBoarding' | 'noAlighting') =>
-    pattern.trips.filter((t) => t.stops[index]![field]).length;
-  const last = pattern.stopIds.length - 1;
-  const noBoarding: number[] = [];
-  const noAlighting: number[] = [];
-  pattern.stopIds.forEach((_, i) => {
-    if (i < last && count(i, 'noBoarding') > half) noBoarding.push(i);
-    if (i > 0 && count(i, 'noAlighting') > half) noAlighting.push(i);
-  });
-  return { noBoarding, noAlighting };
 }
 
 /** Nombre de la línea: el largo del GTFS sin el código delante, o "origen - destino". */
@@ -473,28 +358,6 @@ export function holidayServiceDates(
   );
 }
 
-/** Puntos de cada trazado; se descartan los que caen fuera de la provincia (datos rotos). */
-function readShapes(rows: readonly Record<string, string>[]): Map<string, LatLon[]> {
-  const points = new Map<string, { seq: number; point: LatLon }[]>();
-  for (const row of rows) {
-    const lat = Number(row['shape_pt_lat']);
-    const lon = Number(row['shape_pt_lon']);
-    if (!insideArea(lat, lon)) continue;
-    const id = row['shape_id']!;
-    const list = points.get(id) ?? [];
-    list.push({ seq: Number(row['shape_pt_sequence']), point: [lat, lon] });
-    points.set(id, list);
-  }
-  return new Map(
-    [...points].map(([id, list]) => [id, list.sort((a, b) => a.seq - b.seq).map((p) => p.point)]),
-  );
-}
-
-function insideArea(lat: number, lon: number): boolean {
-  const { minLat, maxLat, minLon, maxLon } = INTERURBAN.bounds;
-  return lat >= minLat && lat <= maxLat && lon >= minLon && lon <= maxLon;
-}
-
 /**
  * Municipio de cada parada según la API del Consorcio. Las paradas que la API no
  * trae (sobre todo las de vuelta, "… V") toman el de la parada más cercana a
@@ -539,11 +402,6 @@ export function parseConsortiumStops(json: unknown): ConsortiumStop[] {
 
 const WEEKDAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
-function toMinutes(text: string): number | null {
-  const match = /^(\d+):(\d{2}):(\d{2})$/.exec(text.trim());
-  return match ? +match[1]! * 60 + +match[2]! + +match[3]! / 60 : null;
-}
-
 function parseDate(value: string | undefined): Date | null {
   const match = /^(\d{4})(\d{2})(\d{2})$/.exec(value ?? '');
   return match
@@ -559,25 +417,4 @@ export function addDays(dateKey: string, days: number): string {
   const date = parseDate(dateKey)!;
   date.setUTCDate(date.getUTCDate() + days);
   return formatDate(date);
-}
-
-function mostCommon(values: readonly string[]): string | undefined {
-  const counts = new Map<string, number>();
-  for (const v of values) counts.set(v, (counts.get(v) ?? 0) + 1);
-  return [...counts].sort((a, b) => b[1] - a[1])[0]?.[0];
-}
-
-function median(values: readonly number[]): number {
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = sorted.length >> 1;
-  return sorted.length % 2 ? sorted[mid]! : Math.round((sorted[mid - 1]! + sorted[mid]!) / 2);
-}
-
-function round5(value: number): number {
-  return Math.round(value * 1e5) / 1e5;
-}
-
-/** "carpeta/routes.txt" -> "routes". */
-function baseName(path: string): string {
-  return (path.split('/').pop() ?? '').replace(/\.(txt|csv)$/i, '');
 }
