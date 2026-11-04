@@ -8,7 +8,7 @@ Se publican en GitHub Pages, en https://deiwix.github.io/emt-remake/data/v1/ (em
 
 - `pipeline/`: script (Node 24 + TypeScript) que descarga, valida y cruza las fuentes y genera los JSON. Pruebas: `npm test`; tipos: `npm run typecheck`; generación local: `npm run build-data -- --out <carpeta>`.
 - Workflow `Datos` (cada hora): genera los datos y los publica en Pages. Si la descarga o la validación fallan, no se publica nada y sigue la versión anterior.
-- Workflow `Recogida de retrasos` (cada hora): guarda cuánto va tarde cada autobús en la rama `historico-retrasos` (un CSV por día, últimas 9 semanas).
+- Workflow `Recogida de retrasos` (cada hora): guarda cuánto va tarde cada viaje según el GTFS-RT de la EMT en la rama `historico-retrasos` (un CSV por día en `rt/`, últimas 9 semanas; `data/` es de la fuente anterior y se borra sola).
 
 ## Origen y licencia
 

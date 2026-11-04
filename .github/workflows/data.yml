@@ -62,7 +62,7 @@ jobs:
           ref: historico-retrasos
           path: history
       - name: Generar datos
-        run: npm run build-data -- --out ../site/data/v1 --previous previous-manifest.json --previous-walk previous-walk-graph.json --delays-history ../history/data --previous-data previous-data
+        run: npm run build-data -- --out ../site/data/v1 --previous previous-manifest.json --previous-walk previous-walk-graph.json --delays-history ../history/rt --previous-data previous-data
       - run: touch ../site/.nojekyll
       - uses: actions/upload-pages-artifact@v5
         with:

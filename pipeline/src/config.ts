@@ -109,11 +109,11 @@ export const SOURCES = {
     dataset: 'https://api.ctan.es/',
     url: 'https://api.ctan.es/v1/Consorcios/4/paradas?lang=ES',
   },
-  /** Posiciones de los autobuses (Fase 10: se guardan para aprender los retrasos habituales). */
-  vehicles: {
-    name: 'Ubicaciones de autobuses EMT en tiempo real',
-    dataset: 'https://datosabiertos.malaga.eu/dataset/ubicaciones-de-autobuses-emt-en-tiempo-real',
-    url: `${BASE}/EMTlineasUbicaciones/lineasyubicaciones.geojson`,
+  /** Previsiones del GTFS-RT de la EMT (se guardan para aprender los retrasos habituales, ADR 0024). */
+  emtTripUpdates: {
+    name: 'EMT Málaga – GTFS-RT (TripUpdates)',
+    dataset: 'https://mobilitydatabase.org/feeds/gtfs_rt/mdb-2215',
+    url: 'https://gtfs.emtmalaga.es/GTFSRTapi/api/tripupdate',
   },
   osmWalk: {
     name: 'OpenStreetMap – red peatonal (© colaboradores de OpenStreetMap, ODbL)',

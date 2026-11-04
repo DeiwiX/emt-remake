@@ -7,10 +7,11 @@ import {
   dayTypeOf,
   formatObservation,
   historyDays,
-  measureDelay,
+  madridEpoch,
+  measureDelays,
   parseObservations,
-  parseSightings,
 } from '../delays/delays.ts';
+import { type FeedTrip, decodeTripUpdates } from '../delays/trip-updates.ts';
 
 const network = {
   schemaVersion: 1,
@@ -35,52 +36,150 @@ const network = {
   ],
 } as NetworkFile;
 
+// Viaje 2 del bloque 072-03 del horario G2606S: recorrido a, b, c con 0, 6 y 12 min.
 const timetables: TimetablesFile = {
   schemaVersion: 1,
-  services: { LAB: ['20261016'] },
-  // Salidas a las 8:00 y 8:30.
-  departures: { '3|1': { LAB: [480, 510] } },
+  services: {},
+  departures: {},
+  livePatterns: [{ line: '3', direction: 1, stops: ['a', 'b', 'c'], minutes: [0, 6, 12] }],
+  liveTrips: { G2606S: { '072-03': [-1, 0] } },
 };
 
-const record = (stop: string, time: string) => ({
-  type: 'Feature',
-  properties: { codLinea: '3.0', codBus: '640', sentido: '1', codParIni: stop, last_update: time },
+/** Viaje que salió a las 8:00 del 16/10/2026 y llega a b (secuencia 2) a las `arrival`. */
+const trip = (arrival: string, extra: Partial<FeedTrip> = {}): FeedTrip => ({
+  tripId: 'G2606S_F21_072-03_2',
+  startDate: '20261016',
+  startTime: '08:00:00',
+  vehicleId: '640',
+  stops: [
+    {
+      sequence: 2,
+      time: madridEpoch('20261016', seconds(arrival)),
+      skipped: false,
+    },
+  ],
+  ...extra,
 });
 
+function seconds(clock: string): number {
+  const [h, m, s] = clock.split(':').map(Number);
+  return h! * 3600 + m! * 60 + (s ?? 0);
+}
+
+/** Codificador protobuf mínimo para construir un feed de prueba. */
+const varint = (n: number): number[] => {
+  const out: number[] = [];
+  while (n >= 128) {
+    out.push((n % 128) | 128);
+    n = Math.floor(n / 128);
+  }
+  return [...out, n];
+};
+const field = (number: number, value: number | string | number[]): number[] => {
+  if (typeof value === 'number') return [...varint(number * 8), ...varint(value)];
+  const bytes = typeof value === 'string' ? [...new TextEncoder().encode(value)] : value;
+  return [...varint(number * 8 + 2), ...varint(bytes.length), ...bytes];
+};
+
 describe('Retrasos habituales (Fase 10)', () => {
-  it('lee la fuente de posiciones', () => {
-    assert.deepEqual(parseSightings([record('b', '2026-10-16 08:07:30'), { roto: true }]), [
+  it('lee las previsiones del GTFS-RT', () => {
+    const time = 1_792_130_000;
+    const update = [
+      ...field(1, [
+        ...field(1, 'G2606S_F21_072-03_2'),
+        ...field(2, '08:00:00'),
+        ...field(3, '20261016'),
+      ]),
+      ...field(2, [...field(1, 2), ...field(2, [...field(1, 60), ...field(2, time)])]),
+      ...field(2, [...field(1, 3), ...field(5, 1)]),
+      ...field(3, field(1, '640')),
+      ...field(4, time),
+    ];
+    const bytes = new Uint8Array([
+      ...field(1, [...field(1, '2.0'), ...field(3, time)]),
+      ...field(2, [...field(1, 'e1'), ...field(3, update)]),
+      // Sin autobús: se descarta.
+      ...field(2, [...field(1, 'e2'), ...field(3, field(1, field(1, 'X_Y_Z_1')))]),
+    ]);
+    assert.deepEqual(decodeTripUpdates(bytes), [
       {
-        bus: '640',
-        lineId: '3',
-        directionId: 1,
-        stopId: 'b',
-        dateKey: '20261016',
-        seconds: 8 * 3600 + 7 * 60 + 30,
+        tripId: 'G2606S_F21_072-03_2',
+        startDate: '20261016',
+        startTime: '08:00:00',
+        vehicleId: '640',
+        stops: [
+          { sequence: 2, time, skipped: false },
+          { sequence: 3, time: null, skipped: true },
+        ],
       },
     ]);
+    assert.throws(() => decodeTripUpdates(new Uint8Array([0x12, 0x05, 0x01])));
   });
 
-  it('mide el retraso frente al viaje del horario que está haciendo', () => {
-    // El de las 8:00 pasa por b a las 8:05; se le ve a las 8:07:30: 2,5 min tarde.
-    const [sighting] = parseSightings([record('b', '2026-10-16 08:07:30')]);
-    assert.equal(measureDelay(sighting!, network, timetables)?.delay, 2.5);
-    // En la primera parada (esperando para salir) o sin servicio ese día, no se mide.
-    const [first] = parseSightings([record('a', '2026-10-16 08:07:30')]);
-    assert.equal(measureDelay(first!, network, timetables), null);
-    const [otherDay] = parseSightings([record('b', '2026-10-17 08:07:30')]);
-    assert.equal(measureDelay(otherDay!, network, timetables), null);
+  it('hora de Madrid en invierno y en verano', () => {
+    assert.equal(madridEpoch('20260115', 0), Date.UTC(2026, 0, 14, 23) / 1000);
+    assert.equal(madridEpoch('20260715', 3600), Date.UTC(2026, 6, 14, 23) / 1000);
+  });
+
+  it('mide el retraso del viaje en su próxima parada, adelantado o tarde', () => {
+    // Debía pasar por b a las 8:06.
+    const now = madridEpoch('20261016', seconds('08:05:00'));
+    const late = measureDelays([trip('08:08:30')], network, timetables, now);
+    assert.deepEqual(late, [
+      {
+        dateKey: '20261016',
+        seconds: seconds('08:06:00'),
+        lineId: '3',
+        directionId: 1,
+        stopIndex: 1,
+        delay: 2.5,
+        trip: 'G2606S_F21_072-03_2',
+      },
+    ]);
+    // Adelantado: no se confunde con el viaje anterior (no hay que adivinarlo).
+    assert.equal(measureDelays([trip('08:04:00')], network, timetables, now)[0]?.delay, -2);
+  });
+
+  it('no mide en la primera parada, en suprimidas ni con viajes desconocidos', () => {
+    const now = madridEpoch('20261016', seconds('08:00:00'));
+    const at = madridEpoch('20261016', seconds('08:01:00'));
+    const first = trip('', {
+      stops: [{ sequence: 1, time: at, skipped: false }],
+    });
+    const skipped = trip('', {
+      stops: [{ sequence: 2, time: at, skipped: true }],
+    });
+    const unknown = trip('08:06:00', { tripId: 'G2606S_F21_999-99_1' });
+    assert.deepEqual(measureDelays([first, skipped, unknown], network, timetables, now), []);
+  });
+
+  it('un paso después de medianoche cuenta en el día siguiente', () => {
+    const night = trip('', {
+      startTime: '23:58:00',
+      stops: [
+        {
+          sequence: 2,
+          time: madridEpoch('20261017', seconds('00:05:00')),
+          skipped: false,
+        },
+      ],
+    });
+    const now = madridEpoch('20261017', seconds('00:01:00'));
+    const [observation] = measureDelays([night], network, timetables, now);
+    assert.equal(observation?.dateKey, '20261017');
+    assert.equal(observation?.seconds, seconds('00:04:00'));
+    assert.equal(observation?.delay, 1);
   });
 
   it('guarda y lee el histórico, descartando líneas dañadas', () => {
-    const [sighting] = parseSightings([record('c', '2026-10-16 08:41:00')]);
-    const observation = measureDelay(sighting!, network, timetables)!;
-    const text = formatObservation(observation) + '\nroto\n';
+    const now = madridEpoch('20261016', seconds('08:05:00'));
+    const [observation] = measureDelays([trip('08:08:30')], network, timetables, now);
+    const text = formatObservation(observation!) + '\nroto\n';
     assert.deepEqual(parseObservations('20261016', text), [observation]);
   });
 
-  it('calcula la mediana por línea, sentido, tipo de día, hora y tramo', () => {
-    const base = { lineId: '3', directionId: 1, bus: 'x' };
+  it('calcula el margen habitual (percentiles 25 y 75) por línea, sentido, tipo de día, hora y tramo', () => {
+    const base = { lineId: '3', directionId: 1, trip: 'x' };
     const at = (dateKey: string, hour: number, stopIndex: number, delay: number) => ({
       ...base,
       dateKey,
@@ -88,15 +187,15 @@ describe('Retrasos habituales (Fase 10)', () => {
       stopIndex,
       delay,
     });
-    // Jueves 16: cinco datos a las 8 en el primer tramo; solo dos en el segundo.
+    // Jueves 16: nueve datos a las 8 en el primer tramo; solo dos en el segundo.
     const observations = [
-      ...[1, 2, 3, 4, 10].map((d) => at('20261016', 8, 2, d)),
+      ...[-1, 0, 0, 1, 2, 3, 4, 6, 40].map((d) => at('20261016', 8, 2, d)),
       at('20261016', 8, 6, 5),
       at('20261016', 8, 7, 5),
     ];
     const file = aggregateDelays(observations, 1, 1);
-    assert.deepEqual(file.delays['3|1|L']![8], [3]);
-    assert.equal(file.delays['3|1|S'], undefined);
+    assert.deepEqual(file.ranges['3|1|L']![8], [[0, 4]]);
+    assert.equal(file.ranges['3|1|S'], undefined);
   });
 
   it('tipos de día y días del histórico', () => {
