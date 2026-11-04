@@ -30,4 +30,4 @@ jobs:
         run: |
           npm run collect-delays -- --history /tmp/rt --rounds 1
           head -5 /tmp/rt/*.csv && wc -l /tmp/rt/*.csv
-          node src/delays/diagnose.ts
+          cut -d, -f5 /tmp/rt/*.csv | sort -g | awk '{a[NR]=$1} END {print "n", NR, "p10", a[int(NR*.1)+1], "p25", a[int(NR*.25)+1], "p50", a[int(NR*.5)+1], "p75", a[int(NR*.75)+1], "p90", a[int(NR*.9)+1]}'
