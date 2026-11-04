@@ -30,3 +30,4 @@ jobs:
         run: |
           npm run collect-delays -- --history /tmp/rt --rounds 1
           head -5 /tmp/rt/*.csv && wc -l /tmp/rt/*.csv
+          node src/delays/diagnose.ts
