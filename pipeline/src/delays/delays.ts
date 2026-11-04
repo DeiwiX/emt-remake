@@ -1,29 +1,20 @@
 /**
- * Retrasos habituales (Fase 10, ADR 0016). Lógica pura.
+ * Retrasos habituales (Fase 10, ADR 0016 y 0024). Lógica pura.
  *
- * 1. Cada 5 min se mira dónde va cada autobús (fuente de posiciones del
- *    Ayuntamiento) y se calcula cuánto va tarde frente a su viaje del horario,
- *    con la misma regla que la app (core/realtime/live-estimate.ts). Se guarda
- *    como una línea de texto en el histórico del día.
- * 2. Cada hora se juntan las últimas 8 semanas y se calcula el retraso típico
- *    (mediana) por línea, sentido, tipo de día, hora y tramo de paradas.
+ * 1. Cada 5 min se leen las previsiones del GTFS-RT de la EMT. Cada viaje trae
+ *    su `trip_id` (no hay que adivinar qué viaje hace cada autobús) y la llegada
+ *    prevista a su próxima parada; se compara con la hora del horario de ese
+ *    viaje y se guarda como una línea de texto en el histórico del día.
+ * 2. Cada hora se juntan las últimas 8 semanas y se calcula el margen habitual
+ *    del retraso (percentiles 25 y 75) por línea, sentido, tipo de día, hora y
+ *    tramo de paradas.
  */
 import type { NetworkFile, TimetablesFile } from '../output-schema.ts';
+import type { FeedTrip } from './trip-updates.ts';
 
-/** Un autobús visto en la fuente: dónde estaba (última parada) y cuándo. */
-export interface Sighting {
-  readonly bus: string;
-  readonly lineId: string;
-  readonly directionId: number;
-  readonly stopId: string;
-  /** Día del dato (AAAAMMDD, hora de Madrid). */
-  readonly dateKey: string;
-  /** Segundos desde la medianoche de Madrid de `dateKey`. */
-  readonly seconds: number;
-}
-
-/** Retraso medido de un autobús en una parada de su sentido. */
+/** Retraso medido de un viaje en una parada de su sentido. */
 export interface Observation {
+  /** Día y segundos desde su medianoche (Madrid) del paso programado. */
   readonly dateKey: string;
   readonly seconds: number;
   readonly lineId: string;
@@ -31,25 +22,24 @@ export interface Observation {
   readonly stopIndex: number;
   /** Minutos de retraso (negativo: adelantado), redondeados a 0,1. */
   readonly delay: number;
-  readonly bus: string;
+  /** `trip_id` del viaje (para no guardar dos veces la misma parada). */
+  readonly trip: string;
 }
 
-/** Igual que la app: se casa con un viaje si va entre 10 min adelantado y 40 min tarde. */
-const MAX_EARLY_MINUTES = 10;
-const MAX_LATE_MINUTES = 40;
-/** Ir adelantado es raro: en la comparación cuenta el triple que ir tarde. */
-const EARLY_WEIGHT = 3;
-const MINUTES_PER_DAY = 1440;
+const SECONDS_PER_DAY = 86_400;
 
 /** Paradas por tramo: el retraso se agrupa por tramos de 5 paradas del sentido. */
 export const STOPS_PER_BUCKET = 5;
 /** Se juntan las últimas 8 semanas. */
 export const HISTORY_DAYS = 56;
-/** Con menos datos que estos en un hueco no se da retraso habitual. */
-export const MIN_SAMPLES = 5;
-/** Retrasos fuera de este margen se recortan (un dato raro no debe mover la mediana). */
+/** Con menos datos que estos en un hueco no se da retraso habitual (los percentiles bailarían). */
+export const MIN_SAMPLES = 8;
+/** Retrasos fuera de este margen se recortan (un dato raro no debe mover los percentiles). */
 const MIN_DELAY = -5;
 const MAX_DELAY = 30;
+/** Previsiones de más de 1 h o de hace más de 2 min no son de la próxima parada. */
+const MAX_AHEAD_SECONDS = 3600;
+const MAX_BEHIND_SECONDS = 120;
 
 /** "L" laborable (lunes a viernes), "S" sábado, "F" domingo. */
 export type DayType = 'L' | 'S' | 'F';
@@ -68,109 +58,125 @@ function addDays(dateKey: string, days: number): string {
   return date.toISOString().slice(0, 10).replaceAll('-', '');
 }
 
-/** Lee la fuente de posiciones (GeoJSON como lista de "Feature"); descarta lo incompleto. */
-export function parseSightings(raw: unknown): Sighting[] {
-  if (!Array.isArray(raw)) return [];
-  return raw.flatMap((item): Sighting[] => {
-    if (typeof item !== 'object' || item === null) return [];
-    const record = item as Record<string, unknown>;
-    const p = (
-      typeof record['properties'] === 'object' && record['properties'] !== null
-        ? record['properties']
-        : record
-    ) as Record<string, unknown>;
-    const lineId = String(p['codLinea'] ?? record['codLinea'] ?? '')
-      .trim()
-      .replace(/\.0+$/, '');
-    const directionId = Number(p['sentido'] ?? record['sentido']);
-    const stopId = String(p['codParIni'] ?? record['codParIni'] ?? '').trim();
-    const bus = String(p['codBus'] ?? record['codBus'] ?? '').trim();
-    const time = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/.exec(
-      String(p['last_update'] ?? '').trim(),
+const offsetFormat = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'Europe/Madrid',
+  timeZoneName: 'shortOffset',
+});
+
+/** Segundos Unix de una hora de Madrid (`seconds` desde la medianoche de `dateKey`). */
+export function madridEpoch(dateKey: string, seconds: number): number {
+  const noonUtc = Date.UTC(
+    +dateKey.slice(0, 4),
+    +dateKey.slice(4, 6) - 1,
+    +dateKey.slice(6, 8),
+    12,
+  );
+  const name = offsetFormat.formatToParts(new Date(noonUtc)).find((p) => p.type === 'timeZoneName');
+  const match = /GMT([+-])(\d{1,2})/.exec(name?.value ?? '');
+  const offsetHours = match ? (match[1] === '-' ? -1 : 1) * Number(match[2]) : 1;
+  return noonUtc / 1000 - 12 * 3600 + seconds - offsetHours * 3600;
+}
+
+/**
+ * Partes del `trip_id` del tiempo real ("G2606S_F21_072-03_13": horario,
+ * variante, bloque y número de viaje), como en la app (`tripKeyParts`).
+ */
+function tripKeyParts(tripId: string): { schedule: string; block: string; trip: number } | null {
+  const match = /^([^_]+)_[^_]+_(.+)_(\d+)$/.exec(tripId);
+  return match ? { schedule: match[1]!, block: match[2]!, trip: Number(match[3]) } : null;
+}
+
+/**
+ * Retraso de cada viaje en su próxima parada: la llegada que prevé la EMT menos
+ * la hora del horario de esa salida (con su perfil de tiempos, el mismo que
+ * enseña la app; los minutos de `livePatterns` son de un viaje típico y en
+ * hora punta se quedan cortos hasta 25 min). `now` son segundos Unix. No se
+ * mide en la primera parada (puede estar esperando su hora de salida), en
+ * paradas que no están en la red publicada ni en salidas sin horario.
+ */
+export function measureDelays(
+  trips: readonly FeedTrip[],
+  network: NetworkFile,
+  timetables: TimetablesFile,
+  now: number,
+): Observation[] {
+  const patterns = timetables.livePatterns ?? [];
+  return trips.flatMap((trip): Observation[] => {
+    const key = tripKeyParts(trip.tripId);
+    const clock = /^(\d{1,2}):(\d{2}):(\d{2})$/.exec(trip.startTime);
+    if (!key || !clock || !/^\d{8}$/.test(trip.startDate)) return [];
+    const index = timetables.liveTrips?.[key.schedule]?.[key.block]?.[key.trip - 1] ?? -1;
+    const pattern = patterns[index];
+    if (!pattern) return [];
+    const next = trip.stops.find(
+      (s) => !s.skipped && s.time !== null && s.time >= now - MAX_BEHIND_SECONDS,
     );
-    if (!lineId || !stopId || !bus || !time || !Number.isInteger(directionId)) return [];
-    const [, y, mo, d, h, mi, s] = time;
+    if (!next || next.time === null || next.time > now + MAX_AHEAD_SECONDS) return [];
+    const stopId = pattern.stops[next.sequence - 1];
+    if (next.sequence < 2 || stopId === undefined) return [];
+    const direction = network.lines
+      .find((l) => l.id === pattern.line)
+      ?.directions.find((d) => d.id === pattern.direction);
+    const stopIndex = direction?.stopIds.indexOf(stopId) ?? -1;
+    if (!direction || stopIndex <= 0) return [];
+    const start = Number(clock[1]) * 60 + Number(clock[2]);
+    const atStop = scheduledMinutes(timetables, direction, pattern, trip.startDate, start);
+    const minutes = atStop?.[stopIndex];
+    if (minutes === undefined) return [];
+    const scheduled = (start + minutes) * 60;
+    const delay = (next.time - madridEpoch(trip.startDate, scheduled)) / 60;
+    // El paso programado puede caer al día siguiente (viajes después de medianoche).
+    const dayOffset = Math.floor(scheduled / SECONDS_PER_DAY);
     return [
       {
-        bus,
-        lineId,
-        directionId,
-        stopId,
-        dateKey: `${y}${mo}${d}`,
-        seconds: +h! * 3600 + +mi! * 60 + +s!,
+        dateKey: addDays(trip.startDate, dayOffset),
+        seconds: scheduled - dayOffset * SECONDS_PER_DAY,
+        lineId: pattern.line,
+        directionId: pattern.direction,
+        stopIndex,
+        delay: Math.round(delay * 10) / 10,
+        trip: trip.tripId,
       },
     ];
   });
 }
 
 /**
- * Retraso de un autobús frente al viaje del horario que está haciendo (el que
- * debía pasar por su última parada más cerca de la hora del dato, prefiriendo
- * que vaya tarde a adelantado). null si no se puede casar con ninguno.
+ * Minutos desde la salida en cada parada del sentido para la salida de las
+ * `start` (minutos desde la medianoche) de un día: su perfil del horario, o los
+ * del sentido si no tiene. null si ese día no hay esa salida.
  */
-export function measureDelay(
-  sighting: Sighting,
-  network: NetworkFile,
+function scheduledMinutes(
   timetables: TimetablesFile,
-): Observation | null {
-  const direction = network.lines
-    .find((l) => l.id === sighting.lineId)
-    ?.directions.find((d) => d.id === sighting.directionId);
-  if (!direction) return null;
-  const stopIndex = direction.stopIds.indexOf(sighting.stopId);
-  // En la primera parada puede estar esperando su hora de salida: no es retraso.
-  if (stopIndex <= 0) return null;
-  const key = `${sighting.lineId}|${sighting.directionId}`;
-  const byService = timetables.departures[key];
-  if (!byService) return null;
-  const profiles = timetables.profiles?.[key];
-  const profileOf = timetables.departureProfiles?.[key];
-  const reportMinutes = sighting.seconds / 60;
-
-  let best: number | null = null;
-  let bestCost = Infinity;
-  for (const dayOffset of [-1, 0]) {
-    const day = addDays(sighting.dateKey, dayOffset);
-    for (const [service, starts] of Object.entries(byService)) {
-      if (!timetables.services[service]?.includes(day)) continue;
-      const indexes = profileOf?.[service];
-      starts.forEach((start, i) => {
-        const profile = (indexes && profiles?.[indexes[i]!]) || direction.minutes;
-        const atStop = profile[stopIndex];
-        if (atStop === undefined) return;
-        const delay = reportMinutes - (dayOffset * MINUTES_PER_DAY + start + atStop);
-        if (delay < -MAX_EARLY_MINUTES || delay > MAX_LATE_MINUTES) return;
-        const cost = delay < 0 ? -delay * EARLY_WEIGHT : delay;
-        if (cost < bestCost) {
-          bestCost = cost;
-          best = delay;
-        }
-      });
-    }
+  direction: { readonly minutes?: readonly number[] },
+  pattern: { readonly line: string; readonly direction: number },
+  dateKey: string,
+  start: number,
+): readonly number[] | null {
+  const key = `${pattern.line}|${pattern.direction}`;
+  for (const [service, starts] of Object.entries(timetables.departures[key] ?? {})) {
+    if (!timetables.services[service]?.includes(dateKey)) continue;
+    const i = starts.indexOf(start);
+    if (i === -1) continue;
+    const profile = timetables.departureProfiles?.[key]?.[service]?.[i];
+    return (
+      (profile !== undefined && timetables.profiles?.[key]?.[profile]) || direction.minutes || null
+    );
   }
-  if (best === null) return null;
-  return {
-    dateKey: sighting.dateKey,
-    seconds: sighting.seconds,
-    lineId: sighting.lineId,
-    directionId: sighting.directionId,
-    stopIndex,
-    delay: Math.round((best as number) * 10) / 10,
-    bus: sighting.bus,
-  };
+  return null;
 }
 
-/** Línea del histórico: "segundos,línea,sentido,parada(índice),retraso,autobús". */
+/** Línea del histórico: "segundos,línea,sentido,parada(índice),retraso,viaje". */
 export function formatObservation(o: Observation): string {
-  return [o.seconds, o.lineId, o.directionId, o.stopIndex, o.delay, o.bus].join(',');
+  return [o.seconds, o.lineId, o.directionId, o.stopIndex, o.delay, o.trip].join(',');
 }
 
 /** Lee un fichero del histórico (un día); descarta las líneas dañadas. */
 export function parseObservations(dateKey: string, text: string): Observation[] {
   return text.split('\n').flatMap((row): Observation[] => {
-    const [seconds, lineId, directionId, stopIndex, delay, bus] = row.trim().split(',');
+    const [seconds, lineId, directionId, stopIndex, delay, trip] = row.trim().split(',');
     const values = [seconds, directionId, stopIndex, delay].map(Number);
-    if (!lineId || !bus || values.some((v) => !Number.isFinite(v))) return [];
+    if (!lineId || !trip || values.some((v) => !Number.isFinite(v))) return [];
     return [
       {
         dateKey,
@@ -179,18 +185,24 @@ export function parseObservations(dateKey: string, text: string): Observation[] 
         directionId: values[1]!,
         stopIndex: values[2]!,
         delay: values[3]!,
-        bus,
+        trip,
       },
     ];
   });
 }
 
-/** Clave de un dato para no guardarlo dos veces (la fuente repite el mismo dato unos minutos). */
-export function observationKey(o: { bus: string; seconds: number }): string {
-  return `${o.bus}@${o.seconds}`;
+/** Clave de un dato para no guardarlo dos veces: cada viaje, una vez por parada. */
+export function observationKey(o: Observation): string {
+  return `${o.trip}@${o.stopIndex}`;
 }
 
-/** Fichero publicado: retraso habitual en minutos, o null si no hay datos suficientes. */
+/**
+ * Margen habitual del retraso en un hueco, en minutos: [percentil 25, percentil 75].
+ * La mitad de los autobuses van entre los dos; uno de cada cuatro, antes del primero.
+ */
+export type DelayRange = [low: number, high: number];
+
+/** Fichero publicado: margen habitual del retraso, o null si no hay datos suficientes. */
 export interface DelaysFile {
   schemaVersion: number;
   /** Días del histórico que se han usado. */
@@ -198,12 +210,14 @@ export interface DelaysFile {
   stopsPerBucket: number;
   /**
    * Clave "línea|sentido|tipo de día" -> por hora (0–23) -> por tramo de
-   * paradas (índice / stopsPerBucket) -> minutos de retraso habitual.
+   * paradas (índice / stopsPerBucket) -> margen habitual. Hasta noviembre de
+   * 2026 era `delays` (la mediana); el nombre nuevo hace que las apps antiguas
+   * lo ignoren en vez de leer una mediana que no es.
    */
-  delays: Record<string, (number | null)[][]>;
+  ranges: Record<string, (DelayRange | null)[][]>;
 }
 
-/** Retraso habitual a partir de las observaciones (de varios días). */
+/** Margen habitual a partir de las observaciones (de varios días). */
 export function aggregateDelays(
   observations: readonly Observation[],
   days: number,
@@ -218,23 +232,26 @@ export function aggregateDelays(
     list.push(Math.min(MAX_DELAY, Math.max(MIN_DELAY, o.delay)));
     samples.set(key, list);
   }
-  const delays: Record<string, (number | null)[][]> = {};
+  const ranges: Record<string, (DelayRange | null)[][]> = {};
   for (const [key, list] of samples) {
     if (list.length < MIN_SAMPLES) continue;
     const [group, hourText, bucketText] = key.split('#');
-    const hours = (delays[group!] ??= Array.from({ length: 24 }, () => []));
+    const hours = (ranges[group!] ??= Array.from({ length: 24 }, () => []));
     const row = hours[+hourText!]!;
     const bucket = +bucketText!;
     while (row.length <= bucket) row.push(null);
-    row[bucket] = Math.round(median(list));
+    const sorted = [...list].sort((a, b) => a - b);
+    row[bucket] = [Math.round(quantile(sorted, 0.25)), Math.round(quantile(sorted, 0.75))];
   }
-  return { schemaVersion, days, stopsPerBucket: STOPS_PER_BUCKET, delays };
+  return { schemaVersion, days, stopsPerBucket: STOPS_PER_BUCKET, ranges };
 }
 
-function median(values: number[]): number {
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = sorted.length >> 1;
-  return sorted.length % 2 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2;
+/** Cuantil con interpolación lineal de una lista ya ordenada (no vacía). */
+function quantile(sorted: readonly number[], q: number): number {
+  const position = (sorted.length - 1) * q;
+  const below = Math.floor(position);
+  const above = Math.min(below + 1, sorted.length - 1);
+  return sorted[below]! + (sorted[above]! - sorted[below]!) * (position - below);
 }
 
 /** Días (AAAAMMDD) del histórico que se usan: los `days` anteriores a `today`, sin contar hoy. */

@@ -1,10 +1,11 @@
 /**
  * Uso: node src/delays/collect.ts --history <carpeta> [--rounds 11] [--interval 300]
  *
- * Recogida de retrasos (Fase 10, ADR 0016): cada `interval` segundos, `rounds`
- * veces, descarga las posiciones de los autobuses, calcula cuánto va tarde cada
- * uno frente a su viaje del horario publicado y añade lo nuevo al fichero del
- * día (<carpeta>/AAAAMMDD.csv). Si una vuelta falla, sigue con la siguiente.
+ * Recogida de retrasos (Fase 10, ADR 0016 y 0024): cada `interval` segundos,
+ * `rounds` veces, descarga las previsiones del GTFS-RT de la EMT, calcula
+ * cuánto va tarde cada viaje en su próxima parada frente al horario publicado y
+ * añade lo nuevo al fichero del día (<carpeta>/AAAAMMDD.csv). Si una vuelta
+ * falla, sigue con la siguiente.
  */
 import { existsSync } from 'node:fs';
 import { appendFile, mkdir, readFile } from 'node:fs/promises';
@@ -14,13 +15,8 @@ import { parseArgs } from 'node:util';
 import { PUBLISHED_BASE_URL, SOURCES } from '../config.ts';
 import type { NetworkFile, TimetablesFile } from '../output-schema.ts';
 import { download } from '../sources/fetch.ts';
-import {
-  formatObservation,
-  measureDelay,
-  observationKey,
-  parseObservations,
-  parseSightings,
-} from './delays.ts';
+import { formatObservation, measureDelays, observationKey, parseObservations } from './delays.ts';
+import { decodeTripUpdates } from './trip-updates.ts';
 
 async function main(): Promise<void> {
   const { values } = parseArgs({
@@ -42,31 +38,34 @@ async function main(): Promise<void> {
 
   const seen = new Map<string, Set<string>>();
   let saved = 0;
+  let failed = 0;
   for (let round = 0; round < rounds; round++) {
     if (round > 0) await new Promise((resolve) => setTimeout(resolve, intervalMs));
     try {
-      const sightings = parseSightings(await json<unknown>(SOURCES.vehicles.url));
+      const trips = decodeTripUpdates((await download(SOURCES.emtTripUpdates.url)).bytes);
+      const observations = measureDelays(trips, network, timetables, Date.now() / 1000);
       const byDay = new Map<string, string[]>();
-      for (const sighting of sightings) {
-        const day = await seenFor(seen, values.history, sighting.dateKey);
-        const key = observationKey(sighting);
+      for (const observation of observations) {
+        const day = await seenFor(seen, values.history, observation.dateKey);
+        const key = observationKey(observation);
         if (day.has(key)) continue;
         day.add(key);
-        const observation = measureDelay(sighting, network, timetables);
-        if (!observation) continue;
-        const rows = byDay.get(sighting.dateKey) ?? [];
+        const rows = byDay.get(observation.dateKey) ?? [];
         rows.push(formatObservation(observation));
-        byDay.set(sighting.dateKey, rows);
+        byDay.set(observation.dateKey, rows);
       }
       for (const [dateKey, rows] of byDay) {
         await appendFile(join(values.history, `${dateKey}.csv`), rows.join('\n') + '\n');
         saved += rows.length;
       }
     } catch (error) {
+      failed++;
       console.warn(`Vuelta ${round + 1}:`, error instanceof Error ? error.message : error);
     }
   }
   console.log(`Retrasos: ${saved} datos nuevos en ${rounds} vueltas.`);
+  // Si no ha funcionado ninguna vuelta (p. ej. la EMT no responde), que se vea en Actions.
+  if (failed === rounds) process.exitCode = 1;
 }
 
 /** Datos ya guardados de un día (para no repetirlos), leídos la primera vez que se piden. */
