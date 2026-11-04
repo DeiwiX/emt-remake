@@ -25,3 +25,8 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+      # TEMPORAL (se quita antes de unir): comprueba que GitHub llega al GTFS-RT de la EMT.
+      - name: Prueba de recogida real (temporal)
+        run: |
+          npm run collect-delays -- --history /tmp/rt --rounds 1
+          head -5 /tmp/rt/*.csv && wc -l /tmp/rt/*.csv
