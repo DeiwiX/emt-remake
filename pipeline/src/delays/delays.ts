@@ -88,9 +88,11 @@ function tripKeyParts(tripId: string): { schedule: string; block: string; trip: 
 
 /**
  * Retraso de cada viaje en su próxima parada: la llegada que prevé la EMT menos
- * la del horario de ese viaje (salida programada + minutos de su recorrido).
- * `now` son segundos Unix. No se mide en la primera parada (puede estar
- * esperando su hora de salida) ni en paradas que no están en la red publicada.
+ * la hora del horario de esa salida (con su perfil de tiempos, el mismo que
+ * enseña la app; los minutos de `livePatterns` son de un viaje típico y en
+ * hora punta se quedan cortos hasta 25 min). `now` son segundos Unix. No se
+ * mide en la primera parada (puede estar esperando su hora de salida), en
+ * paradas que no están en la red publicada ni en salidas sin horario.
  */
 export function measureDelays(
   trips: readonly FeedTrip[],
@@ -110,16 +112,18 @@ export function measureDelays(
       (s) => !s.skipped && s.time !== null && s.time >= now - MAX_BEHIND_SECONDS,
     );
     if (!next || next.time === null || next.time > now + MAX_AHEAD_SECONDS) return [];
-    const minutes = pattern.minutes[next.sequence - 1];
     const stopId = pattern.stops[next.sequence - 1];
-    if (next.sequence < 2 || minutes === undefined || stopId === undefined) return [];
+    if (next.sequence < 2 || stopId === undefined) return [];
     const direction = network.lines
       .find((l) => l.id === pattern.line)
       ?.directions.find((d) => d.id === pattern.direction);
     const stopIndex = direction?.stopIds.indexOf(stopId) ?? -1;
-    if (stopIndex <= 0) return [];
-    const start = Number(clock[1]) * 3600 + Number(clock[2]) * 60 + Number(clock[3]);
-    const scheduled = start + minutes * 60;
+    if (!direction || stopIndex <= 0) return [];
+    const start = Number(clock[1]) * 60 + Number(clock[2]);
+    const atStop = scheduledMinutes(timetables, direction, pattern, trip.startDate, start);
+    const minutes = atStop?.[stopIndex];
+    if (minutes === undefined) return [];
+    const scheduled = (start + minutes) * 60;
     const delay = (next.time - madridEpoch(trip.startDate, scheduled)) / 60;
     // El paso programado puede caer al día siguiente (viajes después de medianoche).
     const dayOffset = Math.floor(scheduled / SECONDS_PER_DAY);
@@ -135,6 +139,31 @@ export function measureDelays(
       },
     ];
   });
+}
+
+/**
+ * Minutos desde la salida en cada parada del sentido para la salida de las
+ * `start` (minutos desde la medianoche) de un día: su perfil del horario, o los
+ * del sentido si no tiene. null si ese día no hay esa salida.
+ */
+function scheduledMinutes(
+  timetables: TimetablesFile,
+  direction: { readonly minutes?: readonly number[] },
+  pattern: { readonly line: string; readonly direction: number },
+  dateKey: string,
+  start: number,
+): readonly number[] | null {
+  const key = `${pattern.line}|${pattern.direction}`;
+  for (const [service, starts] of Object.entries(timetables.departures[key] ?? {})) {
+    if (!timetables.services[service]?.includes(dateKey)) continue;
+    const i = starts.indexOf(start);
+    if (i === -1) continue;
+    const profile = timetables.departureProfiles?.[key]?.[service]?.[i];
+    return (
+      (profile !== undefined && timetables.profiles?.[key]?.[profile]) || direction.minutes || null
+    );
+  }
+  return null;
 }
 
 /** Línea del histórico: "segundos,línea,sentido,parada(índice),retraso,viaje". */
