@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { strToU8, zipSync } from 'fflate';
 
-import { buildDataset, readableHead } from '../build/build-dataset.ts';
+import { buildDataset, readableAddress, readableHead } from '../build/build-dataset.ts';
 import {
   type LatLon,
   decodePolyline,
@@ -698,5 +698,18 @@ describe('red peatonal (2B)', () => {
     const query = walkQuery([36.6, -4.6, 36.8, -4.3]);
     assert.match(query, /motorway/);
     assert.match(query, /\(36\.6,-4\.6,36\.8,-4\.3\)/);
+  });
+});
+
+describe('Direcciones de las paradas de la EMT', () => {
+  it('sin mayúsculas y con el tipo de vía entero', () => {
+    assert.equal(readableAddress('ALMD PRINCIPAL 28'), 'Alameda Principal 28');
+    assert.equal(readableAddress('CL COMPAS DE LA VICTORIA 6'), 'Calle Compas de la Victoria 6');
+    assert.equal(readableAddress('AV.EUROPA 12'), 'Avenida Europa 12');
+    assert.equal(readableAddress('FAROLA 3'), 'Farola 3');
+    assert.equal(
+      readableAddress('Alameda Principal 18, a la altura de la Delegación'),
+      'Alameda Principal 18, a la altura de la Delegación',
+    );
   });
 });
