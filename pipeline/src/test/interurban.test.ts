@@ -4,6 +4,7 @@ import { strToU8, zipSync } from 'fflate';
 
 import {
   buildInterurban,
+  cleanStopName,
   holidayServiceDates,
   parseConsortiumStops,
 } from '../build/build-interurban.ts';
@@ -123,7 +124,7 @@ describe('Interurbanos del Consorcio de Málaga (ADR 0022)', () => {
       line?.directions.map((d) => [d.id, d.headsign, d.stopIds]),
       [
         [1, 'Benalmádena Costa (desde Muelle Heredia)', ['I1', 'I2', 'I3', 'I4']],
-        [2, 'Benalmádena Costa (desde Arroyo de la Miel V)', ['I5', 'I4']],
+        [2, 'Benalmádena Costa (desde Arroyo de la Miel)', ['I5', 'I4']],
       ],
     );
   });
@@ -136,7 +137,7 @@ describe('Interurbanos del Consorcio de Málaga (ADR 0022)', () => {
         ['I2', 'Hospital Civil', 'Málaga', 'interurban'],
         ['I3', 'Torremolinos', 'Torremolinos', 'interurban'],
         ['I4', 'Benalmádena Costa', 'Benalmádena', 'interurban'],
-        ['I5', 'Arroyo de la Miel V', 'Benalmádena', 'interurban'],
+        ['I5', 'Arroyo de la Miel', 'Benalmádena', 'interurban'],
       ],
     );
   });
@@ -217,6 +218,24 @@ describe('Interurbanos del Consorcio de Málaga (ADR 0022)', () => {
     assert.equal(previous?.lines.length, 1);
     assert.equal(previous?.stops.length, 5);
     assert.deepEqual(Object.keys(previous?.timetables.services ?? {}).sort(), ['iDOM', 'iLAB']);
+  });
+});
+
+describe('Nombres de parada del Consorcio', () => {
+  it('sin la "V" de vuelta, romanos en mayúscula y "de" en minúscula', () => {
+    assert.equal(cleanStopName('Hospital Civil V'), 'Hospital Civil');
+    assert.equal(cleanStopName('Picasso Ii V'), 'Picasso II');
+    assert.equal(cleanStopName('Pablo Ruiz Picasso Iii'), 'Pablo Ruiz Picasso III');
+    assert.equal(cleanStopName('Pinos De Alhaurín Ii'), 'Pinos de Alhaurín II');
+    assert.equal(cleanStopName('Puerto De La Torre'), 'Puerto de la Torre');
+    assert.equal(cleanStopName('Cantal Bajo (Cueva Del Tesoro) V'), 'Cantal Bajo (Cueva del Tesoro)');
+  });
+
+  it('deja los artículos que son parte del nombre y la "V" que no va al final', () => {
+    assert.equal(cleanStopName('Iglesia La Cala (Serramar)'), 'Iglesia La Cala (Serramar)');
+    assert.equal(cleanStopName('El Tintero Ii'), 'El Tintero II');
+    assert.equal(cleanStopName('V Centenario'), 'V Centenario');
+    assert.equal(cleanStopName('  Torremolinos  '), 'Torremolinos');
   });
 });
 

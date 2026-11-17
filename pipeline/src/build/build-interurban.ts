@@ -119,7 +119,7 @@ export function buildInterurban(
   );
 
   const out = emptyPatternOutput();
-  const stopName = (id: string) => (rawStops.get(id)?.['stop_name'] ?? id).trim();
+  const stopName = (id: string) => cleanStopName(rawStops.get(id)?.['stop_name'] ?? id);
   const stopPoint = (id: string): LatLon => {
     const raw = rawStops.get(id)!;
     return [Number(raw['stop_lat']), Number(raw['stop_lon'])];
@@ -200,6 +200,28 @@ export function buildInterurban(
 }
 
 /** "4_149" -> "I149": con prefijo propio para no chocar con los códigos de la EMT. */
+/**
+ * Nombre de parada del Consorcio como lo lee una persona:
+ * - Sin la "V" final con la que marca la parada de vuelta ("Hospital Civil V"):
+ *   no se entiende y la app ya distingue el sentido por sus líneas.
+ * - Números romanos en mayúsculas ("Picasso Ii" -> "Picasso II").
+ * - "de", "del" e "y" en minúscula, y el artículo que sigue a "de"
+ *   ("Pinos De La Torre" -> "Pinos de la Torre"). Los demás artículos se
+ *   dejan: suelen ser parte del nombre del sitio ("La Cala", "El Palo").
+ */
+export function cleanStopName(raw: string): string {
+  const words = raw.trim().replace(/\s+/g, ' ').replace(/ V$/, '').split(' ');
+  return words
+    .map((word, index) => {
+      if (/^(I|Ii|Iii|Iv|Vi|Vii|Viii|Ix)$/.test(word)) return word.toUpperCase();
+      if (index === 0) return word;
+      if (/^(De|Del|Y)$/.test(word)) return word.toLowerCase();
+      if (/^(La|Las|Los|El)$/.test(word) && words[index - 1] === 'De') return word.toLowerCase();
+      return word;
+    })
+    .join(' ');
+}
+
 function publishedStopId(gtfsId: string): string {
   return `${INTERURBAN.stopPrefix}${gtfsId.slice(INTERURBAN.areaPrefix.length)}`;
 }
