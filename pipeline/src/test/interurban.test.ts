@@ -9,6 +9,7 @@ import {
   parseConsortiumStops,
   splitLineName,
 } from '../build/build-interurban.ts';
+import { headsignsOf } from '../build/gtfs-patterns.ts';
 import { partFromPrevious } from '../build/previous-part.ts';
 import { mergeTimetables } from '../build/build-metro.ts';
 import { encodeShapes } from '../build/build-dataset.ts';
@@ -276,5 +277,35 @@ describe('Nombres de línea del Consorcio', () => {
       name: 'Málaga-Alhaurín de la Torre',
       notes: '',
     });
+  });
+});
+
+describe('Destinos de los recorridos', () => {
+  const pattern = (...stopIds: string[]) => ({ stopIds, trips: [] });
+  const name = (id: string) => id;
+
+  it('de dónde salen si acaban en la misma parada', () => {
+    assert.deepEqual(headsignsOf([pattern('A', 'B', 'Z'), pattern('C', 'B', 'Z')], name), [
+      'Z (desde A)',
+      'Z (desde C)',
+    ]);
+  });
+
+  it('por dónde pasan, en vez de un número, si también salen de la misma', () => {
+    assert.deepEqual(
+      headsignsOf([pattern('A', 'B', 'Z'), pattern('A', 'B', 'C', 'Z'), pattern('X', 'Z')], name),
+      ['Z (desde A)', 'Z (desde A, por C)', 'Z (desde X)'],
+    );
+    assert.deepEqual(headsignsOf([pattern('A', 'B', 'Z'), pattern('A', 'C', 'B', 'Z')], name), [
+      'Z',
+      'Z (por C)',
+    ]);
+  });
+
+  it('un número solo si recorren las mismas paradas', () => {
+    assert.deepEqual(
+      headsignsOf([pattern('A', 'B', 'C', 'Z'), pattern('A', 'C', 'B', 'Z')], name),
+      ['Z 1', 'Z 2'],
+    );
   });
 });

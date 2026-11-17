@@ -197,25 +197,59 @@ export function groupPatterns(trips: readonly Trip[], firstStop?: string): Patte
 }
 
 /**
- * Destino de cada recorrido: la última parada. Si dos recorridos de la línea
- * acaban en la misma, se añade de dónde salen; y si también coinciden, un número.
+ * Destino de cada recorrido: la última parada. Si varios recorridos de la línea
+ * acaban en la misma, se añade de dónde salen y, si también coinciden, por dónde
+ * pasan: una parada suya que los otros no tienen ("Gibralgalia (por Hospital
+ * Valle del Guadalhorce)"). Un número ("… 1", "… 2") no le decía nada a quien
+ * espera en la parada (segunda vuelta de testers, 17/11/2026); queda solo si ni
+ * así se distinguen, porque recorren las mismas paradas en otro orden.
  */
 export function headsignsOf(
   patterns: readonly Pattern[],
   stopName: (id: string) => string,
 ): string[] {
   const last = patterns.map((p) => stopName(p.stopIds.at(-1)!));
-  const withOrigin = patterns.map((p, i) =>
-    last.filter((name) => name === last[i]).length > 1
-      ? `${last[i]} (desde ${stopName(p.stopIds[0]!)})`
-      : last[i]!,
-  );
-  return withOrigin.map((name, i) => {
-    const same = withOrigin.filter((other) => other === name).length;
+  const first = patterns.map((p) => stopName(p.stopIds[0]!));
+  const named = patterns.map((p, i) => {
+    const sameEnd = patterns.flatMap((_, j) => (last[j] === last[i] ? [j] : []));
+    if (sameEnd.length === 1) return last[i]!;
+    const details: string[] = [];
+    if (sameEnd.some((j) => first[j] !== first[i])) details.push(`desde ${first[i]}`);
+    const sameTrip = sameEnd.filter((j) => j !== i && first[j] === first[i]);
+    const via = viaStop(
+      p,
+      sameTrip.map((j) => patterns[j]!),
+      stopName,
+    );
+    if (via) details.push(`por ${via}`);
+    return details.length > 0 ? `${last[i]} (${details.join(', ')})` : last[i]!;
+  });
+  return named.map((name, i) => {
+    const same = named.filter((other) => other === name).length;
     if (same === 1) return name;
-    const n = withOrigin.slice(0, i + 1).filter((other) => other === name).length;
+    const n = named.slice(0, i + 1).filter((other) => other === name).length;
     return `${name} ${n}`;
   });
+}
+
+/**
+ * Parada del recorrido (sin contar la de salida ni la de llegada) por la que no
+ * pasa ninguno de los otros o, si no la hay, alguno de ellos: la primera. null
+ * si no hay otros o no hay ninguna.
+ */
+function viaStop(
+  pattern: Pattern,
+  others: readonly Pattern[],
+  stopName: (id: string) => string,
+): string | null {
+  if (others.length === 0) return null;
+  const otherNames = others.map((o) => new Set(o.stopIds.map(stopName)));
+  const inner = pattern.stopIds.slice(1, -1).map(stopName);
+  return (
+    inner.find((name) => otherNames.every((names) => !names.has(name))) ??
+    inner.find((name) => otherNames.some((names) => !names.has(name))) ??
+    null
+  );
 }
 
 /**
