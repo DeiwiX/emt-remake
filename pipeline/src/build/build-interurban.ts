@@ -152,8 +152,7 @@ export function buildInterurban(
     const directions = publishDirections(lineId, lineTrips, shapes, naming, out);
     lines.push({
       id: lineId,
-      name: lineName(route, lineId, directions[0], stopName),
-      notes: '',
+      ...lineName(route, lineId, directions[0], stopName),
       mode: 'interurban',
       color: INTERURBAN.color,
       directions,
@@ -292,19 +291,31 @@ function readTrips(
   });
 }
 
-/** Nombre de la línea: el largo del GTFS sin el código delante, o "origen - destino". */
+/**
+ * Nombre de la línea: el largo del GTFS sin el código delante, o "origen -
+ * destino". El periodo de las líneas de temporada ("(Del 09/09/26 Al
+ * 28/05/27)") pasa a las notas: en la lista alargaba el nombre y no se
+ * entendía (testers, 17/11/2026).
+ */
 function lineName(
   route: Record<string, string>,
   lineId: string,
   main: PublishedDirection | undefined,
   stopName: (id: string) => string,
-): string {
+): { name: string; notes: string } {
   const long = (route['route_long_name'] ?? '').trim();
   const withoutCode = long.startsWith(lineId) ? long.slice(lineId.length).trim() : long;
-  if (withoutCode) return withoutCode;
-  if (!main) return lineId;
+  if (withoutCode) return splitLineName(withoutCode);
+  if (!main) return { name: lineId, notes: '' };
   const first = main.stopIds[0]!.slice(INTERURBAN.stopPrefix.length);
-  return `${stopName(`${INTERURBAN.areaPrefix}${first}`)} - ${main.headsign}`;
+  return { name: `${stopName(`${INTERURBAN.areaPrefix}${first}`)} - ${main.headsign}`, notes: '' };
+}
+
+/** Separa el periodo "(Del dd/mm/aa Al dd/mm/aa)" del nombre y lo limpia como el de una parada. */
+export function splitLineName(raw: string): { name: string; notes: string } {
+  const period = /\s*\(Del (\d{2}\/\d{2}\/\d{2}) Al (\d{2}\/\d{2}\/\d{2})\)\s*$/i.exec(raw);
+  const name = cleanStopName(period ? raw.slice(0, period.index) : raw);
+  return { name, notes: period ? `Circula del ${period[1]} al ${period[2]}.` : '' };
 }
 
 /**
