@@ -7,6 +7,7 @@ import {
   cleanStopName,
   holidayServiceDates,
   parseConsortiumStops,
+  splitLineName,
 } from '../build/build-interurban.ts';
 import { partFromPrevious } from '../build/previous-part.ts';
 import { mergeTimetables } from '../build/build-metro.ts';
@@ -262,5 +263,18 @@ describe('Festivos del Consorcio', () => {
     );
     assert.deepEqual(dates.get('LAB'), ['20261201', '20261202', '20261203']);
     assert.deepEqual(dates.get('FERIA'), ['20261202']);
+  });
+});
+
+describe('Nombres de línea del Consorcio', () => {
+  it('el periodo de las líneas de temporada pasa a las notas', () => {
+    assert.deepEqual(splitLineName('Alh. De La Torre-Churriana-Teatinos (Del 09/09/26 Al 28/05/27)'), {
+      name: 'Alh. de la Torre-Churriana-Teatinos',
+      notes: 'Circula del 09/09/26 al 28/05/27.',
+    });
+    assert.deepEqual(splitLineName('Málaga-Alhaurín De La Torre'), {
+      name: 'Málaga-Alhaurín de la Torre',
+      notes: '',
+    });
   });
 });
