@@ -120,6 +120,39 @@ export function readableHead(head: string): string {
   return shouting ? titleCase(head) : head;
 }
 
+/** Tipos de vía abreviados de las direcciones de la EMT ("CL", "AV.", "CMNO"...). */
+const STREET_TYPES: Readonly<Record<string, string>> = {
+  ALMD: 'Alameda',
+  AV: 'Avenida',
+  AVDA: 'Avenida',
+  BDA: 'Barriada',
+  BV: 'Bulevar',
+  CJON: 'Callejón',
+  CL: 'Calle',
+  CMNO: 'Camino',
+  CRIL: 'Carril',
+  CRTA: 'Carretera',
+  CTRA: 'Carretera',
+  DSMO: 'Diseminado',
+  PJE: 'Pasaje',
+  PL: 'Plaza',
+  PLLO: 'Pasillo',
+  PSO: 'Paseo',
+  PZA: 'Plaza',
+};
+
+/**
+ * Dirección de una parada de la EMT legible (testers, 17/11/2026): llega en
+ * mayúsculas y con el tipo de vía abreviado ("ALMD PRINCIPAL 28"); sale
+ * "Alameda Principal 28". Las que ya vienen escritas normal no se tocan.
+ */
+export function readableAddress(address: string): string {
+  if (address !== address.toLocaleUpperCase('es')) return address;
+  const match = /^(\p{Lu}+)\.?\s*(.*)$/u.exec(address.trim());
+  const type = match ? STREET_TYPES[match[1]!] : undefined;
+  return type ? `${type} ${titleCase(match![2]!)}`.trim() : titleCase(address);
+}
+
 function collectStops(emtLines: EmtLine[], report: BuildReport): PublishedStop[] {
   const byId = new Map<string, PublishedStop>();
   for (const line of emtLines) {
@@ -128,7 +161,7 @@ function collectStops(emtLines: EmtLine[], report: BuildReport): PublishedStop[]
         const published: PublishedStop = {
           id: stop.code,
           name: stop.name,
-          address: stop.address,
+          address: readableAddress(stop.address),
           lat: round5(stop.lat),
           lon: round5(stop.lon),
         };
