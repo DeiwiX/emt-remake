@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { strToU8, zipSync } from 'fflate';
 
-import { buildDataset } from '../build/build-dataset.ts';
+import { buildDataset, readableHead } from '../build/build-dataset.ts';
 import {
   type LatLon,
   decodePolyline,
@@ -238,6 +238,11 @@ x,7,1,TEATINOS   ,T,"${wkt}"
     assert.equal(zone?.name, 'Teatinos');
     assert.equal(titleCase('CARRETERA DE CADIZ'), 'Carretera de Cadiz');
     assert.equal(titleCase('TEATINOS-UNIVERSIDAD'), 'Teatinos-Universidad');
+    assert.equal(readableHead('PASEO DE LA FAROLA'), 'Paseo de la Farola');
+    assert.equal(readableHead('SACABA BEACH'), 'Sacaba Beach');
+    assert.equal(readableHead('PTA'), 'PTA');
+    assert.equal(readableHead('C.A.R.E.'), 'C.A.R.E.');
+    assert.equal(readableHead('Alameda Principal'), 'Alameda Principal');
   });
 
   it('incluye las paradas de dentro y las de junto al borde, no las lejanas', () => {

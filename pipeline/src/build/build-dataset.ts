@@ -11,6 +11,7 @@ import type { GtfsData } from '../sources/gtfs.ts';
 import { type LatLon, encodePolyline, simplify } from './geometry.ts';
 import { matchShape } from './match-shapes.ts';
 import { directionTimes } from './travel-times.ts';
+import { titleCase } from '../sources/zones.ts';
 
 export interface BuildReport {
   /** Sentidos sin trazado oficial, dibujados uniendo paradas. */
@@ -106,7 +107,17 @@ export function buildDataset(emtLines: EmtLine[], gtfs: GtfsData): Dataset {
  */
 function headsignFor(line: EmtLine, sentido: number, lastStopName: string): string {
   const head = sentido === 1 ? line.returnHead : line.originHead;
-  return head || lastStopName;
+  return readableHead(head || lastStopName);
+}
+
+/**
+ * Algunas cabeceras de la EMT vienen en mayúsculas ("PASEO DE LA FAROLA"): se
+ * escriben como las demás ("Paseo de la Farola"). Las siglas sin espacios
+ * ("PTA", "C.A.R.E.") se dejan (informe de testers, 17/11/2026).
+ */
+export function readableHead(head: string): string {
+  const shouting = head === head.toLocaleUpperCase('es') && /\p{L}{4,}\s+\p{L}/u.test(head);
+  return shouting ? titleCase(head) : head;
 }
 
 function collectStops(emtLines: EmtLine[], report: BuildReport): PublishedStop[] {
